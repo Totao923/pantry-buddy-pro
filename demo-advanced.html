@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pantry Buddy Pro - Advanced AI Recipe Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .premium-glow {
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+        }
+        .ingredient-category {
+            transition: all 0.3s ease;
+        }
+        .ingredient-category:hover {
+            transform: translateY(-2px);
+        }
+        .recipe-step {
+            transition: all 0.3s ease;
+        }
+        .recipe-step.completed {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+    <!-- Advanced Header -->
+    <header class="bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                        <span class="text-2xl">🧑‍🍳</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold gradient-text">
+                            Pantry Buddy Pro
+                        </h1>
+                        <p class="text-sm text-gray-600">AI-Powered Culinary Assistant</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex items-center gap-6 text-sm">
+                        <div class="flex items-center gap-2 text-gray-600">
+                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                            <span id="ingredient-count">0 ingredients</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-600">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            <span id="recipe-count">0 recipes</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="togglePremiumDashboard()" class="px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700">
+                        <span class="text-lg">⭐</span>
+                        Upgrade
+                    </button>
+                    
+                    <div class="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 rounded-full flex items-center justify-center">
+                        <span class="text-lg">👤</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Premium Dashboard Modal -->
+    <div id="premium-dashboard" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto hidden">
+        <div class="min-h-screen py-8">
+            <div class="max-w-6xl mx-auto p-6 relative">
+                <button onclick="togglePremiumDashboard()" class="absolute top-4 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-100">
+                    ✕
+                </button>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-100">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center gradient-text">Premium Dashboard</h1>
+                    
+                    <!-- Subscription Tiers -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="relative p-6 rounded-2xl bg-gradient-to-br from-gray-400 to-gray-600 text-white">
+                            <div class="text-3xl mb-3">🆓</div>
+                            <h3 class="text-xl font-bold mb-2">Free</h3>
+                            <div class="text-2xl font-bold mb-4">$0<span class="text-sm">/forever</span></div>
+                            <ul class="text-sm space-y-1 mb-4">
+                                <li>✓ 3 recipes per day</li>
+                                <li>✓ Basic cuisines</li>
+                                <li>✓ Simple ingredients</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="relative p-6 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white premium-glow">
+                            <div class="absolute top-4 right-4 bg-yellow-400 text-black px-2 py-1 rounded-full text-xs font-bold">
+                                POPULAR
+                            </div>
+                            <div class="text-3xl mb-3">⭐</div>
+                            <h3 class="text-xl font-bold mb-2">Premium</h3>
+                            <div class="text-2xl font-bold mb-4">$9.99<span class="text-sm">/month</span></div>
+                            <ul class="text-sm space-y-1 mb-4">
+                                <li>✓ Unlimited recipes</li>
+                                <li>✓ 15+ cuisines</li>
+                                <li>✓ Nutrition tracking</li>
+                                <li>✓ Meal planning</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="relative p-6 rounded-2xl bg-gradient-to-br from-green-500 to-blue-500 text-white">
+                            <div class="text-3xl mb-3">👨‍👩‍👧‍👦</div>
+                            <h3 class="text-xl font-bold mb-2">Family</h3>
+                            <div class="text-2xl font-bold mb-4">$19.99<span class="text-sm">/month</span></div>
+                            <ul class="text-sm space-y-1 mb-4">
+                                <li>✓ All Premium features</li>
+                                <li>✓ 6 family members</li>
+                                <li>✓ Shared meal plans</li>
+                                <li>✓ Kid-friendly recipes</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="relative p-6 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 text-white">
+                            <div class="text-3xl mb-3">👨‍🍳</div>
+                            <h3 class="text-xl font-bold mb-2">Chef Pro</h3>
+                            <div class="text-2xl font-bold mb-4">$39.99<span class="text-sm">/month</span></div>
+                            <ul class="text-sm space-y-1 mb-4">
+                                <li>✓ All Family features</li>
+                                <li>✓ Video tutorials</li>
+                                <li>✓ Chef support</li>
+                                <li>✓ Pro techniques</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Enhanced Hero Section -->
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-6">
+                <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                Advanced AI Recipe Engine
+            </div>
+            
+            <h2 class="text-5xl font-bold mb-6">
+                <span class="gradient-text">Transform Your Kitchen Into a</span><br>
+                <span class="text-6xl gradient-text">Culinary Studio</span>
+            </h2>
+            
+            <p class="text-xl text-gray-600 max-w-4xl mx-auto mb-12 leading-relaxed">
+                Our advanced AI analyzes your ingredients, dietary preferences, and cooking style to create 
+                restaurant-quality recipes that are perfectly tailored to you.
+            </p>
+            
+            <!-- Enhanced Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mb-16">
+                <div class="text-center">
+                    <div class="text-4xl font-bold gradient-text">50K+</div>
+                    <div class="text-gray-600 font-medium">Recipes Generated</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold gradient-text">15+</div>
+                    <div class="text-gray-600 font-medium">Global Cuisines</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold gradient-text">99.2%</div>
+                    <div class="text-gray-600 font-medium">Success Rate</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold gradient-text">4.9★</div>
+                    <div class="text-gray-600 font-medium">User Rating</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progressive App Interface -->
+        <div class="space-y-12">
+            <!-- Step 1: Smart Pantry -->
+            <div id="step1" class="transition-all duration-500">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg">
+                        1
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">Smart Pantry Management</h3>
+                        <p class="text-gray-600">Add and organize your ingredients with AI-powered suggestions</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                    <!-- Smart Suggestions -->
+                    <div id="smart-suggestions" class="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200 hidden">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <span class="text-xl">💡</span>
+                            Smart Suggestions
+                        </h3>
+                        <div id="suggestions-list"></div>
+                    </div>
+
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">🧑‍🍳</span>
+                            <h2 class="text-3xl font-bold text-gray-800">Smart Pantry</h2>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <span id="ingredient-badge" class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">
+                                0 ingredients
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Add Ingredient Section -->
+                    <div class="mb-8">
+                        <div class="flex gap-4 mb-4">
+                            <div class="flex-1 relative">
+                                <input
+                                    type="text"
+                                    id="ingredientInput"
+                                    placeholder="Add ingredient (e.g., organic chicken breast, cherry tomatoes...)"
+                                    class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                />
+                                <div id="ingredient-suggestions" class="absolute z-10 w-full bg-white border-2 border-gray-100 rounded-xl mt-2 shadow-lg max-h-48 overflow-y-auto hidden"></div>
+                            </div>
+                            
+                            <select id="categorySelect" class="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="protein">🥩 Protein</option>
+                                <option value="vegetables">🥬 Vegetables</option>
+                                <option value="fruits">🍎 Fruits</option>
+                                <option value="grains">🌾 Grains</option>
+                                <option value="dairy">🥛 Dairy</option>
+                                <option value="spices">🌶️ Spices</option>
+                                <option value="herbs">🌿 Herbs</option>
+                                <option value="oils">🫒 Oils</option>
+                                <option value="pantry">🏺 Pantry</option>
+                                <option value="other">📦 Other</option>
+                            </select>
+                            
+                            <button onclick="addIngredient()" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all font-semibold shadow-lg">
+                                Add
+                            </button>
+                        </div>
+
+                        <!-- Quick Add Categories -->
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <div class="ingredient-category bg-gray-50 rounded-xl p-3 cursor-pointer hover:bg-gray-100">
+                                <div class="text-center mb-2">
+                                    <span class="text-2xl">🥩</span>
+                                    <h4 class="text-sm font-medium text-gray-700">Protein</h4>
+                                </div>
+                                <div class="space-y-1">
+                                    <button onclick="addQuickIngredient('Chicken Breast')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Chicken</button>
+                                    <button onclick="addQuickIngredient('Salmon')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Salmon</button>
+                                </div>
+                            </div>
+                            
+                            <div class="ingredient-category bg-gray-50 rounded-xl p-3 cursor-pointer hover:bg-gray-100">
+                                <div class="text-center mb-2">
+                                    <span class="text-2xl">🥬</span>
+                                    <h4 class="text-sm font-medium text-gray-700">Vegetables</h4>
+                                </div>
+                                <div class="space-y-1">
+                                    <button onclick="addQuickIngredient('Cherry Tomatoes')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Tomatoes</button>
+                                    <button onclick="addQuickIngredient('Bell Peppers')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Peppers</button>
+                                </div>
+                            </div>
+                            
+                            <div class="ingredient-category bg-gray-50 rounded-xl p-3 cursor-pointer hover:bg-gray-100">
+                                <div class="text-center mb-2">
+                                    <span class="text-2xl">🌾</span>
+                                    <h4 class="text-sm font-medium text-gray-700">Grains</h4>
+                                </div>
+                                <div class="space-y-1">
+                                    <button onclick="addQuickIngredient('Jasmine Rice')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Rice</button>
+                                    <button onclick="addQuickIngredient('Linguine Pasta')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Pasta</button>
+                                </div>
+                            </div>
+                            
+                            <div class="ingredient-category bg-gray-50 rounded-xl p-3 cursor-pointer hover:bg-gray-100">
+                                <div class="text-center mb-2">
+                                    <span class="text-2xl">🥛</span>
+                                    <h4 class="text-sm font-medium text-gray-700">Dairy</h4>
+                                </div>
+                                <div class="space-y-1">
+                                    <button onclick="addQuickIngredient('Parmesan Cheese')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Cheese</button>
+                                    <button onclick="addQuickIngredient('Heavy Cream')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Cream</button>
+                                </div>
+                            </div>
+                            
+                            <div class="ingredient-category bg-gray-50 rounded-xl p-3 cursor-pointer hover:bg-gray-100">
+                                <div class="text-center mb-2">
+                                    <span class="text-2xl">🌿</span>
+                                    <h4 class="text-sm font-medium text-gray-700">Herbs</h4>
+                                </div>
+                                <div class="space-y-1">
+                                    <button onclick="addQuickIngredient('Fresh Basil')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Basil</button>
+                                    <button onclick="addQuickIngredient('Garlic')" class="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700">+ Garlic</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ingredients Display -->
+                    <div id="ingredients-display" class="hidden">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Your Smart Pantry</h3>
+                        <div id="ingredients-by-category"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Advanced Cuisine Selection -->
+            <div id="step2" class="transition-all duration-500 opacity-50 hidden">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg">
+                        2
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">Culinary Preferences</h3>
+                        <p class="text-gray-600">Select cuisine style and customize your cooking preferences</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Choose Your Culinary Adventure</h2>
+                    <p class="text-gray-600 mb-6 text-lg">Select a cuisine style and let our AI create the perfect recipe</p>
+
+                    <!-- Preferences Panel -->
+                    <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Cooking Preferences</h3>
+                        
+                        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Your Cooking Experience</label>
+                                <select id="experience-select" onchange="setExperienceLevel()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="beginner">🌱 Beginner (Simple recipes)</option>
+                                    <option value="intermediate" selected>⭐ Intermediate (Balanced)</option>
+                                    <option value="advanced">⭐⭐ Advanced (Complex)</option>
+                                    <option value="expert">👨‍🍳 Expert (Professional)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Spice Level</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button onclick="setSpiceLevel('mild')" class="spice-btn px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">Mild</button>
+                                    <button onclick="setSpiceLevel('medium')" class="spice-btn px-3 py-2 rounded-lg text-sm font-medium bg-yellow-100 text-yellow-800">Medium</button>
+                                    <button onclick="setSpiceLevel('hot')" class="spice-btn px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">Hot</button>
+                                    <button onclick="setSpiceLevel('extra-hot')" class="spice-btn px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">Extra Hot</button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Max Time: <span id="time-display">60</span> min</label>
+                                <input type="range" id="time-slider" min="15" max="120" step="15" value="60" class="w-full" onchange="updateTimeDisplay()">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Recipe Difficulty</label>
+                                <select id="difficulty-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <option value="any">Any Level</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Easy">Easy</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Hard">Hard</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cuisine Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="cuisine-grid">
+                        <!-- Cuisines will be populated by JavaScript -->
+                    </div>
+                    
+                    <div id="selected-cuisine" class="mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200 hidden">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl" id="selected-cuisine-icon"></span>
+                            <div>
+                                <p class="font-semibold text-gray-800">Selected: <span id="selected-cuisine-name"></span></p>
+                                <p class="text-sm text-gray-600" id="selected-cuisine-desc"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Recipe Generation -->
+            <div id="step3" class="text-center hidden">
+                <div class="flex items-center justify-center gap-4 mb-8">
+                    <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-2xl flex items-center justify-center font-bold text-lg shadow-lg">
+                        3
+                    </div>
+                    <div class="text-left">
+                        <h3 class="text-2xl font-bold text-gray-800">AI Recipe Generation</h3>
+                        <p class="text-gray-600">Create your perfect recipe with advanced AI</p>
+                    </div>
+                </div>
+                
+                <button id="generate-btn" onclick="generateAdvancedRecipe()" class="group relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white px-12 py-6 rounded-2xl font-bold text-xl hover:shadow-2xl transition-all shadow-xl">
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-700 via-purple-700 to-pink-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <span class="relative flex items-center gap-3">
+                        <span class="text-2xl">🤖</span>
+                        Generate Gourmet Recipe
+                    </span>
+                </button>
+            </div>
+
+            <!-- Recipe Display -->
+            <div id="recipe-display" class="hidden">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl flex items-center justify-center font-bold text-lg shadow-lg">
+                        ✨
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">Your Gourmet Creation</h3>
+                        <p class="text-gray-600">AI-crafted recipe tailored to your ingredients and preferences</p>
+                    </div>
+                </div>
+                
+                <div id="recipe-card" class="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-w-4xl mx-auto">
+                    <!-- Recipe content will be inserted here -->
+                </div>
+                
+                <!-- Recipe Actions -->
+                <div class="flex flex-wrap justify-center gap-4 mt-8">
+                    <button onclick="generateAdvancedRecipe()" class="px-8 py-3 bg-white text-blue-600 rounded-xl border-2 border-blue-600 hover:bg-blue-50 transition-colors font-semibold shadow-lg">
+                        🎲 Generate Another Recipe
+                    </button>
+                    <button onclick="saveRecipe()" class="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl hover:from-green-600 hover:to-blue-600 transition-all font-semibold shadow-lg">
+                        💾 Save Recipe
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global state
+        let ingredients = [];
+        let selectedCuisine = '';
+        let currentRecipe = null;
+        let spiceLevel = 'medium';
+        let maxTime = 60;
+        let difficulty = 'any';
+        let experienceLevel = 'intermediate';
+
+        const categories = {
+            protein: { icon: '🥩', color: 'bg-red-100 text-red-800', examples: ['Chicken', 'Beef', 'Fish', 'Tofu', 'Eggs', 'Beans'] },
+            vegetables: { icon: '🥬', color: 'bg-green-100 text-green-800', examples: ['Onion', 'Tomato', 'Carrot', 'Broccoli', 'Bell Pepper', 'Spinach'] },
+            fruits: { icon: '🍎', color: 'bg-pink-100 text-pink-800', examples: ['Apple', 'Banana', 'Lemon', 'Orange', 'Berries', 'Avocado'] },
+            grains: { icon: '🌾', color: 'bg-yellow-100 text-yellow-800', examples: ['Rice', 'Pasta', 'Bread', 'Quinoa', 'Oats', 'Flour'] },
+            dairy: { icon: '🥛', color: 'bg-blue-100 text-blue-800', examples: ['Milk', 'Cheese', 'Yogurt', 'Butter', 'Cream', 'Sour Cream'] },
+            spices: { icon: '🌶️', color: 'bg-orange-100 text-orange-800', examples: ['Salt', 'Pepper', 'Paprika', 'Cumin', 'Garlic Powder', 'Chili'] },
+            herbs: { icon: '🌿', color: 'bg-emerald-100 text-emerald-800', examples: ['Basil', 'Oregano', 'Thyme', 'Cilantro', 'Parsley', 'Rosemary'] },
+            oils: { icon: '🫒', color: 'bg-lime-100 text-lime-800', examples: ['Olive Oil', 'Vegetable Oil', 'Coconut Oil', 'Sesame Oil', 'Butter', 'Ghee'] },
+            pantry: { icon: '🏺', color: 'bg-amber-100 text-amber-800', examples: ['Sugar', 'Flour', 'Baking Powder', 'Vanilla', 'Honey', 'Vinegar'] },
+            other: { icon: '📦', color: 'bg-gray-100 text-gray-800', examples: ['Stock', 'Sauce', 'Condiments', 'Nuts', 'Seeds', 'Dried Fruits'] }
+        };
+
+        const cuisines = [
+            { id: 'any', name: 'Surprise Me', description: 'AI will choose the perfect cuisine', icon: '🎲', color: 'from-purple-500 to-pink-500' },
+            { id: 'italian', name: 'Italian', description: 'Pasta, risotto, Mediterranean flavors', icon: '🍝', color: 'from-green-500 to-red-500' },
+            { id: 'asian', name: 'Pan-Asian', description: 'Stir-fries, curries, bold flavors', icon: '🥢', color: 'from-red-500 to-yellow-500' },
+            { id: 'mexican', name: 'Mexican', description: 'Tacos, enchiladas, vibrant spices', icon: '🌮', color: 'from-yellow-500 to-red-500' },
+            { id: 'indian', name: 'Indian', description: 'Rich curries and aromatic spices', icon: '🍛', color: 'from-orange-500 to-red-500' },
+            { id: 'mediterranean', name: 'Mediterranean', description: 'Fresh, healthy, olive oil-rich dishes', icon: '🫒', color: 'from-blue-500 to-green-500' },
+            { id: 'french', name: 'French', description: 'Elegant techniques and rich sauces', icon: '🥖', color: 'from-blue-600 to-white' },
+            { id: 'japanese', name: 'Japanese', description: 'Clean flavors and minimal ingredients', icon: '🍣', color: 'from-red-500 to-pink-500' }
+        ];
+
+        // Initialize cuisine grid
+        function initializeCuisineGrid() {
+            const grid = document.getElementById('cuisine-grid');
+            grid.innerHTML = cuisines.map(cuisine => `
+                <button onclick="selectCuisine('${cuisine.id}')" class="cuisine-btn group relative overflow-hidden rounded-2xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-2xl hover:scale-105 p-6">
+                    <div class="absolute inset-0 bg-gradient-to-br ${cuisine.color} opacity-10 group-hover:opacity-20 transition-opacity"></div>
+                    <div class="relative">
+                        <div class="text-4xl mb-3 transform group-hover:scale-110 transition-transform">${cuisine.icon}</div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">${cuisine.name}</h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">${cuisine.description}</p>
+                    </div>
+                </button>
+            `).join('');
+        }
+
+        function addIngredient() {
+            const input = document.getElementById('ingredientInput');
+            const category = document.getElementById('categorySelect').value;
+            const name = input.value.trim();
+            
+            if (name && !ingredients.some(ing => ing.name.toLowerCase() === name.toLowerCase())) {
+                const ingredient = {
+                    id: Date.now().toString(),
+                    name: name,
+                    category: category,
+                    isVegetarian: category !== 'protein' || ['tofu', 'beans', 'lentils', 'eggs', 'cheese'].some(veg => name.toLowerCase().includes(veg)),
+                    isVegan: category !== 'dairy' && (category !== 'protein' || ['tofu', 'beans', 'lentils', 'chickpeas', 'nuts'].some(vegan => name.toLowerCase().includes(vegan)))
+                };
+                
+                ingredients.push(ingredient);
+                input.value = '';
+                updateIngredientsDisplay();
+                updateProgress();
+                generateSmartSuggestions();
+            }
+        }
+
+        function addQuickIngredient(name) {
+            if (!ingredients.some(ing => ing.name.toLowerCase() === name.toLowerCase())) {
+                const category = detectCategory(name);
+                const ingredient = {
+                    id: Date.now().toString(),
+                    name: name,
+                    category: category,
+                    isVegetarian: category !== 'protein' || ['tofu', 'beans', 'lentils', 'eggs', 'cheese'].some(veg => name.toLowerCase().includes(veg)),
+                    isVegan: category !== 'dairy' && (category !== 'protein' || ['tofu', 'beans', 'lentils', 'chickpeas', 'nuts'].some(vegan => name.toLowerCase().includes(vegan)))
+                };
+                
+                ingredients.push(ingredient);
+                updateIngredientsDisplay();
+                updateProgress();
+                generateSmartSuggestions();
+            }
+        }
+
+        function detectCategory(name) {
+            const nameLower = name.toLowerCase();
+            for (const [category, data] of Object.entries(categories)) {
+                if (data.examples.some(example => 
+                    example.toLowerCase().includes(nameLower) || nameLower.includes(example.toLowerCase())
+                )) {
+                    return category;
+                }
+            }
+            return 'other';
+        }
+
+        function removeIngredient(id) {
+            ingredients = ingredients.filter(ing => ing.id !== id);
+            updateIngredientsDisplay();
+            updateProgress();
+            generateSmartSuggestions();
+        }
+
+        function updateIngredientsDisplay() {
+            const display = document.getElementById('ingredients-display');
+            const container = document.getElementById('ingredients-by-category');
+            const badge = document.getElementById('ingredient-badge');
+            const countDisplay = document.getElementById('ingredient-count');
+
+            badge.textContent = `${ingredients.length} ingredients`;
+            countDisplay.textContent = `${ingredients.length} ingredients`;
+
+            if (ingredients.length > 0) {
+                display.classList.remove('hidden');
+                
+                const ingredientsByCategory = {};
+                ingredients.forEach(ingredient => {
+                    if (!ingredientsByCategory[ingredient.category]) {
+                        ingredientsByCategory[ingredient.category] = [];
+                    }
+                    ingredientsByCategory[ingredient.category].push(ingredient);
+                });
+
+                container.innerHTML = Object.entries(ingredientsByCategory).map(([category, categoryIngredients]) => `
+                    <div class="mb-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="text-2xl">${categories[category].icon}</span>
+                            <h3 class="text-xl font-semibold text-gray-800 capitalize">${category}</h3>
+                            <span class="text-sm text-gray-500">(${categoryIngredients.length})</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            ${categoryIngredients.map(ingredient => `
+                                <div class="bg-gradient-to-r from-white to-gray-50 rounded-xl p-4 border border-gray-200 hover:shadow-lg transition-all">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <div class="flex-1">
+                                            <h4 class="font-semibold text-gray-800 capitalize">${ingredient.name}</h4>
+                                        </div>
+                                        <button onclick="removeIngredient('${ingredient.id}')" class="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 transition-colors">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="flex flex-wrap gap-1 mb-3">
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium ${categories[ingredient.category].color}">
+                                            ${ingredient.category}
+                                        </span>
+                                        ${ingredient.isVegan ? '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Vegan</span>' : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                display.classList.add('hidden');
+            }
+        }
+
+        function generateSmartSuggestions() {
+            const suggestionsDiv = document.getElementById('smart-suggestions');
+            const suggestionsList = document.getElementById('suggestions-list');
+            
+            const suggestions = [];
+            
+            // Smart pairing suggestions
+            if (ingredients.some(ing => ing.name.toLowerCase().includes('tomato'))) {
+                suggestions.push({
+                    title: 'Add Fresh Basil',
+                    description: 'Perfect complement to tomatoes - classic Italian pairing',
+                    ingredient: 'Fresh Basil'
+                });
+            }
+            
+            if (ingredients.some(ing => ing.category === 'protein') && !ingredients.some(ing => ing.category === 'grains')) {
+                suggestions.push({
+                    title: 'Add Rice or Pasta',
+                    description: 'Complete your protein with a complementary grain',
+                    ingredient: 'Jasmine Rice'
+                });
+            }
+
+            if (suggestions.length > 0) {
+                suggestionsDiv.classList.remove('hidden');
+                suggestionsList.innerHTML = suggestions.map(suggestion => `
+                    <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100 mb-2">
+                        <div>
+                            <h4 class="font-medium text-gray-800">${suggestion.title}</h4>
+                            <p class="text-sm text-gray-600">${suggestion.description}</p>
+                        </div>
+                        <button onclick="addQuickIngredient('${suggestion.ingredient}')" class="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                            Add
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                suggestionsDiv.classList.add('hidden');
+            }
+        }
+
+        function selectCuisine(cuisineId) {
+            selectedCuisine = cuisineId;
+            const cuisine = cuisines.find(c => c.id === cuisineId);
+            
+            // Update button styles
+            document.querySelectorAll('.cuisine-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-50', 'scale-105');
+                btn.classList.add('border-gray-200');
+            });
+            
+            event.target.closest('.cuisine-btn').classList.add('border-blue-500', 'bg-blue-50', 'scale-105');
+            event.target.closest('.cuisine-btn').classList.remove('border-gray-200');
+            
+            // Show selected cuisine
+            const selectedDiv = document.getElementById('selected-cuisine');
+            const icon = document.getElementById('selected-cuisine-icon');
+            const name = document.getElementById('selected-cuisine-name');
+            const desc = document.getElementById('selected-cuisine-desc');
+            
+            selectedDiv.classList.remove('hidden');
+            icon.textContent = cuisine.icon;
+            name.textContent = cuisine.name;
+            desc.textContent = cuisine.description;
+            
+            updateProgress();
+        }
+
+        function setSpiceLevel(level) {
+            spiceLevel = level;
+            document.querySelectorAll('.spice-btn').forEach(btn => {
+                btn.classList.remove('bg-yellow-100', 'text-yellow-800', 'ring-2', 'ring-blue-500');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            });
+            event.target.classList.remove('bg-gray-100', 'text-gray-700');
+            event.target.classList.add('bg-yellow-100', 'text-yellow-800', 'ring-2', 'ring-blue-500');
+        }
+
+        function setExperienceLevel() {
+            const select = document.getElementById('experience-select');
+            experienceLevel = select.value;
+        }
+
+        function updateTimeDisplay() {
+            const slider = document.getElementById('time-slider');
+            const display = document.getElementById('time-display');
+            maxTime = parseInt(slider.value);
+            display.textContent = maxTime;
+        }
+
+        function updateProgress() {
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            
+            if (ingredients.length > 0) {
+                step2.classList.remove('hidden', 'opacity-50');
+                step2.classList.add('opacity-100');
+                
+                if (selectedCuisine) {
+                    step3.classList.remove('hidden');
+                }
+            } else {
+                step2.classList.add('hidden');
+                step3.classList.add('hidden');
+            }
+        }
+
+        function generateAdvancedRecipe() {
+            const generateBtn = document.getElementById('generate-btn');
+            const recipeDisplay = document.getElementById('recipe-display');
+            const recipeCard = document.getElementById('recipe-card');
+            
+            // Show loading state
+            generateBtn.innerHTML = `
+                <span class="relative flex items-center gap-3">
+                    <div class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Crafting Your Perfect Recipe...
+                </span>
+            `;
+            generateBtn.disabled = true;
+            
+            // Simulate advanced AI processing
+            setTimeout(() => {
+                const recipe = createAdvancedRecipe();
+                currentRecipe = recipe;
+                
+                recipeCard.innerHTML = generateRecipeCard(recipe);
+                recipeDisplay.classList.remove('hidden');
+                
+                // Reset button
+                generateBtn.innerHTML = `
+                    <span class="relative flex items-center gap-3">
+                        <span class="text-2xl">🤖</span>
+                        Generate Gourmet Recipe
+                    </span>
+                `;
+                generateBtn.disabled = false;
+                
+                // Scroll to recipe
+                recipeDisplay.scrollIntoView({ behavior: 'smooth' });
+            }, 2000);
+        }
+
+        function createAdvancedRecipe() {
+            const mainIngredient = ingredients.find(ing => ing.category === 'protein')?.name || 
+                                 ingredients.find(ing => ing.category === 'vegetables')?.name || 
+                                 ingredients[0]?.name || 'Mixed ingredients';
+            
+            const cuisineName = cuisines.find(c => c.id === selectedCuisine)?.name || 'Fusion';
+            
+            // Generate beginner-friendly recipe if user is beginner
+            if (experienceLevel === 'beginner') {
+                return createBeginnerRecipe(mainIngredient, cuisineName);
+            }
+            
+            const recipes = {
+                italian: {
+                    title: `Gourmet ${mainIngredient} Risotto Primavera`,
+                    description: `Restaurant-quality risotto featuring ${mainIngredient} with seasonal ingredients and premium techniques`,
+                    techniques: ['Proper risotto stirring', 'Ingredient layering', 'Perfect al dente texture'],
+                    instructions: [
+                        'Heat premium stock in a separate pan and keep warm throughout cooking',
+                        'Toast arborio rice in olive oil until edges become translucent (2-3 minutes)',
+                        'Deglaze with white wine and stir until completely absorbed',
+                        'Add warm stock one ladle at a time, stirring constantly until absorbed',
+                        'Incorporate your premium ingredients in order of cooking time required',
+                        'Finish with butter, Parmigiano-Reggiano, and fresh herbs off the heat',
+                        'Rest for 2 minutes, then serve immediately on warmed plates'
+                    ]
+                },
+                asian: {
+                    title: `Master Chef ${mainIngredient} Wok Creation`,
+                    description: `Professional wok technique featuring ${mainIngredient} with authentic Asian flavors and perfect wok hei`,
+                    techniques: ['High-heat wok cooking', 'Ingredient timing', 'Sauce emulsification'],
+                    instructions: [
+                        'Prep all ingredients and have them ready - no time to pause during cooking',
+                        'Heat wok over highest heat until smoking (this creates the wok hei flavor)',
+                        'Add oil in a thin stream around the wok edges',
+                        'Add aromatics (garlic, ginger) for 15 seconds until fragrant',
+                        'Add your main ingredients in order of cooking time needed',
+                        'Keep ingredients moving constantly with wok spatula techniques',
+                        'Add sauce mixture and toss rapidly to coat and emulsify',
+                        'Finish with fresh herbs and serve immediately over jasmine rice'
+                    ]
+                },
+                default: {
+                    title: `Artisanal ${mainIngredient} ${cuisineName} Fusion`,
+                    description: `Creative culinary masterpiece combining ${mainIngredient} with global techniques and your unique ingredients`,
+                    techniques: ['Ingredient harmony', 'Flavor balancing', 'Professional plating'],
+                    instructions: [
+                        'Analyze your ingredients and plan the cooking sequence by texture and time',
+                        'Prepare mise en place - have everything measured, chopped, and ready',
+                        'Start with longest-cooking ingredients and build layers of flavor',
+                        'Use proper heat control to develop flavors without burning',
+                        'Taste and adjust seasoning throughout the cooking process',
+                        'Balance flavors: sweet, salty, sour, bitter, and umami',
+                        'Plate with attention to color, texture, and height for visual appeal',
+                        'Serve immediately while at optimal temperature and texture'
+                    ]
+                }
+            };
+            
+            const selectedRecipe = recipes[selectedCuisine] || recipes.default;
+            
+            return {
+                id: Date.now().toString(),
+                title: selectedRecipe.title,
+                description: selectedRecipe.description,
+                cuisine: selectedCuisine || 'fusion',
+                servings: 4,
+                prepTime: 20,
+                cookTime: 35,
+                totalTime: 55,
+                difficulty: difficulty !== 'any' ? difficulty : 'Medium',
+                ingredients: ingredients.slice(0, 8).map((ing, index) => ({
+                    name: ing.name,
+                    amount: index === 0 ? '400g' : index === 1 ? '2 cups' : '1 portion',
+                    optional: index > 4
+                })),
+                instructions: selectedRecipe.instructions,
+                techniques: selectedRecipe.techniques,
+                rating: Math.floor(Math.random() * 1.5) + 4, // 4-5 stars
+                reviews: Math.floor(Math.random() * 500) + 50,
+                nutritionInfo: {
+                    calories: 385,
+                    protein: 28,
+                    carbs: 45,
+                    fat: 12,
+                    fiber: 6
+                },
+                tags: ['gourmet', 'restaurant-quality', 'advanced-technique'],
+                tips: [
+                    'Mise en place is crucial - prepare all ingredients before you start cooking',
+                    'Taste and adjust seasoning at each step for perfect flavor development',
+                    selectedRecipe.techniques[0]
+                ]
+            };
+        }
+
+        function createBeginnerRecipe(mainIngredient, cuisineName) {
+            return {
+                id: Date.now().toString(),
+                title: `Simple ${mainIngredient} One-Pan Meal`,
+                description: `An easy, foolproof recipe perfect for beginners - just one pan and simple steps!`,
+                cuisine: selectedCuisine || 'fusion',
+                servings: 4,
+                prepTime: 10,
+                cookTime: 20,
+                totalTime: 30,
+                difficulty: 'Beginner',
+                ingredients: ingredients.slice(0, 6).map((ing, index) => ({
+                    name: ing.name,
+                    amount: index === 0 ? '2 cups' : '1 handful',
+                    optional: false
+                })),
+                instructions: [
+                    "Don't worry - this is going to be great! First, wash your hands and gather all ingredients on your counter.",
+                    "Cut your ingredients into bite-sized pieces. Take your time - there's no rush!",
+                    "Heat a large pan on medium heat (about halfway on your stove dial). Add a splash of oil.",
+                    "Add your ingredients to the pan. Listen for a gentle sizzling sound - that's perfect!",
+                    "Stir everything around every few minutes. Cook until everything looks done and smells amazing!",
+                    "Taste a small piece (blow on it first - it's hot!). Add a pinch of salt if it needs it.",
+                    "Turn off the heat and serve. You did it! This is your first homemade meal!"
+                ],
+                techniques: [
+                    "Take your time - cooking is about enjoying the process",
+                    "Use your senses - smell, sight, and taste are your best guides",
+                    "Don't worry about perfection - even experienced chefs make mistakes!"
+                ],
+                rating: 5,
+                reviews: 127,
+                nutritionInfo: {
+                    calories: 320,
+                    protein: 18,
+                    carbs: 35,
+                    fat: 8,
+                    fiber: 4
+                },
+                tags: ['beginner-friendly', 'one-pan', 'foolproof', 'confidence-building'],
+                tips: [
+                    "Don't worry about making it perfect - cooking is about experimenting and having fun!",
+                    "If something doesn't look right, just keep cooking a little longer. Most things get better with more time.",
+                    "Save this recipe! Once you master this, you can try adding different ingredients next time.",
+                    "The most important ingredient is confidence - you've got this!"
+                ]
+            };
+        }
+
+        function generateRecipeCard(recipe) {
+            return `
+                <!-- Hero Section -->
+                <div class="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8">
+                    <div class="absolute top-4 right-4 flex gap-2">
+                        <button onclick="saveRecipe()" class="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="pr-20">
+                        <h1 class="text-3xl font-bold mb-2">${recipe.title}</h1>
+                        <p class="text-blue-100 text-lg mb-4">${recipe.description}</p>
+                        
+                        <div class="flex flex-wrap items-center gap-4 mb-4">
+                            <div class="px-3 py-1 rounded-full border font-medium bg-blue-100 text-blue-800 border-blue-200">
+                                <span class="mr-1">⭐</span>
+                                ${recipe.difficulty}
+                            </div>
+                            <div class="flex items-center gap-1 text-blue-100">
+                                <span class="text-lg">🍽️</span>
+                                <span class="font-medium capitalize">${recipe.cuisine}</span>
+                            </div>
+                            <div class="flex items-center gap-1 text-blue-100">
+                                <span class="text-lg">⏱️</span>
+                                <span class="font-medium">${recipe.totalTime}m</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                ${'⭐'.repeat(recipe.rating)}${'☆'.repeat(5-recipe.rating)}
+                                <span class="text-blue-100 text-sm">(${recipe.reviews} reviews)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content Tabs -->
+                <div class="px-8 py-4 bg-white border-b border-gray-200">
+                    <div class="flex gap-1">
+                        <button onclick="showTab('ingredients')" class="tab-btn px-4 py-2 rounded-lg font-medium bg-blue-100 text-blue-700 shadow-sm">
+                            🧄 Ingredients
+                        </button>
+                        <button onclick="showTab('instructions')" class="tab-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100">
+                            📋 Instructions
+                        </button>
+                        <button onclick="showTab('techniques')" class="tab-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100">
+                            👨‍🍳 Techniques
+                        </button>
+                        <button onclick="showTab('nutrition')" class="tab-btn px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100">
+                            📊 Nutrition
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="p-8">
+                    <div id="ingredients-tab" class="tab-content">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">Premium Ingredients</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            ${recipe.ingredients.map((ingredient, index) => `
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                                            <span class="text-lg">🥄</span>
+                                        </div>
+                                        <span class="font-medium text-gray-800 capitalize">${ingredient.name}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="font-bold text-blue-600">${ingredient.amount}</span>
+                                        ${ingredient.optional ? '<div class="text-xs text-gray-500">Optional</div>' : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div id="instructions-tab" class="tab-content hidden">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">Professional Instructions</h3>
+                        <div class="space-y-4">
+                            ${recipe.instructions.map((instruction, index) => `
+                                <div class="flex gap-4 p-6 rounded-xl border-2 border-gray-200 bg-white hover:border-gray-300 recipe-step">
+                                    <button onclick="toggleStep(${index})" class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold bg-blue-500 text-white hover:bg-blue-600 transition-all">
+                                        ${index + 1}
+                                    </button>
+                                    <div class="flex-1">
+                                        <p class="text-gray-800 leading-relaxed">${instruction}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div id="techniques-tab" class="tab-content hidden">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">Master Chef Techniques</h3>
+                        <div class="space-y-4">
+                            ${recipe.techniques.map(technique => `
+                                <div class="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                                    <div class="flex items-start gap-3">
+                                        <span class="text-yellow-600 text-lg">💡</span>
+                                        <p class="text-gray-800">${technique}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div id="nutrition-tab" class="tab-content hidden">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">Nutritional Information (per serving)</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            ${Object.entries(recipe.nutritionInfo).map(([key, value]) => `
+                                <div class="bg-gray-50 rounded-xl p-4 text-center border border-gray-200">
+                                    <div class="text-2xl font-bold text-blue-600 mb-1">${value}</div>
+                                    <div class="text-sm text-gray-600 capitalize">
+                                        ${key === 'calories' ? 'Calories' : key}
+                                        ${key !== 'calories' ? 'g' : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Update button styles
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-100', 'text-blue-700', 'shadow-sm');
+                btn.classList.add('text-gray-600', 'hover:bg-gray-100');
+            });
+            
+            event.target.classList.remove('text-gray-600', 'hover:bg-gray-100');
+            event.target.classList.add('bg-blue-100', 'text-blue-700', 'shadow-sm');
+        }
+
+        function toggleStep(stepIndex) {
+            const step = document.querySelectorAll('.recipe-step')[stepIndex];
+            step.classList.toggle('completed');
+            
+            const button = step.querySelector('button');
+            if (step.classList.contains('completed')) {
+                button.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                button.classList.add('bg-green-500');
+                button.textContent = '✓';
+            } else {
+                button.classList.remove('bg-green-500');
+                button.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                button.textContent = stepIndex + 1;
+            }
+        }
+
+        function saveRecipe() {
+            if (currentRecipe) {
+                // Simulate saving
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                notification.textContent = '✓ Recipe saved successfully!';
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+        }
+
+        function togglePremiumDashboard() {
+            const dashboard = document.getElementById('premium-dashboard');
+            dashboard.classList.toggle('hidden');
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCuisineGrid();
+            
+            // Allow Enter key to add ingredients
+            document.getElementById('ingredientInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addIngredient();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

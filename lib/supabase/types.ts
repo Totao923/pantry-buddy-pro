@@ -1,0 +1,502 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      user_profiles: {
+        Row: {
+          id: string
+          email: string
+          name: string | null
+          avatar_url: string | null
+          subscription_tier: 'free' | 'premium' | 'family' | 'chef'
+          total_recipes_cooked: number
+          join_date: string
+          last_active_date: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          name?: string | null
+          avatar_url?: string | null
+          subscription_tier?: 'free' | 'premium' | 'family' | 'chef'
+          total_recipes_cooked?: number
+          join_date?: string
+          last_active_date?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          name?: string | null
+          avatar_url?: string | null
+          subscription_tier?: 'free' | 'premium' | 'family' | 'chef'
+          total_recipes_cooked?: number
+          join_date?: string
+          last_active_date?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          dietary_restrictions: string[]
+          favorite_cuisines: string[]
+          allergies: string[]
+          spice_level: 'mild' | 'medium' | 'hot' | 'extra-hot'
+          cooking_time: 'quick' | 'medium' | 'slow'
+          serving_size: number
+          budget_range: 'low' | 'medium' | 'high'
+          experience_level: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          dietary_restrictions?: string[]
+          favorite_cuisines?: string[]
+          allergies?: string[]
+          spice_level?: 'mild' | 'medium' | 'hot' | 'extra-hot'
+          cooking_time?: 'quick' | 'medium' | 'slow'
+          serving_size?: number
+          budget_range?: 'low' | 'medium' | 'high'
+          experience_level?: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          dietary_restrictions?: string[]
+          favorite_cuisines?: string[]
+          allergies?: string[]
+          spice_level?: 'mild' | 'medium' | 'hot' | 'extra-hot'
+          cooking_time?: 'quick' | 'medium' | 'slow'
+          serving_size?: number
+          budget_range?: 'low' | 'medium' | 'high'
+          experience_level?: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      pantry_items: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          category: string
+          quantity: number | null
+          unit: string | null
+          expiry_date: string | null
+          purchase_date: string | null
+          location: string | null
+          barcode: string | null
+          price: number | null
+          brand: string | null
+          is_running_low: boolean
+          auto_reorder_level: number | null
+          last_used_date: string | null
+          usage_frequency: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          category: string
+          quantity?: number | null
+          unit?: string | null
+          expiry_date?: string | null
+          purchase_date?: string | null
+          location?: string | null
+          barcode?: string | null
+          price?: number | null
+          brand?: string | null
+          is_running_low?: boolean
+          auto_reorder_level?: number | null
+          last_used_date?: string | null
+          usage_frequency?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          category?: string
+          quantity?: number | null
+          unit?: string | null
+          expiry_date?: string | null
+          purchase_date?: string | null
+          location?: string | null
+          barcode?: string | null
+          price?: number | null
+          brand?: string | null
+          is_running_low?: boolean
+          auto_reorder_level?: number | null
+          last_used_date?: string | null
+          usage_frequency?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      recipes: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          cuisine: string
+          servings: number
+          prep_time: number
+          cook_time: number
+          total_time: number
+          difficulty: string
+          ingredients: Json
+          instructions: Json
+          nutrition_info: Json | null
+          dietary_info: Json
+          tags: string[]
+          rating: number | null
+          reviews: number
+          image_url: string | null
+          video_url: string | null
+          tips: string[] | null
+          variations: Json | null
+          ai_generated: boolean
+          ai_provider: string | null
+          ai_model: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          cuisine: string
+          servings: number
+          prep_time: number
+          cook_time: number
+          total_time: number
+          difficulty: string
+          ingredients: Json
+          instructions: Json
+          nutrition_info?: Json | null
+          dietary_info: Json
+          tags?: string[]
+          rating?: number | null
+          reviews?: number
+          image_url?: string | null
+          video_url?: string | null
+          tips?: string[] | null
+          variations?: Json | null
+          ai_generated?: boolean
+          ai_provider?: string | null
+          ai_model?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          cuisine?: string
+          servings?: number
+          prep_time?: number
+          cook_time?: number
+          total_time?: number
+          difficulty?: string
+          ingredients?: Json
+          instructions?: Json
+          nutrition_info?: Json | null
+          dietary_info?: Json
+          tags?: string[]
+          rating?: number | null
+          reviews?: number
+          image_url?: string | null
+          video_url?: string | null
+          tips?: string[] | null
+          variations?: Json | null
+          ai_generated?: boolean
+          ai_provider?: string | null
+          ai_model?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      recipe_ratings: {
+        Row: {
+          id: string
+          recipe_id: string
+          user_id: string
+          overall_rating: number
+          difficulty_accuracy: number
+          taste_rating: number
+          would_cook_again: boolean
+          review_text: string | null
+          modifications: string[] | null
+          cooking_tips: string[] | null
+          helpful_votes: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          recipe_id: string
+          user_id: string
+          overall_rating: number
+          difficulty_accuracy?: number
+          taste_rating?: number
+          would_cook_again?: boolean
+          review_text?: string | null
+          modifications?: string[] | null
+          cooking_tips?: string[] | null
+          helpful_votes?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          recipe_id?: string
+          user_id?: string
+          overall_rating?: number
+          difficulty_accuracy?: number
+          taste_rating?: number
+          would_cook_again?: boolean
+          review_text?: string | null
+          modifications?: string[] | null
+          cooking_tips?: string[] | null
+          helpful_votes?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      recipe_photos: {
+        Row: {
+          id: string
+          recipe_id: string
+          user_id: string
+          image_url: string
+          thumbnail_url: string
+          caption: string | null
+          photo_type: 'ingredient-prep' | 'cooking-process' | 'final-dish' | 'step-by-step'
+          step_number: number | null
+          uploaded_at: string
+        }
+        Insert: {
+          id?: string
+          recipe_id: string
+          user_id: string
+          image_url: string
+          thumbnail_url: string
+          caption?: string | null
+          photo_type: 'ingredient-prep' | 'cooking-process' | 'final-dish' | 'step-by-step'
+          step_number?: number | null
+          uploaded_at?: string
+        }
+        Update: {
+          id?: string
+          recipe_id?: string
+          user_id?: string
+          image_url?: string
+          thumbnail_url?: string
+          caption?: string | null
+          photo_type?: 'ingredient-prep' | 'cooking-process' | 'final-dish' | 'step-by-step'
+          step_number?: number | null
+          uploaded_at?: string
+        }
+      }
+      usage_tracking: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          recipe_generations: number
+          pantry_items_used: number
+          ai_requests: number
+          ai_tokens_used: number
+          ai_cost_cents: number
+          premium_feature_attempts: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          date: string
+          recipe_generations?: number
+          pantry_items_used?: number
+          ai_requests?: number
+          ai_tokens_used?: number
+          ai_cost_cents?: number
+          premium_feature_attempts?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          date?: string
+          recipe_generations?: number
+          pantry_items_used?: number
+          ai_requests?: number
+          ai_tokens_used?: number
+          ai_cost_cents?: number
+          premium_feature_attempts?: number
+          created_at?: string
+        }
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          tier: 'free' | 'premium' | 'family' | 'chef'
+          status: 'active' | 'canceled' | 'expired' | 'trial'
+          start_date: string
+          end_date: string | null
+          auto_renew: boolean
+          payment_method: string | null
+          stripe_subscription_id: string | null
+          last_payment: string | null
+          next_payment: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tier?: 'free' | 'premium' | 'family' | 'chef'
+          status?: 'active' | 'canceled' | 'expired' | 'trial'
+          start_date: string
+          end_date?: string | null
+          auto_renew?: boolean
+          payment_method?: string | null
+          stripe_subscription_id?: string | null
+          last_payment?: string | null
+          next_payment?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tier?: 'free' | 'premium' | 'family' | 'chef'
+          status?: 'active' | 'canceled' | 'expired' | 'trial'
+          start_date?: string
+          end_date?: string | null
+          auto_renew?: boolean
+          payment_method?: string | null
+          stripe_subscription_id?: string | null
+          last_payment?: string | null
+          next_payment?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      ai_cache: {
+        Row: {
+          id: string
+          cache_key: string
+          prompt_hash: string
+          response_data: Json
+          user_id: string | null
+          provider: string
+          model: string
+          tokens_used: number
+          cost_cents: number
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          cache_key: string
+          prompt_hash: string
+          response_data: Json
+          user_id?: string | null
+          provider: string
+          model: string
+          tokens_used: number
+          cost_cents: number
+          expires_at: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          cache_key?: string
+          prompt_hash?: string
+          response_data?: Json
+          user_id?: string | null
+          provider?: string
+          model?: string
+          tokens_used?: number
+          cost_cents?: number
+          expires_at?: string
+          created_at?: string
+        }
+      }
+      shopping_lists: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          items: Json
+          total_estimated_cost: number
+          is_shared: boolean
+          shared_with: string[] | null
+          completed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          items: Json
+          total_estimated_cost?: number
+          is_shared?: boolean
+          shared_with?: string[] | null
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          items?: Json
+          total_estimated_cost?: number
+          is_shared?: boolean
+          shared_with?: string[] | null
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}

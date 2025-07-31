@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install)",
+      "Bash(npx next:*)",
+      "Bash(ls:*)",
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "Bash(PORT=3001 npm run dev)",
+      "Bash(open:*)"
+    ],
+    "deny": []
+  }
+}
