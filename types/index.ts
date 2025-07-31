@@ -423,11 +423,192 @@ export interface EnhancedRecipe extends Recipe {
   bookmarkCount: number;
 }
 
+//  =====================================================================
+//  RECIPE COLLECTIONS & MEAL PLANNING
+//  =====================================================================
+
+// Recipe Collection System
+export interface RecipeCollection {
+  id: string;
+  name: string;
+  description?: string;
+  userId: string;
+  recipeIds: string[];
+  isPublic: boolean;
+  coverImage?: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  collaborators?: string[]; // User IDs who can edit
+  category: CollectionCategory;
+  totalRatings?: number;
+  averageRating?: number;
+}
+
+export type CollectionCategory =
+  | 'favorites'
+  | 'weekly-meals'
+  | 'quick-dinners'
+  | 'desserts'
+  | 'healthy'
+  | 'party'
+  | 'breakfast'
+  | 'lunch'
+  | 'dinner'
+  | 'snacks'
+  | 'seasonal'
+  | 'custom';
+
+// Meal Planning System
+export interface MealPlan {
+  id: string;
+  name: string;
+  userId: string;
+  startDate: Date;
+  endDate: Date;
+  meals: PlannedMeal[];
+  shoppingListId?: string; // Auto-generated shopping list
+  nutritionGoals?: NutritionGoals;
+  totalCalories: number;
+  status: MealPlanStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  isTemplate: boolean; // Can be reused
+  sharedWith?: string[]; // Family member IDs
+}
+
+export interface PlannedMeal {
+  id: string;
+  date: Date;
+  mealType: MealType;
+  recipeId: string;
+  servings: number;
+  notes?: string;
+  prepStatus: PrepStatus;
+  ingredients?: RecipeIngredient[]; // Cached for shopping list
+}
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type PrepStatus = 'planned' | 'shopping' | 'prepped' | 'cooking' | 'completed';
+export type MealPlanStatus = 'draft' | 'active' | 'completed' | 'archived';
+
+export interface NutritionGoals {
+  dailyCalories: number;
+  protein: number; // grams
+  carbs: number; // grams
+  fat: number; // grams
+  fiber: number; // grams
+  sodium: number; // mg
+  restrictions: string[]; // dietary restrictions
+}
+
+// Smart Shopping List (Enhanced)
+export interface SmartShoppingList {
+  id: string;
+  name: string;
+  userId: string;
+  items: ShoppingItem[];
+  mealPlanId?: string; // Linked to meal plan
+  status: ShoppingListStatus;
+  estimatedCost?: number;
+  store?: PreferredStore;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+  sharedWith?: string[]; // Family member IDs
+}
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  category: IngredientCategory;
+  isChecked: boolean;
+  estimatedPrice?: number;
+  brand?: string;
+  notes?: string;
+  recipeIds: string[]; // Which recipes use this ingredient
+  nutritionalValue?: number;
+  alternatives?: string[]; // Alternative products
+}
+
+export type ShoppingListStatus = 'active' | 'completed' | 'archived';
+
+export interface PreferredStore {
+  name: string;
+  location?: string;
+  layout?: StoreSection[]; // For optimized shopping order
+}
+
+export interface StoreSection {
+  name: string;
+  categories: IngredientCategory[];
+  order: number;
+}
+
+// Recipe Recommendations & Collections
+export interface RecipeRecommendation {
+  recipe: Recipe;
+  score: number; // 0-100 confidence
+  reasons: RecommendationReason[];
+  availableIngredients: number; // How many ingredients user has
+  missingIngredients: string[];
+  similarityToLiked: number; // Based on past ratings
+  seasonality: number; // Seasonal appropriateness
+}
+
+export type RecommendationReason =
+  | 'ingredients-available'
+  | 'similar-to-liked'
+  | 'new-cuisine'
+  | 'seasonal'
+  | 'quick-cooking'
+  | 'healthy'
+  | 'popular'
+  | 'trending';
+
+// Recipe Discovery & Search
+export interface RecipeSearchFilter {
+  cuisine?: CuisineType[];
+  difficulty?: DifficultyLevel[];
+  maxPrepTime?: number;
+  maxCookTime?: number;
+  availableIngredients?: string[];
+  dietaryRestrictions?: string[];
+  allergens?: string[];
+  minRating?: number;
+  hasNutritionInfo?: boolean;
+  categories?: CollectionCategory[];
+  tags?: string[];
+}
+
+export interface RecipeSearchResult {
+  recipes: Recipe[];
+  totalCount: number;
+  facets: SearchFacets;
+  recommendations: RecipeRecommendation[];
+}
+
+export interface SearchFacets {
+  cuisines: FacetCount[];
+  difficulties: FacetCount[];
+  cookingTimes: FacetCount[];
+  categories: FacetCount[];
+}
+
+export interface FacetCount {
+  value: string;
+  count: number;
+}
+
 // App State with Enhanced Features
 export interface EnhancedAppState extends AppState {
   subscription: Subscription;
   pantryInventory: PantryInventory;
-  currentShoppingList?: ShoppingList;
+  currentShoppingList?: SmartShoppingList;
+  recipeCollections: RecipeCollection[];
+  currentMealPlan?: MealPlan;
   adConfig: AdConfig[];
   usageTracking: UsageTracking;
   socialShareModal?: {
@@ -438,5 +619,15 @@ export interface EnhancedAppState extends AppState {
   ratingModal?: {
     isOpen: boolean;
     recipe?: EnhancedRecipe;
+  };
+  collectionModal?: {
+    isOpen: boolean;
+    mode: 'create' | 'edit' | 'view';
+    collection?: RecipeCollection;
+  };
+  mealPlanModal?: {
+    isOpen: boolean;
+    mode: 'create' | 'edit' | 'view';
+    mealPlan?: MealPlan;
   };
 }
