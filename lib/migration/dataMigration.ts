@@ -422,7 +422,7 @@ export class DataMigrationService {
         const pantryInventory = {
           id: `user-pantry-${userId}`,
           userId: userId,
-          items: pantryItems.map(item => ({
+          items: pantryItems.map((item: any) => ({
             id: item.id,
             name: item.name,
             category: item.category,
