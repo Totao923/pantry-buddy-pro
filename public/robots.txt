@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://pantry-buddy-pro.vercel.app/sitemap.xml
+
+# Disallow admin/private areas (when they exist)
+# Disallow: /admin/
+# Disallow: /api/private/
+
+# Allow all content for better SEO
+Crawl-delay: 1

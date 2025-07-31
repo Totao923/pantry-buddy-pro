@@ -432,13 +432,67 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Pantry Buddy - Advanced AI Recipe Generator</title>
+        <title>Pantry Buddy Pro - AI Recipe Generator | Transform Your Ingredients</title>
         <meta
           name="description"
-          content="Transform your pantry ingredients into restaurant-quality recipes with advanced AI"
+          content="Transform your pantry ingredients into restaurant-quality recipes with advanced AI. Smart pantry management, personalized cooking, and Claude AI-powered recipe generation."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+
+        {/* Favicon */}
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+
+        {/* Theme Colors */}
+        <meta name="theme-color" content="#3b82f6" />
+        <meta name="msapplication-TileColor" content="#3b82f6" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+
+        {/* SEO Meta Tags */}
+        <meta
+          name="keywords"
+          content="AI recipe generator, pantry management, cooking app, Claude AI, smart recipes, ingredient-based recipes, meal planning"
+        />
+        <meta name="author" content="Pantry Buddy Pro Team" />
+        <meta name="robots" content="index, follow" />
+        <meta name="language" content="English" />
+        <meta name="revisit-after" content="7 days" />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://pantry-buddy-pro.vercel.app/" />
+        <meta property="og:title" content="Pantry Buddy Pro - AI Recipe Generator" />
+        <meta
+          property="og:description"
+          content="Transform your pantry ingredients into restaurant-quality recipes with advanced AI"
+        />
+        <meta property="og:image" content="/og-image.png" />
+        <meta property="og:site_name" content="Pantry Buddy Pro" />
+
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://pantry-buddy-pro.vercel.app/" />
+        <meta property="twitter:title" content="Pantry Buddy Pro - AI Recipe Generator" />
+        <meta
+          property="twitter:description"
+          content="Transform your pantry ingredients into restaurant-quality recipes with advanced AI"
+        />
+        <meta property="twitter:image" content="/twitter-image.png" />
+
+        {/* PWA Mobile Optimization */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Pantry Buddy Pro" />
+
+        {/* Preconnect to improve performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
