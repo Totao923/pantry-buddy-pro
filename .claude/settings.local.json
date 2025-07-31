@@ -9,7 +9,10 @@
       "Bash(npm install:*)",
       "Bash(curl:*)",
       "Bash(PORT=3001 npm run dev)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(npm run format:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run type-check:*)"
     ],
     "deny": []
   }

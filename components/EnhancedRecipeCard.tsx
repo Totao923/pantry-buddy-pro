@@ -10,16 +10,18 @@ interface EnhancedRecipeCardProps {
   onOpenRatingModal?: () => void;
 }
 
-export default function EnhancedRecipeCard({ 
-  recipe, 
-  onServingChange, 
+export default function EnhancedRecipeCard({
+  recipe,
+  onServingChange,
   onSaveRecipe,
   onStartCooking,
   onRateRecipe,
-  onOpenRatingModal
+  onOpenRatingModal,
 }: EnhancedRecipeCardProps) {
   const [currentServings, setCurrentServings] = useState(recipe.servings);
-  const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions' | 'nutrition' | 'tips'>('ingredients');
+  const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions' | 'nutrition' | 'tips'>(
+    'ingredients'
+  );
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [showNutrition, setShowNutrition] = useState(false);
   const [userRating, setUserRating] = useState(0);
@@ -33,31 +35,29 @@ export default function EnhancedRecipeCard({
   };
 
   const toggleStep = (stepNumber: number) => {
-    setCompletedSteps(prev => 
-      prev.includes(stepNumber) 
-        ? prev.filter(step => step !== stepNumber)
-        : [...prev, stepNumber]
+    setCompletedSteps(prev =>
+      prev.includes(stepNumber) ? prev.filter(step => step !== stepNumber) : [...prev, stepNumber]
     );
   };
 
   const getDifficultyColor = (difficulty: DifficultyLevel) => {
     const colors = {
-      'Beginner': 'bg-green-100 text-green-800 border-green-200',
-      'Easy': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Medium': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Hard': 'bg-orange-100 text-orange-800 border-orange-200',
-      'Expert': 'bg-red-100 text-red-800 border-red-200'
+      Beginner: 'bg-green-100 text-green-800 border-green-200',
+      Easy: 'bg-blue-100 text-blue-800 border-blue-200',
+      Medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      Hard: 'bg-orange-100 text-orange-800 border-orange-200',
+      Expert: 'bg-red-100 text-red-800 border-red-200',
     };
     return colors[difficulty] || colors['Medium'];
   };
 
   const getDifficultyIcon = (difficulty: DifficultyLevel) => {
     const icons = {
-      'Beginner': '🌱',
-      'Easy': '⭐',
-      'Medium': '⭐⭐',
-      'Hard': '⭐⭐⭐',
-      'Expert': '👨‍🍳'
+      Beginner: '🌱',
+      Easy: '⭐',
+      Medium: '⭐⭐',
+      Hard: '⭐⭐⭐',
+      Expert: '👨‍🍳',
     };
     return icons[difficulty] || icons['Medium'];
   };
@@ -74,14 +74,16 @@ export default function EnhancedRecipeCard({
       <button
         key={index}
         className={`text-xl ${
-          index < rating 
-            ? 'text-yellow-400' 
-            : 'text-gray-300'
+          index < rating ? 'text-yellow-400' : 'text-gray-300'
         } ${interactive ? 'hover:text-yellow-400 cursor-pointer' : 'cursor-default'}`}
-        onClick={interactive ? () => {
-          setUserRating(index + 1);
-          onRateRecipe?.(index + 1);
-        } : undefined}
+        onClick={
+          interactive
+            ? () => {
+                setUserRating(index + 1);
+                onRateRecipe?.(index + 1);
+              }
+            : undefined
+        }
         disabled={!interactive}
       >
         ⭐
@@ -91,7 +93,7 @@ export default function EnhancedRecipeCard({
 
   const scaledIngredients = recipe.ingredients.map(ingredient => ({
     ...ingredient,
-    amount: (ingredient.amount * currentServings / recipe.servings)
+    amount: (ingredient.amount * currentServings) / recipe.servings,
   }));
 
   return (
@@ -99,17 +101,27 @@ export default function EnhancedRecipeCard({
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8">
         <div className="absolute top-4 right-4 flex gap-2">
-          <button 
+          <button
             onClick={() => onSaveRecipe?.(recipe)}
             className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
             </svg>
           </button>
           <button className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+              />
             </svg>
           </button>
         </div>
@@ -117,9 +129,11 @@ export default function EnhancedRecipeCard({
         <div className="pr-20">
           <h1 className="text-3xl font-bold mb-2">{recipe.title}</h1>
           <p className="text-blue-100 text-lg mb-4">{recipe.description}</p>
-          
+
           <div className="flex flex-wrap items-center gap-4 mb-4">
-            <div className={`px-3 py-1 rounded-full border font-medium ${getDifficultyColor(recipe.difficulty)}`}>
+            <div
+              className={`px-3 py-1 rounded-full border font-medium ${getDifficultyColor(recipe.difficulty)}`}
+            >
               <span className="mr-1">{getDifficultyIcon(recipe.difficulty)}</span>
               {recipe.difficulty}
             </div>
@@ -136,9 +150,7 @@ export default function EnhancedRecipeCard({
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               {renderStars(recipe.rating || 0)}
-              <span className="text-blue-100 text-sm">
-                ({recipe.reviews || 0} reviews)
-              </span>
+              <span className="text-blue-100 text-sm">({recipe.reviews || 0} reviews)</span>
             </div>
           </div>
         </div>
@@ -150,7 +162,7 @@ export default function EnhancedRecipeCard({
           <div className="flex items-center gap-4">
             <h3 className="text-lg font-semibold text-gray-800">Servings:</h3>
             <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-2">
-              <button 
+              <button
                 onClick={() => handleServingChange(currentServings - 1)}
                 className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600"
                 disabled={currentServings <= 1}
@@ -158,7 +170,7 @@ export default function EnhancedRecipeCard({
                 -
               </button>
               <span className="w-16 text-center font-bold text-lg">{currentServings}</span>
-              <button 
+              <button
                 onClick={() => handleServingChange(currentServings + 1)}
                 className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600"
                 disabled={currentServings >= 20}
@@ -185,7 +197,7 @@ export default function EnhancedRecipeCard({
             { id: 'ingredients', label: 'Ingredients', icon: '🧄' },
             { id: 'instructions', label: 'Instructions', icon: '📋' },
             { id: 'nutrition', label: 'Nutrition', icon: '📊' },
-            { id: 'tips', label: 'Tips & Tricks', icon: '💡' }
+            { id: 'tips', label: 'Tips & Tricks', icon: '💡' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -210,7 +222,10 @@ export default function EnhancedRecipeCard({
             <h3 className="text-xl font-bold text-gray-800 mb-6">Ingredients</h3>
             <div className="grid md:grid-cols-2 gap-4">
               {scaledIngredients.map((ingredient, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200"
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
                       <span className="text-lg">🥄</span>
@@ -219,11 +234,12 @@ export default function EnhancedRecipeCard({
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-blue-600">
-                      {ingredient.amount % 1 === 0 ? ingredient.amount : ingredient.amount.toFixed(1)} {ingredient.unit}
+                      {ingredient.amount % 1 === 0
+                        ? ingredient.amount
+                        : ingredient.amount.toFixed(1)}{' '}
+                      {ingredient.unit}
                     </span>
-                    {ingredient.optional && (
-                      <div className="text-xs text-gray-500">Optional</div>
-                    )}
+                    {ingredient.optional && <div className="text-xs text-gray-500">Optional</div>}
                   </div>
                 </div>
               ))}
@@ -241,8 +257,8 @@ export default function EnhancedRecipeCard({
             </div>
             <div className="space-y-4">
               {recipe.instructions.map((instruction, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className={`flex gap-4 p-6 rounded-xl border-2 transition-all ${
                     completedSteps.includes(instruction.step)
                       ? 'border-green-200 bg-green-50'
@@ -260,9 +276,13 @@ export default function EnhancedRecipeCard({
                     {completedSteps.includes(instruction.step) ? '✓' : instruction.step}
                   </button>
                   <div className="flex-1">
-                    <p className={`text-gray-800 leading-relaxed ${
-                      completedSteps.includes(instruction.step) ? 'line-through text-gray-500' : ''
-                    }`}>
+                    <p
+                      className={`text-gray-800 leading-relaxed ${
+                        completedSteps.includes(instruction.step)
+                          ? 'line-through text-gray-500'
+                          : ''
+                      }`}
+                    >
                       {instruction.instruction}
                     </p>
                     {instruction.duration && (
@@ -287,10 +307,15 @@ export default function EnhancedRecipeCard({
 
         {activeTab === 'nutrition' && recipe.nutritionInfo && (
           <div>
-            <h3 className="text-xl font-bold text-gray-800 mb-6">Nutritional Information (per serving)</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-6">
+              Nutritional Information (per serving)
+            </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Object.entries(recipe.nutritionInfo).map(([key, value]) => (
-                <div key={key} className="bg-gray-50 rounded-xl p-4 text-center border border-gray-200">
+                <div
+                  key={key}
+                  className="bg-gray-50 rounded-xl p-4 text-center border border-gray-200"
+                >
                   <div className="text-2xl font-bold text-blue-600 mb-1">
                     {typeof value === 'number' ? Math.round(value) : value}
                   </div>
@@ -308,8 +333,14 @@ export default function EnhancedRecipeCard({
                 {Object.entries(recipe.dietaryInfo).map(([key, value]) => {
                   if (typeof value === 'boolean' && value) {
                     return (
-                      <span key={key} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                        {key.replace('is', '').replace(/([A-Z])/g, ' $1').trim()}
+                      <span
+                        key={key}
+                        className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
+                      >
+                        {key
+                          .replace('is', '')
+                          .replace(/([A-Z])/g, ' $1')
+                          .trim()}
                       </span>
                     );
                   }
@@ -323,13 +354,16 @@ export default function EnhancedRecipeCard({
         {activeTab === 'tips' && (
           <div>
             <h3 className="text-xl font-bold text-gray-800 mb-6">Chef's Tips & Techniques</h3>
-            
+
             {recipe.tips && recipe.tips.length > 0 && (
               <div className="mb-8">
                 <h4 className="text-lg font-semibold text-gray-700 mb-4">💡 Pro Tips</h4>
                 <div className="space-y-3">
                   {recipe.tips.map((tip, index) => (
-                    <div key={index} className="flex gap-3 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                    <div
+                      key={index}
+                      className="flex gap-3 p-4 bg-yellow-50 rounded-xl border border-yellow-200"
+                    >
                       <span className="text-yellow-600 text-lg flex-shrink-0">💡</span>
                       <p className="text-gray-800">{tip}</p>
                     </div>
@@ -343,12 +377,18 @@ export default function EnhancedRecipeCard({
                 <h4 className="text-lg font-semibold text-gray-700 mb-4">🔄 Recipe Variations</h4>
                 <div className="space-y-4">
                   {recipe.variations.map((variation, index) => (
-                    <div key={index} className="p-4 bg-purple-50 rounded-xl border border-purple-200">
+                    <div
+                      key={index}
+                      className="p-4 bg-purple-50 rounded-xl border border-purple-200"
+                    >
                       <h5 className="font-semibold text-purple-800 mb-2">{variation.name}</h5>
                       <p className="text-gray-700 mb-3">{variation.description}</p>
                       <ul className="space-y-1">
                         {variation.modifications.map((mod, modIndex) => (
-                          <li key={modIndex} className="text-sm text-gray-600 flex items-start gap-2">
+                          <li
+                            key={modIndex}
+                            className="text-sm text-gray-600 flex items-start gap-2"
+                          >
                             <span className="text-purple-500 mt-1">•</span>
                             {mod}
                           </li>
@@ -365,9 +405,7 @@ export default function EnhancedRecipeCard({
               <h4 className="text-lg font-semibold text-gray-800 mb-3">Rate This Recipe</h4>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex gap-1">
-                    {renderStars(userRating, true)}
-                  </div>
+                  <div className="flex gap-1">{renderStars(userRating, true)}</div>
                   <span className="text-gray-600">
                     {userRating > 0 ? `${userRating}/5 stars` : 'Click to rate'}
                   </span>

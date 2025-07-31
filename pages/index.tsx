@@ -7,16 +7,25 @@ import PremiumDashboard from '../components/PremiumDashboard';
 import PantryInventoryManager from '../components/PantryInventoryManager';
 import RecipeRatingSystem from '../components/RecipeRatingSystem';
 import MigrationBanner from '../components/migration/MigrationBanner';
-import AuthGuard, { UserMenu } from '../components/auth/AuthGuard';
+import AppHeader from '../components/layout/AppHeader';
 import { AdvancedRecipeEngine } from '../lib/advancedRecipeEngine';
 import { aiService } from '../lib/ai/aiService';
-import { useAuth } from '../lib/auth/AuthProvider';
 import { isAuthEnabled } from '../lib/config/environment';
-import { Ingredient, Recipe, CuisineType, SubscriptionTier, User, AppState, PantryInventory, IngredientCategory, RecipeRating, RecipeReview } from '../types';
+import {
+  Ingredient,
+  Recipe,
+  CuisineType,
+  SubscriptionTier,
+  User,
+  AppState,
+  PantryInventory,
+  IngredientCategory,
+  RecipeRating,
+  RecipeReview,
+} from '../types';
 
 export default function Home() {
   const authEnabled = isAuthEnabled();
-  const auth = authEnabled ? useAuth() : { user: null, loading: false };
   const [appState, setAppState] = useState<AppState>({
     ingredients: [],
     selectedCuisine: 'any',
@@ -33,17 +42,17 @@ export default function Home() {
         spiceLevel: 'medium',
         cookingTime: 'medium',
         servingSize: 4,
-        budgetRange: 'medium'
+        budgetRange: 'medium',
       },
       subscription: 'free',
       savedRecipes: [],
       mealPlans: [],
       pantry: [],
       cookingHistory: [],
-      achievements: []
+      achievements: [],
     },
     isLoading: false,
-    error: undefined
+    error: undefined,
   });
 
   const [showDashboard, setShowDashboard] = useState(false);
@@ -56,7 +65,7 @@ export default function Home() {
     spiceLevel: 'medium' as 'mild' | 'medium' | 'hot' | 'extra-hot',
     maxTime: 60,
     difficulty: 'any',
-    experienceLevel: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'expert'
+    experienceLevel: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'expert',
   });
 
   const [pantryInventory, setPantryInventory] = useState<PantryInventory>({
@@ -74,11 +83,11 @@ export default function Home() {
       herbs: 0,
       oils: 0,
       pantry: 0,
-      other: 0
+      other: 0,
     },
     expiringItems: [],
     lowStockItems: [],
-    lastUpdated: new Date()
+    lastUpdated: new Date(),
   });
 
   useEffect(() => {
@@ -88,7 +97,7 @@ export default function Home() {
       const parsed = JSON.parse(savedState);
       setAppState(prev => ({ ...prev, ...parsed }));
     }
-    
+
     const savedInventory = localStorage.getItem('pantryInventory');
     if (savedInventory) {
       const parsed = JSON.parse(savedInventory);
@@ -100,8 +109,8 @@ export default function Home() {
           ...item,
           purchaseDate: item.purchaseDate ? new Date(item.purchaseDate) : undefined,
           expiryDate: item.expiryDate ? new Date(item.expiryDate) : undefined,
-          lastUsedDate: item.lastUsedDate ? new Date(item.lastUsedDate) : undefined
-        }))
+          lastUsedDate: item.lastUsedDate ? new Date(item.lastUsedDate) : undefined,
+        })),
       };
       setPantryInventory(inventory);
     }
@@ -117,8 +126,8 @@ export default function Home() {
           {
             ...rating,
             createdAt: new Date(rating.createdAt),
-            updatedAt: new Date(rating.updatedAt)
-          }
+            updatedAt: new Date(rating.updatedAt),
+          },
         ])
       );
       setRecipeRatings(parsedRatings);
@@ -138,37 +147,43 @@ export default function Home() {
             rating: {
               ...review.rating,
               createdAt: new Date(review.rating.createdAt),
-              updatedAt: new Date(review.rating.updatedAt)
-            }
-          }
+              updatedAt: new Date(review.rating.updatedAt),
+            },
+          },
         ])
       );
       setRecipeReviews(parsedReviews);
     }
 
     // Initialize AI service and check status
-    aiService.initialize().then(() => {
-      aiService.getUsageStats(appState.user.id).then((stats) => {
-        setAiStatus(stats.aiEnabled ? 'enabled' : 'disabled');
+    aiService
+      .initialize()
+      .then(() => {
+        aiService.getUsageStats(appState.user.id).then(stats => {
+          setAiStatus(stats.aiEnabled ? 'enabled' : 'disabled');
+        });
+      })
+      .catch(() => {
+        setAiStatus('error');
       });
-    }).catch(() => {
-      setAiStatus('error');
-    });
   }, []);
 
   const saveAppState = (newState: AppState) => {
     setAppState(newState);
-    localStorage.setItem('pantryBuddyState', JSON.stringify({
-      ingredients: newState.ingredients,
-      selectedCuisine: newState.selectedCuisine,
-      user: newState.user
-    }));
+    localStorage.setItem(
+      'pantryBuddyState',
+      JSON.stringify({
+        ingredients: newState.ingredients,
+        selectedCuisine: newState.selectedCuisine,
+        user: newState.user,
+      })
+    );
   };
 
   const handleAddIngredient = (ingredient: Ingredient) => {
     const newState = {
       ...appState,
-      ingredients: [...appState.ingredients, ingredient]
+      ingredients: [...appState.ingredients, ingredient],
     };
     saveAppState(newState);
   };
@@ -176,7 +191,7 @@ export default function Home() {
   const handleRemoveIngredient = (id: string) => {
     const newState = {
       ...appState,
-      ingredients: appState.ingredients.filter(ing => ing.id !== id)
+      ingredients: appState.ingredients.filter(ing => ing.id !== id),
     };
     saveAppState(newState);
   };
@@ -184,9 +199,7 @@ export default function Home() {
   const handleUpdateIngredient = (ingredient: Ingredient) => {
     const newState = {
       ...appState,
-      ingredients: appState.ingredients.map(ing => 
-        ing.id === ingredient.id ? ingredient : ing
-      )
+      ingredients: appState.ingredients.map(ing => (ing.id === ingredient.id ? ingredient : ing)),
     };
     saveAppState(newState);
   };
@@ -194,7 +207,7 @@ export default function Home() {
   const handleCuisineSelect = (cuisine: CuisineType) => {
     const newState = {
       ...appState,
-      selectedCuisine: cuisine
+      selectedCuisine: cuisine,
     };
     saveAppState(newState);
   };
@@ -203,39 +216,49 @@ export default function Home() {
     if (appState.ingredients.length === 0) {
       setAppState(prev => ({
         ...prev,
-        error: 'Please add at least one ingredient to generate a recipe!'
+        error: 'Please add at least one ingredient to generate a recipe!',
       }));
       return;
     }
 
     setAppState(prev => ({ ...prev, isLoading: true, error: undefined }));
-    
+
     try {
       // First try AI service
-      const aiResponse = await aiService.generateRecipe({
-        ingredients: appState.ingredients,
-        cuisine: appState.selectedCuisine,
-        servings: appState.user.preferences.servingSize,
-        preferences: {
-          maxTime: cookingPreferences.maxTime,
-          difficulty: cookingPreferences.difficulty !== 'any' ? cookingPreferences.difficulty as any : undefined,
-          spiceLevel: cookingPreferences.spiceLevel,
-          experienceLevel: cookingPreferences.experienceLevel,
-          dietary: appState.user.preferences.dietaryRestrictions,
-          allergens: appState.user.preferences.allergies
+      const aiResponse = await aiService.generateRecipe(
+        {
+          ingredients: appState.ingredients,
+          cuisine: appState.selectedCuisine,
+          servings: appState.user.preferences.servingSize,
+          preferences: {
+            maxTime: cookingPreferences.maxTime,
+            difficulty:
+              cookingPreferences.difficulty !== 'any'
+                ? (cookingPreferences.difficulty as any)
+                : undefined,
+            spiceLevel: cookingPreferences.spiceLevel,
+            experienceLevel: cookingPreferences.experienceLevel,
+            dietary: appState.user.preferences.dietaryRestrictions,
+            allergens: appState.user.preferences.allergies,
+          },
+          userHistory: {
+            favoriteRecipes: appState.user.savedRecipes,
+            cookingFrequency:
+              appState.user.preferences.cookingTime === 'quick'
+                ? 'daily'
+                : appState.user.preferences.cookingTime === 'medium'
+                  ? 'weekly'
+                  : 'occasional',
+          },
         },
-        userHistory: {
-          favoriteRecipes: appState.user.savedRecipes,
-          cookingFrequency: appState.user.preferences.cookingTime === 'quick' ? 'daily' : 
-                           appState.user.preferences.cookingTime === 'medium' ? 'weekly' : 'occasional'
-        }
-      }, appState.user.id);
+        appState.user.id
+      );
 
       let recipe: Recipe;
 
       if (aiResponse.success && aiResponse.recipe) {
         recipe = aiResponse.recipe;
-        
+
         // Show AI success message briefly
         if (aiResponse.metadata?.provider !== 'fallback') {
           console.log(`Recipe generated using AI (${aiResponse.metadata?.provider})`);
@@ -249,9 +272,12 @@ export default function Home() {
           appState.user.preferences.servingSize,
           {
             maxTime: cookingPreferences.maxTime,
-            difficulty: cookingPreferences.difficulty !== 'any' ? cookingPreferences.difficulty as any : undefined,
+            difficulty:
+              cookingPreferences.difficulty !== 'any'
+                ? (cookingPreferences.difficulty as any)
+                : undefined,
             spiceLevel: cookingPreferences.spiceLevel,
-            experienceLevel: cookingPreferences.experienceLevel
+            experienceLevel: cookingPreferences.experienceLevel,
           }
         );
       }
@@ -260,14 +286,14 @@ export default function Home() {
         ...prev,
         currentRecipe: recipe,
         generatedRecipes: [recipe, ...prev.generatedRecipes.slice(0, 9)], // Keep last 10
-        isLoading: false
+        isLoading: false,
       }));
     } catch (error) {
       console.error('Recipe generation failed:', error);
       setAppState(prev => ({
         ...prev,
         error: 'Failed to generate recipe. Please try again.',
-        isLoading: false
+        isLoading: false,
       }));
     }
   };
@@ -277,30 +303,34 @@ export default function Home() {
       // For serving changes, we'll use a simpler scaling approach
       // rather than regenerating the entire recipe
       const scaleFactor = newServings / appState.currentRecipe.servings;
-      
+
       const updatedRecipe: Recipe = {
         ...appState.currentRecipe,
         servings: newServings,
         ingredients: appState.currentRecipe.ingredients.map(ingredient => ({
           ...ingredient,
-          amount: Math.round(ingredient.amount * scaleFactor * 100) / 100 // Round to 2 decimal places
+          amount: Math.round(ingredient.amount * scaleFactor * 100) / 100, // Round to 2 decimal places
         })),
-        nutritionInfo: appState.currentRecipe.nutritionInfo ? {
-          ...appState.currentRecipe.nutritionInfo,
-          calories: Math.round(appState.currentRecipe.nutritionInfo.calories * scaleFactor),
-          protein: Math.round(appState.currentRecipe.nutritionInfo.protein * scaleFactor),
-          carbs: Math.round(appState.currentRecipe.nutritionInfo.carbs * scaleFactor),
-          fat: Math.round(appState.currentRecipe.nutritionInfo.fat * scaleFactor),
-          fiber: Math.round(appState.currentRecipe.nutritionInfo.fiber * scaleFactor),
-          sugar: Math.round(appState.currentRecipe.nutritionInfo.sugar * scaleFactor),
-          sodium: Math.round(appState.currentRecipe.nutritionInfo.sodium * scaleFactor),
-          cholesterol: Math.round(appState.currentRecipe.nutritionInfo.cholesterol * scaleFactor)
-        } : undefined
+        nutritionInfo: appState.currentRecipe.nutritionInfo
+          ? {
+              ...appState.currentRecipe.nutritionInfo,
+              calories: Math.round(appState.currentRecipe.nutritionInfo.calories * scaleFactor),
+              protein: Math.round(appState.currentRecipe.nutritionInfo.protein * scaleFactor),
+              carbs: Math.round(appState.currentRecipe.nutritionInfo.carbs * scaleFactor),
+              fat: Math.round(appState.currentRecipe.nutritionInfo.fat * scaleFactor),
+              fiber: Math.round(appState.currentRecipe.nutritionInfo.fiber * scaleFactor),
+              sugar: Math.round(appState.currentRecipe.nutritionInfo.sugar * scaleFactor),
+              sodium: Math.round(appState.currentRecipe.nutritionInfo.sodium * scaleFactor),
+              cholesterol: Math.round(
+                appState.currentRecipe.nutritionInfo.cholesterol * scaleFactor
+              ),
+            }
+          : undefined,
       };
 
       setAppState(prev => ({
         ...prev,
-        currentRecipe: updatedRecipe
+        currentRecipe: updatedRecipe,
       }));
     }
   };
@@ -310,8 +340,8 @@ export default function Home() {
       ...appState,
       user: {
         ...appState.user,
-        savedRecipes: [...appState.user.savedRecipes, recipe.id]
-      }
+        savedRecipes: [...appState.user.savedRecipes, recipe.id],
+      },
     };
     saveAppState(newState);
   };
@@ -326,8 +356,8 @@ export default function Home() {
       ...appState,
       user: {
         ...appState.user,
-        subscription: tier
-      }
+        subscription: tier,
+      },
     };
     saveAppState(newState);
   };
@@ -335,20 +365,24 @@ export default function Home() {
   const handleUpdateInventory = (inventory: PantryInventory) => {
     setPantryInventory(inventory);
     localStorage.setItem('pantryInventory', JSON.stringify(inventory));
-    
+
     // Update expiring and low stock items
     const updatedInventory = {
       ...inventory,
       expiringItems: inventory.items.filter(item => {
         if (!item.expiryDate) return false;
-        const daysUntilExpiry = Math.ceil((new Date(item.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        const daysUntilExpiry = Math.ceil(
+          (new Date(item.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        );
         return daysUntilExpiry <= 3 && daysUntilExpiry >= 0;
       }),
-      lowStockItems: inventory.items.filter(item => item.isRunningLow)
+      lowStockItems: inventory.items.filter(item => item.isRunningLow),
     };
-    
-    if (updatedInventory.expiringItems.length !== inventory.expiringItems.length || 
-        updatedInventory.lowStockItems.length !== inventory.lowStockItems.length) {
+
+    if (
+      updatedInventory.expiringItems.length !== inventory.expiringItems.length ||
+      updatedInventory.lowStockItems.length !== inventory.lowStockItems.length
+    ) {
       setPantryInventory(updatedInventory);
       localStorage.setItem('pantryInventory', JSON.stringify(updatedInventory));
     }
@@ -357,27 +391,33 @@ export default function Home() {
   const handleSubmitRating = (rating: RecipeRating, review?: RecipeReview) => {
     setRecipeRatings(prev => ({
       ...prev,
-      [rating.recipeId]: rating
+      [rating.recipeId]: rating,
     }));
-    
+
     if (review) {
       setRecipeReviews(prev => ({
         ...prev,
-        [review.recipeId]: review
+        [review.recipeId]: review,
       }));
     }
 
     // Save to localStorage
-    localStorage.setItem('recipeRatings', JSON.stringify({
-      ...recipeRatings,
-      [rating.recipeId]: rating
-    }));
-    
+    localStorage.setItem(
+      'recipeRatings',
+      JSON.stringify({
+        ...recipeRatings,
+        [rating.recipeId]: rating,
+      })
+    );
+
     if (review) {
-      localStorage.setItem('recipeReviews', JSON.stringify({
-        ...recipeReviews,
-        [review.recipeId]: review
-      }));
+      localStorage.setItem(
+        'recipeReviews',
+        JSON.stringify({
+          ...recipeReviews,
+          [review.recipeId]: review,
+        })
+      );
     }
 
     setShowRatingModal(false);
@@ -393,87 +433,24 @@ export default function Home() {
     <>
       <Head>
         <title>Pantry Buddy - Advanced AI Recipe Generator</title>
-        <meta name="description" content="Transform your pantry ingredients into restaurant-quality recipes with advanced AI" />
+        <meta
+          name="description"
+          content="Transform your pantry ingredients into restaurant-quality recipes with advanced AI"
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        {/* Advanced Header */}
-        <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
-                  <span className="text-2xl">🧑‍🍳</span>
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    Pantry Buddy Pro
-                  </h1>
-                  <p className="text-sm text-gray-600">AI-Powered Culinary Assistant</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <div className="hidden md:flex items-center gap-6 text-sm">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span>{appState.ingredients.length} ingredients</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    <span>{appState.generatedRecipes.length} recipes</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <span className={`w-2 h-2 rounded-full ${
-                      aiStatus === 'enabled' ? 'bg-green-500' :
-                      aiStatus === 'disabled' ? 'bg-yellow-500' :
-                      aiStatus === 'error' ? 'bg-red-500' :
-                      'bg-gray-400 animate-pulse'
-                    }`}></span>
-                    <span>AI {aiStatus === 'loading' ? 'initializing' : aiStatus}</span>
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => setShowInventory(!showInventory)}
-                  className="px-4 py-2 bg-white text-gray-700 rounded-xl border border-gray-300 hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm"
-                >
-                  <span className="text-lg">🏺</span>
-                  <span className="hidden md:inline">Inventory</span>
-                  {pantryInventory.totalItems > 0 && (
-                    <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-0.5 min-w-5 text-center">
-                      {pantryInventory.totalItems}
-                    </span>
-                  )}
-                </button>
-                
-                <button 
-                  onClick={() => setShowDashboard(!showDashboard)}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
-                    appState.user.subscription === 'free'
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700'
-                      : 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white'
-                  }`}
-                >
-                  <span className="text-lg">
-                    {appState.user.subscription === 'free' ? '⭐' : '👑'}
-                  </span>
-                  {appState.user.subscription === 'free' ? 'Upgrade' : 'Premium'}
-                </button>
-                
-                {authEnabled ? (
-                  <UserMenu />
-                ) : (
-                  <div className="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 rounded-full flex items-center justify-center">
-                    <span className="text-lg">👤</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
+        <AppHeader
+          appState={appState}
+          pantryInventory={pantryInventory}
+          showDashboard={showDashboard}
+          showInventory={showInventory}
+          setShowDashboard={setShowDashboard}
+          setShowInventory={setShowInventory}
+          aiStatus={aiStatus}
+        />
 
         {/* Migration Banner */}
         {authEnabled && <MigrationBanner />}
@@ -483,13 +460,13 @@ export default function Home() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto">
             <div className="min-h-screen py-8">
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setShowDashboard(false)}
                   className="absolute top-4 right-8 z-10 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-100"
                 >
                   ✕
                 </button>
-                <PremiumDashboard 
+                <PremiumDashboard
                   userSubscription={appState.user.subscription}
                   onUpgrade={handleUpgrade}
                   mealPlans={appState.user.mealPlans}
@@ -506,7 +483,7 @@ export default function Home() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto">
             <div className="min-h-screen py-8 px-4">
               <div className="relative max-w-6xl mx-auto">
-                <button 
+                <button
                   onClick={() => setShowInventory(false)}
                   className="absolute top-4 right-4 z-10 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-100"
                 >
@@ -545,18 +522,18 @@ export default function Home() {
               <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
               Advanced AI Recipe Engine
             </div>
-            
+
             <h2 className="text-5xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
               Transform Your Kitchen Into a<br />
               <span className="text-6xl">Culinary Studio</span>
             </h2>
-            
+
             <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-12 leading-relaxed">
-              Our advanced AI analyzes your ingredients, dietary preferences, and cooking style to create 
-              restaurant-quality recipes that are perfectly tailored to you. From simple weeknight dinners 
-              to impressive dinner party dishes.
+              Our advanced AI analyzes your ingredients, dietary preferences, and cooking style to
+              create restaurant-quality recipes that are perfectly tailored to you. From simple
+              weeknight dinners to impressive dinner party dishes.
             </p>
-            
+
             {/* Enhanced Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mb-16">
               <div className="text-center">
@@ -596,18 +573,24 @@ export default function Home() {
           {/* Progressive App Interface */}
           <div className="space-y-12">
             {/* Step 1: Smart Pantry */}
-            <div className={`transition-all duration-500 ${getStepNumber() >= 1 ? 'opacity-100' : 'opacity-50'}`}>
+            <div
+              className={`transition-all duration-500 ${getStepNumber() >= 1 ? 'opacity-100' : 'opacity-50'}`}
+            >
               <div className="flex items-center gap-4 mb-6">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg transition-all ${
-                  getStepNumber() >= 1 
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
-                    : 'bg-gray-200 text-gray-500'
-                }`}>
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg transition-all ${
+                    getStepNumber() >= 1
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                      : 'bg-gray-200 text-gray-500'
+                  }`}
+                >
                   1
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-gray-800">Smart Pantry Management</h3>
-                  <p className="text-gray-600">Add and organize your ingredients with AI-powered suggestions</p>
+                  <p className="text-gray-600">
+                    Add and organize your ingredients with AI-powered suggestions
+                  </p>
                 </div>
               </div>
               <SmartPantry
@@ -620,18 +603,24 @@ export default function Home() {
 
             {/* Step 2: Advanced Cuisine Selection */}
             {appState.ingredients.length > 0 && (
-              <div className={`transition-all duration-500 ${getStepNumber() >= 2 ? 'opacity-100' : 'opacity-50'}`}>
+              <div
+                className={`transition-all duration-500 ${getStepNumber() >= 2 ? 'opacity-100' : 'opacity-50'}`}
+              >
                 <div className="flex items-center gap-4 mb-6">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg transition-all ${
-                    getStepNumber() >= 2 
-                      ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg' 
-                      : 'bg-gray-200 text-gray-500'
-                  }`}>
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg transition-all ${
+                      getStepNumber() >= 2
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg'
+                        : 'bg-gray-200 text-gray-500'
+                    }`}
+                  >
                     2
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-gray-800">Culinary Preferences</h3>
-                    <p className="text-gray-600">Select cuisine style and customize your cooking preferences</p>
+                    <p className="text-gray-600">
+                      Select cuisine style and customize your cooking preferences
+                    </p>
                   </div>
                 </div>
                 <AdvancedCuisineSelector
@@ -654,7 +643,7 @@ export default function Home() {
                     <p className="text-gray-600">Create your perfect recipe with advanced AI</p>
                   </div>
                 </div>
-                
+
                 <button
                   onClick={generateAdvancedRecipe}
                   disabled={appState.isLoading}
@@ -665,7 +654,9 @@ export default function Home() {
                     {appState.isLoading ? (
                       <>
                         <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        {aiStatus === 'enabled' ? 'AI Crafting Your Recipe...' : 'Crafting Your Perfect Recipe...'}
+                        {aiStatus === 'enabled'
+                          ? 'AI Crafting Your Recipe...'
+                          : 'Crafting Your Perfect Recipe...'}
                       </>
                     ) : (
                       <>
@@ -687,18 +678,20 @@ export default function Home() {
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-gray-800">Your Gourmet Creation</h3>
-                    <p className="text-gray-600">AI-crafted recipe tailored to your ingredients and preferences</p>
+                    <p className="text-gray-600">
+                      AI-crafted recipe tailored to your ingredients and preferences
+                    </p>
                   </div>
                 </div>
-                
-                <EnhancedRecipeCard 
-                  recipe={appState.currentRecipe} 
+
+                <EnhancedRecipeCard
+                  recipe={appState.currentRecipe}
                   onServingChange={handleServingChange}
                   onSaveRecipe={handleSaveRecipe}
                   onStartCooking={handleStartCooking}
                   onOpenRatingModal={() => setShowRatingModal(true)}
                 />
-                
+
                 {/* Recipe Actions */}
                 <div className="flex flex-wrap justify-center gap-4">
                   <button
@@ -707,7 +700,7 @@ export default function Home() {
                   >
                     🎲 Generate Another Recipe
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleSaveRecipe(appState.currentRecipe!)}
                     className="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl hover:from-green-600 hover:to-blue-600 transition-all font-semibold shadow-lg"
                   >
@@ -720,10 +713,15 @@ export default function Home() {
             {/* Recent Recipes */}
             {appState.generatedRecipes.length > 1 && (
               <div className="mt-16">
-                <h3 className="text-2xl font-bold text-gray-800 mb-8 text-center">Recent Creations</h3>
+                <h3 className="text-2xl font-bold text-gray-800 mb-8 text-center">
+                  Recent Creations
+                </h3>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {appState.generatedRecipes.slice(1, 4).map((recipe, index) => (
-                    <div key={recipe.id} className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all cursor-pointer">
+                    <div
+                      key={recipe.id}
+                      className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all cursor-pointer"
+                    >
                       <h4 className="text-lg font-bold text-gray-800 mb-2">{recipe.title}</h4>
                       <p className="text-gray-600 text-sm mb-4">{recipe.description}</p>
                       <div className="flex items-center justify-between">
@@ -732,7 +730,7 @@ export default function Home() {
                           <span>•</span>
                           <span className="capitalize">{recipe.cuisine}</span>
                         </div>
-                        <button 
+                        <button
                           onClick={() => setAppState(prev => ({ ...prev, currentRecipe: recipe }))}
                           className="text-blue-600 hover:text-blue-700 font-medium"
                         >

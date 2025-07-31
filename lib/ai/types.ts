@@ -77,7 +77,7 @@ export interface RecipeCache {
   generateKey(params: RecipeGenerationParams): string;
 }
 
-// Rate Limiting Interface  
+// Rate Limiting Interface
 export interface RateLimiter {
   checkLimit(userId: string): Promise<boolean>;
   incrementUsage(userId: string): Promise<void>;
@@ -86,7 +86,7 @@ export interface RateLimiter {
 }
 
 // AI Service Events
-export type AIServiceEvent = 
+export type AIServiceEvent =
   | { type: 'generation_started'; params: RecipeGenerationParams }
   | { type: 'generation_completed'; response: AIRecipeResponse }
   | { type: 'generation_failed'; error: string; fallback: boolean }

@@ -16,10 +16,12 @@ export default function RecipeRatingSystem({
   existingRating,
   existingReview,
   onSubmitRating,
-  onClose
+  onClose,
 }: RecipeRatingSystemProps) {
   const [overallRating, setOverallRating] = useState(existingRating?.overallRating || 0);
-  const [difficultyAccuracy, setDifficultyAccuracy] = useState(existingRating?.difficultyAccuracy || 0);
+  const [difficultyAccuracy, setDifficultyAccuracy] = useState(
+    existingRating?.difficultyAccuracy || 0
+  );
   const [tasteRating, setTasteRating] = useState(existingRating?.tasteRating || 0);
   const [wouldCookAgain, setWouldCookAgain] = useState(existingRating?.wouldCookAgain || false);
   const [reviewText, setReviewText] = useState(existingReview?.reviewText || '');
@@ -79,7 +81,7 @@ export default function RecipeRatingSystem({
       tasteRating: canLeaveDetailedReview ? tasteRating : overallRating,
       wouldCookAgain,
       createdAt: existingRating?.createdAt || new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     let review: RecipeReview | undefined;
@@ -94,28 +96,28 @@ export default function RecipeRatingSystem({
         cookingTips: cookingTips.length > 0 ? cookingTips : undefined,
         helpfulVotes: existingReview?.helpfulVotes || 0,
         createdAt: existingReview?.createdAt || new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
     }
 
     onSubmitRating(rating, review);
   };
 
-  const StarRating = ({ 
-    value, 
-    onChange, 
-    label, 
-    disabled = false 
-  }: { 
-    value: number; 
-    onChange: (rating: number) => void; 
+  const StarRating = ({
+    value,
+    onChange,
+    label,
+    disabled = false,
+  }: {
+    value: number;
+    onChange: (rating: number) => void;
     label: string;
     disabled?: boolean;
   }) => (
     <div className="flex items-center gap-3">
       <span className="text-sm font-medium text-gray-700 min-w-24">{label}:</span>
       <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
+        {[1, 2, 3, 4, 5].map(star => (
           <button
             key={star}
             type="button"
@@ -123,17 +125,13 @@ export default function RecipeRatingSystem({
             onClick={() => onChange(star)}
             className={`text-2xl transition-all hover:scale-110 ${
               disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-            } ${
-              star <= value ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'
-            }`}
+            } ${star <= value ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-200'}`}
           >
             ★
           </button>
         ))}
       </div>
-      <span className="text-sm text-gray-500 ml-2">
-        {value > 0 ? `${value}/5` : 'Not rated'}
-      </span>
+      <span className="text-sm text-gray-500 ml-2">{value > 0 ? `${value}/5` : 'Not rated'}</span>
     </div>
   );
 
@@ -149,10 +147,7 @@ export default function RecipeRatingSystem({
               <p className="text-gray-600">{recipe.title}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">
             ✕
           </button>
         </div>
@@ -163,8 +158,8 @@ export default function RecipeRatingSystem({
             <div className="flex items-center gap-2">
               <span className="text-lg">💎</span>
               <p className="text-sm text-blue-800">
-                <strong>Free Plan:</strong> Basic rating features. Upgrade to Premium for detailed reviews, 
-                cooking tips, and unlimited modifications.
+                <strong>Free Plan:</strong> Basic rating features. Upgrade to Premium for detailed
+                reviews, cooking tips, and unlimited modifications.
               </p>
             </div>
           </div>
@@ -175,7 +170,7 @@ export default function RecipeRatingSystem({
           <div className="p-4 bg-gray-50 rounded-xl">
             <StarRating
               value={overallRating}
-              onChange={(rating) => handleStarClick(rating, 'overall')}
+              onChange={rating => handleStarClick(rating, 'overall')}
               label="Overall Rating"
             />
           </div>
@@ -184,16 +179,16 @@ export default function RecipeRatingSystem({
           {canLeaveDetailedReview && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-800">Detailed Ratings</h3>
-              
+
               <StarRating
                 value={difficultyAccuracy}
-                onChange={(rating) => handleStarClick(rating, 'difficulty')}
+                onChange={rating => handleStarClick(rating, 'difficulty')}
                 label="Difficulty Match"
               />
-              
+
               <StarRating
                 value={tasteRating}
-                onChange={(rating) => handleStarClick(rating, 'taste')}
+                onChange={rating => handleStarClick(rating, 'taste')}
                 label="Taste & Flavor"
               />
             </div>
@@ -206,7 +201,7 @@ export default function RecipeRatingSystem({
               <input
                 type="checkbox"
                 checked={wouldCookAgain}
-                onChange={(e) => setWouldCookAgain(e.target.checked)}
+                onChange={e => setWouldCookAgain(e.target.checked)}
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">Yes, I'd make this again!</span>
@@ -220,7 +215,7 @@ export default function RecipeRatingSystem({
             </label>
             <textarea
               value={reviewText}
-              onChange={(e) => {
+              onChange={e => {
                 if (e.target.value.length <= maxReviewLength) {
                   setReviewText(e.target.value);
                 }
@@ -230,9 +225,7 @@ export default function RecipeRatingSystem({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
             <div className="flex justify-between items-center mt-1">
-              <span className="text-xs text-gray-500">
-                Optional • Be helpful and constructive
-              </span>
+              <span className="text-xs text-gray-500">Optional • Be helpful and constructive</span>
               <span className="text-xs text-gray-500">
                 {reviewText.length}/{maxReviewLength}
               </span>
@@ -245,7 +238,7 @@ export default function RecipeRatingSystem({
               Recipe Modifications
               {!canLeaveDetailedReview && ` (${modifications.length}/2)`}
             </label>
-            
+
             <div className="space-y-2 mb-3">
               {modifications.map((mod, index) => (
                 <div key={index} className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg">
@@ -265,10 +258,10 @@ export default function RecipeRatingSystem({
                 <input
                   type="text"
                   value={newModification}
-                  onChange={(e) => setNewModification(e.target.value)}
+                  onChange={e => setNewModification(e.target.value)}
                   placeholder="e.g., Added extra garlic"
                   className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onKeyPress={(e) => e.key === 'Enter' && addModification()}
+                  onKeyPress={e => e.key === 'Enter' && addModification()}
                 />
                 <button
                   onClick={addModification}
@@ -287,7 +280,7 @@ export default function RecipeRatingSystem({
               Cooking Tips
               {!canLeaveDetailedReview && ` (${cookingTips.length}/2)`}
             </label>
-            
+
             <div className="space-y-2 mb-3">
               {cookingTips.map((tip, index) => (
                 <div key={index} className="flex items-center gap-2 bg-green-50 p-2 rounded-lg">
@@ -307,10 +300,10 @@ export default function RecipeRatingSystem({
                 <input
                   type="text"
                   value={newTip}
-                  onChange={(e) => setNewTip(e.target.value)}
+                  onChange={e => setNewTip(e.target.value)}
                   placeholder="e.g., Let the pan get really hot first"
                   className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onKeyPress={(e) => e.key === 'Enter' && addTip()}
+                  onKeyPress={e => e.key === 'Enter' && addTip()}
                 />
                 <button
                   onClick={addTip}

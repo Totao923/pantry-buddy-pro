@@ -8,14 +8,27 @@ interface IngredientInputProps {
 }
 
 const commonIngredients = [
-  'Chicken', 'Rice', 'Onion', 'Garlic', 'Tomato', 'Pasta', 'Cheese', 'Eggs',
-  'Bread', 'Milk', 'Butter', 'Salt', 'Pepper', 'Olive Oil', 'Potatoes'
+  'Chicken',
+  'Rice',
+  'Onion',
+  'Garlic',
+  'Tomato',
+  'Pasta',
+  'Cheese',
+  'Eggs',
+  'Bread',
+  'Milk',
+  'Butter',
+  'Salt',
+  'Pepper',
+  'Olive Oil',
+  'Potatoes',
 ];
 
-export default function IngredientInput({ 
-  ingredients, 
-  onAddIngredient, 
-  onRemoveIngredient 
+export default function IngredientInput({
+  ingredients,
+  onAddIngredient,
+  onRemoveIngredient,
 }: IngredientInputProps) {
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -23,9 +36,10 @@ export default function IngredientInput({
   const handleInputChange = (value: string) => {
     setInputValue(value);
     if (value.length > 0) {
-      const filtered = commonIngredients.filter(ingredient => 
-        ingredient.toLowerCase().includes(value.toLowerCase()) &&
-        !ingredients.some(ing => ing.name.toLowerCase() === ingredient.toLowerCase())
+      const filtered = commonIngredients.filter(
+        ingredient =>
+          ingredient.toLowerCase().includes(value.toLowerCase()) &&
+          !ingredients.some(ing => ing.name.toLowerCase() === ingredient.toLowerCase())
       );
       setSuggestions(filtered);
     } else {
@@ -38,7 +52,7 @@ export default function IngredientInput({
       const ingredient: Ingredient = {
         id: Date.now().toString(),
         name: name.trim(),
-        category: 'other'
+        category: 'other',
       };
       onAddIngredient(ingredient);
       setInputValue('');
@@ -55,20 +69,20 @@ export default function IngredientInput({
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">What's in your pantry?</h2>
-      
+
       <div className="relative mb-4">
         <input
           type="text"
           value={inputValue}
-          onChange={(e) => handleInputChange(e.target.value)}
+          onChange={e => handleInputChange(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Add ingredients (e.g., chicken, rice, tomatoes...)"
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         />
-        
+
         {suggestions.length > 0 && (
           <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg max-h-48 overflow-y-auto">
-            {suggestions.map((suggestion) => (
+            {suggestions.map(suggestion => (
               <button
                 key={suggestion}
                 onClick={() => addIngredient(suggestion)}
@@ -92,25 +106,30 @@ export default function IngredientInput({
         <h3 className="text-lg font-semibold text-gray-700 mb-3">Quick Add:</h3>
         <div className="flex flex-wrap gap-2">
           {commonIngredients
-            .filter(ing => !ingredients.some(ingredient => ingredient.name.toLowerCase() === ing.toLowerCase()))
+            .filter(
+              ing =>
+                !ingredients.some(ingredient => ingredient.name.toLowerCase() === ing.toLowerCase())
+            )
             .slice(0, 8)
-            .map((ingredient) => (
-            <button
-              key={ingredient}
-              onClick={() => addIngredient(ingredient)}
-              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm"
-            >
-              + {ingredient}
-            </button>
-          ))}
+            .map(ingredient => (
+              <button
+                key={ingredient}
+                onClick={() => addIngredient(ingredient)}
+                className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm"
+              >
+                + {ingredient}
+              </button>
+            ))}
         </div>
       </div>
 
       {ingredients.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-3">Your Ingredients ({ingredients.length}):</h3>
+          <h3 className="text-lg font-semibold text-gray-700 mb-3">
+            Your Ingredients ({ingredients.length}):
+          </h3>
           <div className="flex flex-wrap gap-2">
-            {ingredients.map((ingredient) => (
+            {ingredients.map(ingredient => (
               <div
                 key={ingredient.id}
                 className="ingredient-card flex items-center gap-2 px-3 py-2"

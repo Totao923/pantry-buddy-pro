@@ -20,21 +20,23 @@ This guide will help you set up AI-powered recipe generation using Claude API.
 ### 1. Environment Configuration
 
 1. Copy the example environment file:
+
    ```bash
    cp .env.example .env.local
    ```
 
 2. Edit `.env.local` and add your Claude API key:
+
    ```env
    # Required: Your Claude API key
    ANTHROPIC_API_KEY=sk-ant-your-api-key-here
-   
+
    # Optional: AI Configuration
    AI_PROVIDER=anthropic
    AI_MODEL=claude-3-sonnet-20240229
    AI_TEMPERATURE=0.7
    MAX_TOKENS=2000
-   
+
    # Optional: Feature Flags
    ENABLE_AI_RECIPES=true
    AI_FALLBACK_TO_MOCK=true
@@ -100,21 +102,25 @@ You can configure different Claude models by setting `AI_MODEL` in your `.env.lo
 ## Troubleshooting
 
 ### "AI features disabled"
+
 - Check that `ENABLE_AI_RECIPES=true` in `.env.local`
 - Verify your API key is correct
 - Ensure you have API credits in your Anthropic account
 
 ### "Rate limit exceeded"
+
 - Wait for the rate limit to reset
 - Adjust rate limits in environment variables
 - Consider upgrading your Anthropic plan
 
 ### "Failed to generate recipe"
+
 - Check your internet connection
 - Verify API key is valid and has credits
 - The app will fallback to mock engine automatically
 
 ### "Recipe quality below threshold"
+
 - This is normal - the app will retry with different prompts
 - You can adjust quality thresholds in the code
 - Fallback engine will be used if quality remains low
@@ -122,6 +128,7 @@ You can configure different Claude models by setting `AI_MODEL` in your `.env.lo
 ## Features
 
 ### AI-Powered Recipe Generation
+
 - Personalized recipes based on available ingredients
 - Experience level adaptation (beginner to expert)
 - Cuisine preferences and dietary restrictions
@@ -129,18 +136,21 @@ You can configure different Claude models by setting `AI_MODEL` in your `.env.lo
 - Creative ingredient combinations
 
 ### Smart Prompting
+
 - Context-aware prompt engineering
 - Historical preference learning
 - Ingredient prioritization (uses expiring items first)
 - Dietary restriction enforcement
 
 ### Quality Assurance
+
 - Recipe quality scoring
 - Ingredient utilization assessment
 - Instruction clarity validation
 - Nutritional balance evaluation
 
 ### Cost Optimization
+
 - Intelligent caching system
 - Rate limiting to prevent overuse
 - Fallback to mock engine
@@ -166,6 +176,7 @@ If you encounter issues:
 4. Review the Anthropic console for usage and errors
 
 For development questions, refer to:
+
 - [Anthropic API Documentation](https://docs.anthropic.com)
 - [Next.js Documentation](https://nextjs.org/docs)
 - Project README.md

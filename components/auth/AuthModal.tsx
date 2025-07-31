@@ -100,13 +100,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={e => setName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter your full name"
                 required={mode === 'signup'}
@@ -116,13 +114,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Enter your email"
               required
@@ -132,13 +128,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
 
           {mode !== 'reset' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter your password"
                 required
@@ -239,7 +233,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
 
         {mode === 'signup' && (
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="font-semibold text-blue-800 mb-2">🎉 What you get with your free account:</h3>
+            <h3 className="font-semibold text-blue-800 mb-2">
+              🎉 What you get with your free account:
+            </h3>
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• Store up to 50 pantry items</li>
               <li>• Generate 5 AI recipes daily</li>

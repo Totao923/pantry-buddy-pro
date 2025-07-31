@@ -6,13 +6,7 @@ export class PromptEngine {
    * Generate a comprehensive prompt for recipe creation
    */
   static generateRecipePrompt(params: RecipeGenerationParams): string {
-    const {
-      ingredients,
-      cuisine,
-      servings,
-      preferences = {},
-      userHistory = {}
-    } = params;
+    const { ingredients, cuisine, servings, preferences = {}, userHistory = {} } = params;
 
     const sections = [
       this.buildIngredientSection(ingredients),
@@ -20,7 +14,7 @@ export class PromptEngine {
       this.buildExperienceSection(preferences.experienceLevel || 'intermediate'),
       this.buildHistorySection(userHistory),
       this.buildConstraintsSection(preferences),
-      this.buildOutputFormatSection()
+      this.buildOutputFormatSection(),
     ];
 
     return sections.filter(Boolean).join('\n\n');
@@ -109,7 +103,11 @@ User Modifications: ${userFeedback.modifications.join(', ')}
 Please consider this feedback when making enhancements.`;
     }
 
-    return basePrompt + enhancementSpecific + '\n\nRespond with the complete enhanced recipe in the same JSON format.';
+    return (
+      basePrompt +
+      enhancementSpecific +
+      '\n\nRespond with the complete enhanced recipe in the same JSON format.'
+    );
   }
 
   private static buildIngredientSection(ingredients: Ingredient[]): string {
@@ -118,9 +116,9 @@ Please consider this feedback when making enhancements.`;
     }
 
     const categorized = this.categorizeIngredients(ingredients);
-    
+
     let section = 'AVAILABLE INGREDIENTS:\n';
-    
+
     Object.entries(categorized).forEach(([category, items]) => {
       if (items.length > 0) {
         section += `${category.toUpperCase()}:\n`;
@@ -128,7 +126,9 @@ Please consider this feedback when making enhancements.`;
           const details = [];
           if (item.quantity) details.push(`Quantity: ${item.quantity}`);
           if (item.expiryDate) {
-            const daysUntilExpiry = Math.ceil((new Date(item.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+            const daysUntilExpiry = Math.ceil(
+              (new Date(item.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+            );
             if (daysUntilExpiry <= 3) details.push('⚠️ Expires soon');
           }
           section += `- ${item.name}${details.length ? ` (${details.join(', ')})` : ''}\n`;
@@ -136,12 +136,17 @@ Please consider this feedback when making enhancements.`;
       }
     });
 
-    section += '\nPRIORITY: Please prioritize using ingredients that are expiring soon. Try to use as many available ingredients as possible while creating a delicious, cohesive recipe.';
+    section +=
+      '\nPRIORITY: Please prioritize using ingredients that are expiring soon. Try to use as many available ingredients as possible while creating a delicious, cohesive recipe.';
 
     return section;
   }
 
-  private static buildPreferencesSection(preferences: any, cuisine: CuisineType, servings: number): string {
+  private static buildPreferencesSection(
+    preferences: any,
+    cuisine: CuisineType,
+    servings: number
+  ): string {
     let section = `RECIPE REQUIREMENTS:
 - Cuisine: ${cuisine === 'any' ? 'Any cuisine (be creative!)' : cuisine}
 - Servings: ${servings}`;
@@ -202,7 +207,7 @@ Please consider this feedback when making enhancements.`;
 - Comfortable with advanced equipment and methods
 - Appreciates nuanced instructions and professional tips
 - Can handle complex multi-step preparations
-- Estimated skill required: Professional level skills and creativity`
+- Estimated skill required: Professional level skills and creativity`,
     };
 
     return levelGuides[experienceLevel as keyof typeof levelGuides] || levelGuides.intermediate;
@@ -290,7 +295,7 @@ The recipe should be inspiring and make the user excited to cook!`;
       herbs: [],
       oils: [],
       pantry: [],
-      other: []
+      other: [],
     };
 
     ingredients.forEach(ingredient => {
@@ -326,7 +331,10 @@ Format as a JSON array of suggestion objects.`;
   /**
    * Generate a prompt for ingredient substitutions
    */
-  static generateSubstitutionPrompt(missingIngredient: string, availableIngredients: string[]): string {
+  static generateSubstitutionPrompt(
+    missingIngredient: string,
+    availableIngredients: string[]
+  ): string {
     return `I need a substitution for "${missingIngredient}" in my recipe.
 
 AVAILABLE ALTERNATIVES: ${availableIngredients.join(', ')}

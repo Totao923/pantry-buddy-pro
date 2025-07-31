@@ -7,7 +7,7 @@ This guide will help you set up authentication, database storage, and security u
 ### 1. Create Supabase Project
 
 1. Go to [supabase.com](https://supabase.com) and create a free account
-2. Click "New Project" 
+2. Click "New Project"
 3. Choose your organization and enter project details:
    - **Name**: `pantry-buddy-pro`
    - **Database Password**: Generate a strong password (save it!)
@@ -72,6 +72,7 @@ npm run dev
 ## 📊 What You Get
 
 ### ✅ **Authentication System**
+
 - Email/password authentication
 - User registration and login
 - Password reset functionality
@@ -79,6 +80,7 @@ npm run dev
 - User profile management
 
 ### ✅ **Database Storage**
+
 - User profiles and preferences
 - Pantry inventory with sync across devices
 - Recipe storage and ratings
@@ -86,6 +88,7 @@ npm run dev
 - AI response caching for cost optimization
 
 ### ✅ **Security Features**
+
 - Row Level Security (RLS) - users only see their data
 - Server-side API protection
 - Encrypted sensitive data
@@ -93,6 +96,7 @@ npm run dev
 - CSRF protection
 
 ### ✅ **Subscription Management**
+
 - Free tier: 50 pantry items, 5 AI recipes/day
 - Premium tiers with usage tracking
 - Feature gating based on subscription
@@ -190,13 +194,14 @@ The schema includes usage tracking:
 -- Track daily usage per user
 INSERT INTO public.usage_tracking (user_id, recipe_generations, ai_requests)
 VALUES (user_id, 1, 1)
-ON CONFLICT (user_id, date) 
+ON CONFLICT (user_id, date)
 DO UPDATE SET recipe_generations = usage_tracking.recipe_generations + 1;
 ```
 
 ### Supabase Dashboard
 
 Monitor your app in real-time:
+
 - **Database**: Query performance, table sizes, connections
 - **Authentication**: User signups, login rates, sessions
 - **Storage**: File uploads, bandwidth usage
@@ -212,7 +217,7 @@ const trackFeatureUsage = async (feature: string) => {
   await supabase.from('usage_tracking').upsert({
     user_id: user.id,
     date: new Date().toISOString().split('T')[0],
-    [`${feature}_usage`]: sql`${feature}_usage + 1`
+    [`${feature}_usage`]: sql`${feature}_usage + 1`,
   });
 };
 ```
@@ -260,20 +265,24 @@ SUPABASE_SERVICE_ROLE_KEY=your-production-service-key
 ### Common Issues
 
 **"Missing Supabase URL" Error**
+
 - Check `.env.local` file exists and has correct values
 - Restart development server after adding env vars
 
 **Authentication Not Working**
+
 - Verify Site URL and Redirect URLs in Supabase dashboard
 - Check browser console for CORS errors
 - Ensure email confirmation is disabled for development
 
 **Database Connection Issues**
+
 - Check Supabase project status in dashboard
 - Verify RLS policies allow user access
 - Check network connectivity
 
 **Permission Denied Errors**
+
 - Review RLS policies in database
 - Check user authentication status
 - Verify user ID matches in policies
@@ -298,12 +307,14 @@ NEXT_PUBLIC_SUPABASE_DEBUG=true
 ## 💰 Cost Management
 
 ### Free Tier Limits
+
 - **Database**: 500MB storage, 2 concurrent connections
 - **Authentication**: 50,000 monthly active users
 - **Storage**: 1GB file storage
 - **Edge Functions**: 500,000 invocations/month
 
 ### Optimization Tips
+
 1. **Use AI caching** to reduce API costs
 2. **Implement pagination** for large datasets
 3. **Clean up expired cache** regularly
@@ -311,6 +322,7 @@ NEXT_PUBLIC_SUPABASE_DEBUG=true
 5. **Optimize queries** using EXPLAIN ANALYZE
 
 ### Scaling Strategy
+
 1. **Pro Plan** ($25/month): More resources, priority support
 2. **Team Plan** ($599/month): Dedicated resources, advanced features
 3. **Enterprise**: Custom pricing for high-scale applications

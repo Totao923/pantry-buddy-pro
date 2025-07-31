@@ -1,4 +1,7 @@
-import { createClientComponentClient, createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import {
+  createClientComponentClient,
+  createServerComponentClient,
+} from '@supabase/auth-helpers-nextjs';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import type { Database } from './types';
@@ -26,15 +29,15 @@ export const createSupabaseServiceClient = () => {
   return createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   });
 };
 
 // Utility function to handle Supabase errors
 export const handleSupabaseError = (error: any, operation: string) => {
   console.error(`Supabase ${operation} error:`, error);
-  
+
   // Common error mappings
   const errorMappings: Record<string, string> = {
     'auth/user-not-found': 'User account not found',
@@ -42,19 +45,19 @@ export const handleSupabaseError = (error: any, operation: string) => {
     'auth/email-already-in-use': 'Email address is already registered',
     'auth/weak-password': 'Password is too weak',
     'auth/invalid-email': 'Invalid email address',
-    'PGRST301': 'Duplicate entry - this item already exists',
-    'PGRST116': 'Row level security violation - access denied',
-    '23505': 'This item already exists in your account'
+    PGRST301: 'Duplicate entry - this item already exists',
+    PGRST116: 'Row level security violation - access denied',
+    '23505': 'This item already exists in your account',
   };
 
   const errorCode = error?.code || error?.error_description || error?.message;
-  const userFriendlyMessage = errorMappings[errorCode] || 
-    `An error occurred during ${operation}. Please try again.`;
+  const userFriendlyMessage =
+    errorMappings[errorCode] || `An error occurred during ${operation}. Please try again.`;
 
   return {
     error: true,
     message: userFriendlyMessage,
-    originalError: error
+    originalError: error,
   };
 };
 
@@ -63,12 +66,12 @@ export const checkSupabaseConnection = async () => {
   try {
     const supabase = createSupabaseClient();
     const { data, error } = await supabase.from('user_profiles').select('count').limit(1);
-    
+
     if (error) {
       console.warn('Supabase connection check failed:', error);
       return false;
     }
-    
+
     return true;
   } catch (error) {
     console.warn('Supabase connection check failed:', error);
@@ -87,12 +90,12 @@ export const withRetry = async <T>(
       return await operation();
     } catch (error) {
       if (i === retries - 1) throw error;
-      
+
       console.warn(`Operation failed, retrying in ${delay}ms... (${i + 1}/${retries})`);
       await new Promise(resolve => setTimeout(resolve, delay));
       delay *= 2; // Exponential backoff
     }
   }
-  
+
   throw new Error('Max retries exceeded');
 };

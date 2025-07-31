@@ -18,17 +18,25 @@ const cuisines: Cuisine[] = [
   { id: 'french', name: 'French', description: 'Elegant, refined cuisine', icon: '🥖' },
   { id: 'thai', name: 'Thai', description: 'Sweet, sour, spicy balance', icon: '🌶️' },
   { id: 'japanese', name: 'Japanese', description: 'Fresh, minimal ingredients', icon: '🍣' },
-  { id: 'middle-eastern', name: 'Middle Eastern', description: 'Aromatic spices, grains', icon: '🧆' }
+  {
+    id: 'middle-eastern',
+    name: 'Middle Eastern',
+    description: 'Aromatic spices, grains',
+    icon: '🧆',
+  },
 ];
 
-export default function CuisineSelector({ selectedCuisine, onCuisineSelect }: CuisineSelectorProps) {
+export default function CuisineSelector({
+  selectedCuisine,
+  onCuisineSelect,
+}: CuisineSelectorProps) {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Choose Your Cuisine</h2>
       <p className="text-gray-600 mb-6">What flavors are you in the mood for?</p>
-      
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {cuisines.map((cuisine) => (
+        {cuisines.map(cuisine => (
           <button
             key={cuisine.id}
             onClick={() => onCuisineSelect(cuisine.id)}
@@ -44,7 +52,7 @@ export default function CuisineSelector({ selectedCuisine, onCuisineSelect }: Cu
           </button>
         ))}
       </div>
-      
+
       {selectedCuisine && (
         <div className="mt-6 p-4 bg-accent-50 rounded-lg border border-accent-200">
           <p className="text-accent-700 font-medium">

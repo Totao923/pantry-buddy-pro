@@ -7,6 +7,7 @@ AI-powered pantry-based recipe generator that creates personalized, creative rec
 Pantry Buddy now features **real AI-powered recipe generation** using Anthropic's Claude API!
 
 ### AI Features
+
 - **Claude AI Integration**: Uses Claude 3 Sonnet for intelligent recipe creation
 - **Smart Prompting**: Context-aware prompts that consider your ingredients, preferences, and experience level
 - **Experience Adaptation**: Recipes automatically adjust from beginner to expert level
@@ -36,6 +37,7 @@ Pantry Buddy now features **real AI-powered recipe generation** using Anthropic'
 ## Quick Start
 
 ### 1. Basic Setup (Mock Engine)
+
 ```bash
 git clone <repository>
 cd pantry-buddy
@@ -44,6 +46,7 @@ npm run dev
 ```
 
 ### 2. AI-Powered Setup (Recommended)
+
 ```bash
 # Install dependencies
 npm install
@@ -90,18 +93,21 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 The AI system is built with a modular architecture:
 
 ### Smart Prompting System
+
 - **Context Analysis**: Analyzes available ingredients, dietary restrictions, and user preferences
 - **Experience Adaptation**: Adjusts recipe complexity based on user skill level
 - **Ingredient Prioritization**: Uses expiring ingredients first to reduce waste
 - **Quality Validation**: Validates AI responses for feasibility and quality
 
 ### Fallback & Reliability
+
 - **Graceful Degradation**: Falls back to sophisticated mock engine if AI fails
 - **Rate Limiting**: Prevents API overuse with configurable limits
 - **Caching**: Reduces costs by caching similar recipe requests
 - **Error Handling**: Comprehensive error handling with user-friendly messages
 
 ### Cost Management
+
 - **Intelligent Caching**: Recipe responses cached for 1 hour
 - **Token Optimization**: Efficient prompting to minimize token usage
 - **Usage Analytics**: Track API costs and usage patterns

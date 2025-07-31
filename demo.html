@@ -1,307 +1,367 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pantry Buddy Pro - Advanced AI Recipe Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .ingredient-card {
-            @apply bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow;
-        }
-        .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .premium-glow {
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
-        }
+      .ingredient-card {
+        @apply bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow;
+      }
+      .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .premium-glow {
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+      }
     </style>
-</head>
-<body class="bg-gradient-to-br from-orange-50 via-white to-green-50 min-h-screen">
+  </head>
+  <body class="bg-gradient-to-br from-orange-50 via-white to-green-50 min-h-screen">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-6xl mx-auto px-4 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">🍳</span>
-                    <h1 class="text-2xl font-bold text-gray-800">Pantry Buddy</h1>
-                </div>
-                <div class="flex items-center gap-4">
-                    <button class="text-orange-600 hover:text-orange-700 font-medium">
-                        Upgrade to Premium
-                    </button>
-                    <div class="w-8 h-8 bg-gray-300 rounded-full"></div>
-                </div>
-            </div>
+      <div class="max-w-6xl mx-auto px-4 py-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">🍳</span>
+            <h1 class="text-2xl font-bold text-gray-800">Pantry Buddy</h1>
+          </div>
+          <div class="flex items-center gap-4">
+            <button class="text-orange-600 hover:text-orange-700 font-medium">
+              Upgrade to Premium
+            </button>
+            <div class="w-8 h-8 bg-gray-300 rounded-full"></div>
+          </div>
         </div>
+      </div>
     </header>
 
     <main class="max-w-6xl mx-auto px-4 py-8">
-        <!-- Hero Section -->
-        <div class="text-center mb-12">
-            <h2 class="text-4xl font-bold text-gray-800 mb-4">
-                Turn Your Pantry Into Delicious Meals
-            </h2>
-            <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-                AI-powered recipe generation from the ingredients you already have at home. 
-                No more wondering "what's for dinner?" - just creative, personalized recipes at your fingertips.
-            </p>
-            
-            <!-- Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto mb-12">
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-orange-600">10K+</div>
-                    <div class="text-gray-600">Recipes Generated</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-orange-600">12</div>
-                    <div class="text-gray-600">Cuisine Types</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-3xl font-bold text-orange-600">98%</div>
-                    <div class="text-gray-600">User Satisfaction</div>
-                </div>
-            </div>
+      <!-- Hero Section -->
+      <div class="text-center mb-12">
+        <h2 class="text-4xl font-bold text-gray-800 mb-4">Turn Your Pantry Into Delicious Meals</h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+          AI-powered recipe generation from the ingredients you already have at home. No more
+          wondering "what's for dinner?" - just creative, personalized recipes at your fingertips.
+        </p>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto mb-12">
+          <div class="text-center">
+            <div class="text-3xl font-bold text-orange-600">10K+</div>
+            <div class="text-gray-600">Recipes Generated</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-orange-600">12</div>
+            <div class="text-gray-600">Cuisine Types</div>
+          </div>
+          <div class="text-center">
+            <div class="text-3xl font-bold text-orange-600">98%</div>
+            <div class="text-gray-600">User Satisfaction</div>
+          </div>
         </div>
+      </div>
 
-        <!-- Main App Interface -->
-        <div class="space-y-8">
-            <!-- Step 1: Ingredients -->
-            <div>
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold">
-                        1
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800">Add Your Ingredients</h3>
-                </div>
-                <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">What's in your pantry?</h2>
-                    
-                    <div class="relative mb-4">
-                        <input
-                            id="ingredientInput"
-                            type="text"
-                            placeholder="Add ingredients (e.g., chicken, rice, tomatoes...)"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        />
-                    </div>
+      <!-- Main App Interface -->
+      <div class="space-y-8">
+        <!-- Step 1: Ingredients -->
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <div
+              class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold"
+            >
+              1
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800">Add Your Ingredients</h3>
+          </div>
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">What's in your pantry?</h2>
 
-                    <button onclick="addIngredient()" class="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors mb-4">
-                        Add Ingredient
-                    </button>
-
-                    <div class="mb-4">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-3">Quick Add:</h3>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="addQuickIngredient('Chicken')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm">+ Chicken</button>
-                            <button onclick="addQuickIngredient('Rice')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm">+ Rice</button>
-                            <button onclick="addQuickIngredient('Onion')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm">+ Onion</button>
-                            <button onclick="addQuickIngredient('Garlic')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm">+ Garlic</button>
-                            <button onclick="addQuickIngredient('Tomato')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm">+ Tomato</button>
-                            <button onclick="addQuickIngredient('Pasta')" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm">+ Pasta</button>
-                        </div>
-                    </div>
-
-                    <div id="ingredients-list" class="hidden">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-3">Your Ingredients:</h3>
-                        <div id="ingredients-container" class="flex flex-wrap gap-2"></div>
-                    </div>
-                </div>
+            <div class="relative mb-4">
+              <input
+                id="ingredientInput"
+                type="text"
+                placeholder="Add ingredients (e.g., chicken, rice, tomatoes...)"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
             </div>
 
-            <!-- Step 2: Cuisine -->
-            <div id="cuisine-section" class="hidden">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold">
-                        2
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800">Choose Your Cuisine</h3>
-                </div>
-                <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Choose Your Cuisine</h2>
-                    <p class="text-gray-600 mb-6">What flavors are you in the mood for?</p>
-                    
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <button onclick="selectCuisine('any')" class="cuisine-btn p-4 rounded-lg border-2 border-gray-200 transition-all hover:shadow-md">
-                            <div class="text-3xl mb-2">🌍</div>
-                            <h3 class="font-semibold text-gray-800 mb-1">Any Cuisine</h3>
-                            <p class="text-sm text-gray-600">Let AI surprise you</p>
-                        </button>
-                        <button onclick="selectCuisine('italian')" class="cuisine-btn p-4 rounded-lg border-2 border-gray-200 transition-all hover:shadow-md">
-                            <div class="text-3xl mb-2">🍝</div>
-                            <h3 class="font-semibold text-gray-800 mb-1">Italian</h3>
-                            <p class="text-sm text-gray-600">Pasta, pizza, risotto</p>
-                        </button>
-                        <button onclick="selectCuisine('asian')" class="cuisine-btn p-4 rounded-lg border-2 border-gray-200 transition-all hover:shadow-md">
-                            <div class="text-3xl mb-2">🥢</div>
-                            <h3 class="font-semibold text-gray-800 mb-1">Asian</h3>
-                            <p class="text-sm text-gray-600">Stir-fries, curries, noodles</p>
-                        </button>
-                        <button onclick="selectCuisine('mexican')" class="cuisine-btn p-4 rounded-lg border-2 border-gray-200 transition-all hover:shadow-md">
-                            <div class="text-3xl mb-2">🌮</div>
-                            <h3 class="font-semibold text-gray-800 mb-1">Mexican</h3>
-                            <p class="text-sm text-gray-600">Tacos, burritos, salsas</p>
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <button
+              onclick="addIngredient()"
+              class="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors mb-4"
+            >
+              Add Ingredient
+            </button>
 
-            <!-- Step 3: Generate -->
-            <div id="generate-section" class="hidden text-center">
-                <div class="flex items-center justify-center gap-3 mb-6">
-                    <div class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold">
-                        3
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800">Generate Your Recipe</h3>
-                </div>
-                <button onclick="generateRecipe()" class="bg-gradient-to-r from-orange-500 to-green-500 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-orange-600 hover:to-green-600 transition-all shadow-lg">
-                    🤖 Generate AI Recipe
+            <div class="mb-4">
+              <h3 class="text-lg font-semibold text-gray-700 mb-3">Quick Add:</h3>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  onclick="addQuickIngredient('Chicken')"
+                  class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm"
+                >
+                  + Chicken
                 </button>
+                <button
+                  onclick="addQuickIngredient('Rice')"
+                  class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm"
+                >
+                  + Rice
+                </button>
+                <button
+                  onclick="addQuickIngredient('Onion')"
+                  class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm"
+                >
+                  + Onion
+                </button>
+                <button
+                  onclick="addQuickIngredient('Garlic')"
+                  class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm"
+                >
+                  + Garlic
+                </button>
+                <button
+                  onclick="addQuickIngredient('Tomato')"
+                  class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm"
+                >
+                  + Tomato
+                </button>
+                <button
+                  onclick="addQuickIngredient('Pasta')"
+                  class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors text-sm"
+                >
+                  + Pasta
+                </button>
+              </div>
             </div>
 
-            <!-- Generated Recipe -->
-            <div id="recipe-section" class="hidden">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold">
-                        ✨
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800">Your Personalized Recipe</h3>
-                </div>
-                <div id="recipe-card" class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden max-w-2xl mx-auto">
-                    <!-- Recipe content will be inserted here -->
-                </div>
+            <div id="ingredients-list" class="hidden">
+              <h3 class="text-lg font-semibold text-gray-700 mb-3">Your Ingredients:</h3>
+              <div id="ingredients-container" class="flex flex-wrap gap-2"></div>
             </div>
+          </div>
         </div>
+
+        <!-- Step 2: Cuisine -->
+        <div id="cuisine-section" class="hidden">
+          <div class="flex items-center gap-3 mb-4">
+            <div
+              class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold"
+            >
+              2
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800">Choose Your Cuisine</h3>
+          </div>
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Choose Your Cuisine</h2>
+            <p class="text-gray-600 mb-6">What flavors are you in the mood for?</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <button
+                onclick="selectCuisine('any')"
+                class="cuisine-btn p-4 rounded-lg border-2 border-gray-200 transition-all hover:shadow-md"
+              >
+                <div class="text-3xl mb-2">🌍</div>
+                <h3 class="font-semibold text-gray-800 mb-1">Any Cuisine</h3>
+                <p class="text-sm text-gray-600">Let AI surprise you</p>
+              </button>
+              <button
+                onclick="selectCuisine('italian')"
+                class="cuisine-btn p-4 rounded-lg border-2 border-gray-200 transition-all hover:shadow-md"
+              >
+                <div class="text-3xl mb-2">🍝</div>
+                <h3 class="font-semibold text-gray-800 mb-1">Italian</h3>
+                <p class="text-sm text-gray-600">Pasta, pizza, risotto</p>
+              </button>
+              <button
+                onclick="selectCuisine('asian')"
+                class="cuisine-btn p-4 rounded-lg border-2 border-gray-200 transition-all hover:shadow-md"
+              >
+                <div class="text-3xl mb-2">🥢</div>
+                <h3 class="font-semibold text-gray-800 mb-1">Asian</h3>
+                <p class="text-sm text-gray-600">Stir-fries, curries, noodles</p>
+              </button>
+              <button
+                onclick="selectCuisine('mexican')"
+                class="cuisine-btn p-4 rounded-lg border-2 border-gray-200 transition-all hover:shadow-md"
+              >
+                <div class="text-3xl mb-2">🌮</div>
+                <h3 class="font-semibold text-gray-800 mb-1">Mexican</h3>
+                <p class="text-sm text-gray-600">Tacos, burritos, salsas</p>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Generate -->
+        <div id="generate-section" class="hidden text-center">
+          <div class="flex items-center justify-center gap-3 mb-6">
+            <div
+              class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold"
+            >
+              3
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800">Generate Your Recipe</h3>
+          </div>
+          <button
+            onclick="generateRecipe()"
+            class="bg-gradient-to-r from-orange-500 to-green-500 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-orange-600 hover:to-green-600 transition-all shadow-lg"
+          >
+            🤖 Generate AI Recipe
+          </button>
+        </div>
+
+        <!-- Generated Recipe -->
+        <div id="recipe-section" class="hidden">
+          <div class="flex items-center gap-3 mb-6">
+            <div
+              class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold"
+            >
+              ✨
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800">Your Personalized Recipe</h3>
+          </div>
+          <div
+            id="recipe-card"
+            class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden max-w-2xl mx-auto"
+          >
+            <!-- Recipe content will be inserted here -->
+          </div>
+        </div>
+      </div>
     </main>
 
     <script>
-        let ingredients = [];
-        let selectedCuisine = '';
+      let ingredients = [];
+      let selectedCuisine = '';
 
-        function addIngredient() {
-            const input = document.getElementById('ingredientInput');
-            const value = input.value.trim();
-            if (value && !ingredients.includes(value)) {
-                ingredients.push(value);
-                input.value = '';
-                updateIngredientsDisplay();
-            }
+      function addIngredient() {
+        const input = document.getElementById('ingredientInput');
+        const value = input.value.trim();
+        if (value && !ingredients.includes(value)) {
+          ingredients.push(value);
+          input.value = '';
+          updateIngredientsDisplay();
         }
+      }
 
-        function addQuickIngredient(ingredient) {
-            if (!ingredients.includes(ingredient)) {
-                ingredients.push(ingredient);
-                updateIngredientsDisplay();
-            }
+      function addQuickIngredient(ingredient) {
+        if (!ingredients.includes(ingredient)) {
+          ingredients.push(ingredient);
+          updateIngredientsDisplay();
         }
+      }
 
-        function removeIngredient(ingredient) {
-            ingredients = ingredients.filter(ing => ing !== ingredient);
-            updateIngredientsDisplay();
-        }
+      function removeIngredient(ingredient) {
+        ingredients = ingredients.filter(ing => ing !== ingredient);
+        updateIngredientsDisplay();
+      }
 
-        function updateIngredientsDisplay() {
-            const container = document.getElementById('ingredients-container');
-            const listSection = document.getElementById('ingredients-list');
-            const cuisineSection = document.getElementById('cuisine-section');
+      function updateIngredientsDisplay() {
+        const container = document.getElementById('ingredients-container');
+        const listSection = document.getElementById('ingredients-list');
+        const cuisineSection = document.getElementById('cuisine-section');
 
-            if (ingredients.length > 0) {
-                listSection.classList.remove('hidden');
-                cuisineSection.classList.remove('hidden');
-                
-                container.innerHTML = ingredients.map(ingredient => 
-                    `<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex items-center gap-2">
+        if (ingredients.length > 0) {
+          listSection.classList.remove('hidden');
+          cuisineSection.classList.remove('hidden');
+
+          container.innerHTML = ingredients
+            .map(
+              ingredient =>
+                `<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex items-center gap-2">
                         <span class="text-gray-800">${ingredient}</span>
                         <button onclick="removeIngredient('${ingredient}')" class="text-red-500 hover:text-red-700 font-bold">×</button>
                     </div>`
-                ).join('');
-            } else {
-                listSection.classList.add('hidden');
-                cuisineSection.classList.add('hidden');
-            }
+            )
+            .join('');
+        } else {
+          listSection.classList.add('hidden');
+          cuisineSection.classList.add('hidden');
         }
+      }
 
-        function selectCuisine(cuisine) {
-            selectedCuisine = cuisine;
-            document.querySelectorAll('.cuisine-btn').forEach(btn => {
-                btn.classList.remove('border-orange-500', 'bg-orange-50');
-                btn.classList.add('border-gray-200');
-            });
-            event.target.closest('.cuisine-btn').classList.add('border-orange-500', 'bg-orange-50');
-            event.target.closest('.cuisine-btn').classList.remove('border-gray-200');
-            
-            document.getElementById('generate-section').classList.remove('hidden');
-        }
+      function selectCuisine(cuisine) {
+        selectedCuisine = cuisine;
+        document.querySelectorAll('.cuisine-btn').forEach(btn => {
+          btn.classList.remove('border-orange-500', 'bg-orange-50');
+          btn.classList.add('border-gray-200');
+        });
+        event.target.closest('.cuisine-btn').classList.add('border-orange-500', 'bg-orange-50');
+        event.target.closest('.cuisine-btn').classList.remove('border-gray-200');
 
-        function generateRecipe() {
-            const recipeSection = document.getElementById('recipe-section');
-            const recipeCard = document.getElementById('recipe-card');
-            
-            // Sample recipe generation
-            const recipes = {
-                italian: {
-                    title: "Creative Pasta Primavera",
-                    description: "Fresh pasta with your available ingredients",
-                    time: "25 min",
-                    difficulty: "Easy",
-                    ingredients: ingredients.slice(0, 5),
-                    instructions: [
-                        "Boil pasta according to package directions",
-                        "Heat olive oil in a large pan",
-                        "Sauté your ingredients until tender",
-                        "Combine with pasta and season to taste",
-                        "Serve hot with cheese if available"
-                    ]
-                },
-                asian: {
-                    title: "Quick Stir-Fry Bowl",
-                    description: "Colorful stir-fry with your pantry ingredients",
-                    time: "20 min",
-                    difficulty: "Easy",
-                    ingredients: ingredients.slice(0, 5),
-                    instructions: [
-                        "Heat oil in a wok over high heat",
-                        "Add garlic and aromatics first",
-                        "Stir-fry your ingredients quickly",
-                        "Season with soy sauce or available seasonings",
-                        "Serve over rice or noodles"
-                    ]
-                },
-                mexican: {
-                    title: "Pantry Burrito Bowl",
-                    description: "Mexican-inspired bowl with your ingredients",
-                    time: "30 min",
-                    difficulty: "Medium",
-                    ingredients: ingredients.slice(0, 5),
-                    instructions: [
-                        "Cook rice or grains as base",
-                        "Season and cook your main ingredients",
-                        "Prepare any vegetables you have",
-                        "Layer everything in a bowl",
-                        "Top with cheese or herbs if available"
-                    ]
-                }
-            };
+        document.getElementById('generate-section').classList.remove('hidden');
+      }
 
-            const recipe = recipes[selectedCuisine] || {
-                title: `Creative ${ingredients[0] || 'Mixed'} Fusion Dish`,
-                description: "A unique dish made with your available ingredients",
-                time: "25 min", 
-                difficulty: "Medium",
-                ingredients: ingredients.slice(0, 5),
-                instructions: [
-                    "Prepare all your ingredients",
-                    "Heat oil in a large pan",
-                    "Cook ingredients according to their needs",
-                    "Season and combine everything",
-                    "Serve hot and enjoy your creation!"
-                ]
-            };
+      function generateRecipe() {
+        const recipeSection = document.getElementById('recipe-section');
+        const recipeCard = document.getElementById('recipe-card');
 
-            recipeCard.innerHTML = `
+        // Sample recipe generation
+        const recipes = {
+          italian: {
+            title: 'Creative Pasta Primavera',
+            description: 'Fresh pasta with your available ingredients',
+            time: '25 min',
+            difficulty: 'Easy',
+            ingredients: ingredients.slice(0, 5),
+            instructions: [
+              'Boil pasta according to package directions',
+              'Heat olive oil in a large pan',
+              'Sauté your ingredients until tender',
+              'Combine with pasta and season to taste',
+              'Serve hot with cheese if available',
+            ],
+          },
+          asian: {
+            title: 'Quick Stir-Fry Bowl',
+            description: 'Colorful stir-fry with your pantry ingredients',
+            time: '20 min',
+            difficulty: 'Easy',
+            ingredients: ingredients.slice(0, 5),
+            instructions: [
+              'Heat oil in a wok over high heat',
+              'Add garlic and aromatics first',
+              'Stir-fry your ingredients quickly',
+              'Season with soy sauce or available seasonings',
+              'Serve over rice or noodles',
+            ],
+          },
+          mexican: {
+            title: 'Pantry Burrito Bowl',
+            description: 'Mexican-inspired bowl with your ingredients',
+            time: '30 min',
+            difficulty: 'Medium',
+            ingredients: ingredients.slice(0, 5),
+            instructions: [
+              'Cook rice or grains as base',
+              'Season and cook your main ingredients',
+              'Prepare any vegetables you have',
+              'Layer everything in a bowl',
+              'Top with cheese or herbs if available',
+            ],
+          },
+        };
+
+        const recipe = recipes[selectedCuisine] || {
+          title: `Creative ${ingredients[0] || 'Mixed'} Fusion Dish`,
+          description: 'A unique dish made with your available ingredients',
+          time: '25 min',
+          difficulty: 'Medium',
+          ingredients: ingredients.slice(0, 5),
+          instructions: [
+            'Prepare all your ingredients',
+            'Heat oil in a large pan',
+            'Cook ingredients according to their needs',
+            'Season and combine everything',
+            'Serve hot and enjoy your creation!',
+          ],
+        };
+
+        recipeCard.innerHTML = `
                 <div class="p-6">
                     <h2 class="text-2xl font-bold text-gray-800 mb-2">${recipe.title}</h2>
                     <p class="text-gray-600 mb-3">${recipe.description}</p>
@@ -314,26 +374,32 @@
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800 mb-3">Ingredients:</h3>
                             <ul class="space-y-2">
-                                ${recipe.ingredients.map(ing => 
-                                    `<li class="flex justify-between items-center py-2 border-b border-gray-100">
+                                ${recipe.ingredients
+                                  .map(
+                                    ing =>
+                                      `<li class="flex justify-between items-center py-2 border-b border-gray-100">
                                         <span class="text-gray-700 capitalize">${ing}</span>
                                         <span class="text-gray-600 font-medium">As needed</span>
                                     </li>`
-                                ).join('')}
+                                  )
+                                  .join('')}
                             </ul>
                         </div>
 
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800 mb-3">Instructions:</h3>
                             <ol class="space-y-3">
-                                ${recipe.instructions.map((instruction, index) => 
-                                    `<li class="flex gap-3">
+                                ${recipe.instructions
+                                  .map(
+                                    (instruction, index) =>
+                                      `<li class="flex gap-3">
                                         <span class="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
                                             ${index + 1}
                                         </span>
                                         <span class="text-gray-700 leading-relaxed">${instruction}</span>
                                     </li>`
-                                ).join('')}
+                                  )
+                                  .join('')}
                             </ol>
                         </div>
                     </div>
@@ -346,15 +412,15 @@
                 </div>
             `;
 
-            recipeSection.classList.remove('hidden');
-        }
+        recipeSection.classList.remove('hidden');
+      }
 
-        // Allow Enter key to add ingredients
-        document.getElementById('ingredientInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addIngredient();
-            }
-        });
+      // Allow Enter key to add ingredients
+      document.getElementById('ingredientInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+          addIngredient();
+        }
+      });
     </script>
-</body>
+  </body>
 </html>

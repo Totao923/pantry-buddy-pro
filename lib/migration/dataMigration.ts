@@ -37,7 +37,7 @@ export class DataMigrationService {
   // Check if migration is needed
   async needsMigration(userId: string): Promise<boolean> {
     if (!isDatabaseEnabled()) return false;
-    
+
     try {
       // Check if user profile exists in Supabase
       const { data: profile } = await this.supabase
@@ -45,13 +45,13 @@ export class DataMigrationService {
         .select('id')
         .eq('id', userId)
         .single();
-      
+
       // If no profile exists, check if localStorage has data
       if (!profile) {
         const localData = this.getLocalStorageData();
         return Object.keys(localData).length > 0;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Error checking migration status:', error);
@@ -62,29 +62,29 @@ export class DataMigrationService {
   // Get all localStorage data
   private getLocalStorageData(): LocalStorageData {
     const data: LocalStorageData = {};
-    
+
     try {
       const appState = localStorage.getItem('pantryBuddyState');
       if (appState) data.appState = JSON.parse(appState);
-      
+
       const pantryInventory = localStorage.getItem('pantryInventory');
       if (pantryInventory) data.pantryInventory = JSON.parse(pantryInventory);
-      
+
       const recipeRatings = localStorage.getItem('recipeRatings');
       if (recipeRatings) data.recipeRatings = JSON.parse(recipeRatings);
-      
+
       const recipeReviews = localStorage.getItem('recipeReviews');
       if (recipeReviews) data.recipeReviews = JSON.parse(recipeReviews);
-      
+
       const userPreferences = localStorage.getItem('userPreferences');
       if (userPreferences) data.userPreferences = JSON.parse(userPreferences);
-      
+
       const aiUsageStats = localStorage.getItem('aiUsageStats');
       if (aiUsageStats) data.aiUsageStats = JSON.parse(aiUsageStats);
     } catch (error) {
       console.error('Error reading localStorage data:', error);
     }
-    
+
     return data;
   }
 
@@ -98,12 +98,12 @@ export class DataMigrationService {
     try {
       const appState = localData.appState;
       const userPreferences = localData.userPreferences;
-      
+
       if (!appState?.user && !userPreferences) return false;
-      
+
       const user = appState?.user || {};
       const preferences = userPreferences || user.preferences || {};
-      
+
       const userProfile: UserProfile = {
         id: userId,
         email: user.email || '',
@@ -117,28 +117,26 @@ export class DataMigrationService {
           cooking_time_preference: preferences.cookingTime || 'medium',
           default_serving_size: preferences.servingSize || 4,
           budget_range: preferences.budgetRange || 'medium',
-          experience_level: 'intermediate'
+          experience_level: 'intermediate',
         },
         settings: {
           notifications_enabled: true,
           email_reminders: true,
           theme: 'light',
           language: 'en',
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
-      
-      const { error } = await this.supabase
-        .from('user_profiles')
-        .insert(userProfile);
-      
+
+      const { error } = await this.supabase.from('user_profiles').insert(userProfile);
+
       if (error) {
         console.error('Error migrating user profile:', error);
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error in migrateUserProfile:', error);
@@ -151,7 +149,7 @@ export class DataMigrationService {
     try {
       const pantryInventory = localData.pantryInventory;
       if (!pantryInventory?.items?.length) return 0;
-      
+
       const pantryItems: PantryItem[] = pantryInventory.items.map((item: any) => ({
         id: item.id,
         user_id: userId,
@@ -166,18 +164,16 @@ export class DataMigrationService {
         is_running_low: item.isRunningLow || false,
         minimum_quantity: item.minimumQuantity || 1,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }));
-      
-      const { error } = await this.supabase
-        .from('pantry_items')
-        .insert(pantryItems);
-      
+
+      const { error } = await this.supabase.from('pantry_items').insert(pantryItems);
+
       if (error) {
         console.error('Error migrating pantry items:', error);
         return 0;
       }
-      
+
       return pantryItems.length;
     } catch (error) {
       console.error('Error in migratePantryItems:', error);
@@ -186,15 +182,18 @@ export class DataMigrationService {
   }
 
   // Migrate recipes and ratings
-  private async migrateRecipesAndRatings(userId: string, localData: LocalStorageData): Promise<{ recipes: number; ratings: number }> {
+  private async migrateRecipesAndRatings(
+    userId: string,
+    localData: LocalStorageData
+  ): Promise<{ recipes: number; ratings: number }> {
     try {
       const appState = localData.appState;
       const recipeRatings = localData.recipeRatings || {};
       const recipeReviews = localData.recipeReviews || {};
-      
+
       let recipesCount = 0;
       let ratingsCount = 0;
-      
+
       // Migrate generated recipes
       if (appState?.generatedRecipes?.length) {
         const recipes: Recipe[] = appState.generatedRecipes.map((recipe: any) => ({
@@ -215,26 +214,24 @@ export class DataMigrationService {
           is_favorite: appState.user?.savedRecipes?.includes(recipe.id) || false,
           source: 'generated',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         }));
-        
-        const { error: recipesError } = await this.supabase
-          .from('recipes')
-          .insert(recipes);
-        
+
+        const { error: recipesError } = await this.supabase.from('recipes').insert(recipes);
+
         if (!recipesError) {
           recipesCount = recipes.length;
         } else {
           console.error('Error migrating recipes:', recipesError);
         }
       }
-      
+
       // Migrate ratings and reviews
       const ratings: RecipeRating[] = [];
-      
+
       Object.entries(recipeRatings).forEach(([recipeId, rating]: [string, any]) => {
         const review = recipeReviews[recipeId];
-        
+
         ratings.push({
           id: `${userId}-${recipeId}`,
           user_id: userId,
@@ -246,23 +243,25 @@ export class DataMigrationService {
           review_text: review?.text || null,
           would_make_again: rating.wouldMakeAgain ?? true,
           cooking_notes: review?.notes || null,
-          created_at: rating.createdAt ? new Date(rating.createdAt).toISOString() : new Date().toISOString(),
-          updated_at: rating.updatedAt ? new Date(rating.updatedAt).toISOString() : new Date().toISOString()
+          created_at: rating.createdAt
+            ? new Date(rating.createdAt).toISOString()
+            : new Date().toISOString(),
+          updated_at: rating.updatedAt
+            ? new Date(rating.updatedAt).toISOString()
+            : new Date().toISOString(),
         });
       });
-      
+
       if (ratings.length > 0) {
-        const { error: ratingsError } = await this.supabase
-          .from('recipe_ratings')
-          .insert(ratings);
-        
+        const { error: ratingsError } = await this.supabase.from('recipe_ratings').insert(ratings);
+
         if (!ratingsError) {
           ratingsCount = ratings.length;
         } else {
           console.error('Error migrating ratings:', ratingsError);
         }
       }
-      
+
       return { recipes: recipesCount, ratings: ratingsCount };
     } catch (error) {
       console.error('Error in migrateRecipesAndRatings:', error);
@@ -279,58 +278,57 @@ export class DataMigrationService {
         pantryItems: 0,
         recipes: 0,
         ratings: 0,
-        preferences: false
+        preferences: false,
       },
-      errors: []
+      errors: [],
     };
-    
+
     if (!isDatabaseEnabled()) {
       result.errors.push('Database is not enabled');
       return result;
     }
-    
+
     try {
       const localData = this.getLocalStorageData();
-      
+
       if (Object.keys(localData).length === 0) {
         result.errors.push('No local data found to migrate');
         return result;
       }
-      
+
       // Migrate user profile
       const profileMigrated = await this.migrateUserProfile(userId, localData);
       result.migratedItems.userProfile = profileMigrated;
       result.migratedItems.preferences = profileMigrated;
-      
+
       if (!profileMigrated) {
         result.errors.push('Failed to migrate user profile');
       }
-      
+
       // Migrate pantry items
       const pantryItemsCount = await this.migratePantryItems(userId, localData);
       result.migratedItems.pantryItems = pantryItemsCount;
-      
+
       // Migrate recipes and ratings
       const { recipes, ratings } = await this.migrateRecipesAndRatings(userId, localData);
       result.migratedItems.recipes = recipes;
       result.migratedItems.ratings = ratings;
-      
+
       // Success if at least one item was migrated
       result.success = profileMigrated || pantryItemsCount > 0 || recipes > 0 || ratings > 0;
-      
+
       if (result.success) {
         // Create backup of localStorage data
         await this.createBackup(userId, localData);
-        
+
         // Optionally clear localStorage after successful migration
         // this.clearLocalStorageData();
       }
-      
     } catch (error) {
       console.error('Migration error:', error);
       result.errors.push(`Migration failed: ${error}`);
     }
-    
+
     return result;
   }
 
@@ -340,12 +338,10 @@ export class DataMigrationService {
       const backupData = {
         user_id: userId,
         backup_data: this.encryptData(localData),
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
-      
-      await this.supabase
-        .from('data_backups')
-        .insert(backupData);
+
+      await this.supabase.from('data_backups').insert(backupData);
     } catch (error) {
       console.error('Error creating backup:', error);
     }
@@ -359,9 +355,9 @@ export class DataMigrationService {
       'recipeRatings',
       'recipeReviews',
       'userPreferences',
-      'aiUsageStats'
+      'aiUsageStats',
     ];
-    
+
     keys.forEach(key => {
       localStorage.removeItem(key);
     });
@@ -379,14 +375,14 @@ export class DataMigrationService {
         this.supabase.from('user_profiles').select('id').eq('id', userId).single(),
         this.supabase.from('pantry_items').select('id', { count: 'exact' }).eq('user_id', userId),
         this.supabase.from('recipes').select('id', { count: 'exact' }).eq('user_id', userId),
-        this.supabase.from('recipe_ratings').select('id', { count: 'exact' }).eq('user_id', userId)
+        this.supabase.from('recipe_ratings').select('id', { count: 'exact' }).eq('user_id', userId),
       ]);
-      
+
       return {
         hasProfile: !!profileResult.data,
         pantryItemsCount: pantryResult.count || 0,
         recipesCount: recipesResult.count || 0,
-        ratingsCount: ratingsResult.count || 0
+        ratingsCount: ratingsResult.count || 0,
       };
     } catch (error) {
       console.error('Error getting migration status:', error);
@@ -394,7 +390,7 @@ export class DataMigrationService {
         hasProfile: false,
         pantryItemsCount: 0,
         recipesCount: 0,
-        ratingsCount: 0
+        ratingsCount: 0,
       };
     }
   }
@@ -403,14 +399,14 @@ export class DataMigrationService {
   async syncFromSupabase(userId: string): Promise<boolean> {
     try {
       if (!isDatabaseEnabled()) return false;
-      
+
       // Get user profile and preferences
       const { data: profile } = await this.supabase
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
         .single();
-      
+
       if (profile) {
         // Update localStorage with Supabase data
         const appState = {
@@ -426,20 +422,20 @@ export class DataMigrationService {
               spiceLevel: profile.preferences?.spice_level || 'medium',
               cookingTime: profile.preferences?.cooking_time_preference || 'medium',
               servingSize: profile.preferences?.default_serving_size || 4,
-              budgetRange: profile.preferences?.budget_range || 'medium'
-            }
-          }
+              budgetRange: profile.preferences?.budget_range || 'medium',
+            },
+          },
         };
-        
+
         localStorage.setItem('pantryBuddyState', JSON.stringify(appState));
       }
-      
+
       // Get pantry items
       const { data: pantryItems } = await this.supabase
         .from('pantry_items')
         .select('*')
         .eq('user_id', userId);
-      
+
       if (pantryItems?.length) {
         const pantryInventory = {
           id: `user-pantry-${userId}`,
@@ -455,15 +451,15 @@ export class DataMigrationService {
             location: item.location,
             notes: item.notes,
             isRunningLow: item.is_running_low,
-            minimumQuantity: item.minimum_quantity
+            minimumQuantity: item.minimum_quantity,
           })),
           totalItems: pantryItems.length,
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
         };
-        
+
         localStorage.setItem('pantryInventory', JSON.stringify(pantryInventory));
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error syncing from Supabase:', error);

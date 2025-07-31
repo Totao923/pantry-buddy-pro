@@ -12,43 +12,43 @@ export default function PremiumFeatures({ userSubscription, onUpgrade }: Premium
       title: 'Advanced AI Recipes',
       description: 'Get more sophisticated and creative recipe suggestions',
       free: 'Basic recipes only',
-      premium: 'Unlimited creative recipes'
+      premium: 'Unlimited creative recipes',
     },
     {
       icon: '📊',
       title: 'Nutrition Analysis',
       description: 'Detailed nutritional information for every recipe',
       free: 'Not available',
-      premium: 'Full nutrition tracking'
+      premium: 'Full nutrition tracking',
     },
     {
       icon: '📱',
       title: 'Meal Planning',
       description: 'Plan your weekly meals and generate shopping lists',
       free: 'Single recipe generation',
-      premium: 'Weekly meal plans'
+      premium: 'Weekly meal plans',
     },
     {
       icon: '🛒',
       title: 'Smart Shopping Lists',
       description: 'Automatically generated shopping lists with price comparison',
       free: 'Manual lists only',
-      premium: 'Smart automated lists'
+      premium: 'Smart automated lists',
     },
     {
       icon: '👨‍🍳',
       title: 'Chef Techniques',
       description: 'Video tutorials and advanced cooking techniques',
       free: 'Basic instructions',
-      premium: 'Video guides included'
+      premium: 'Video guides included',
     },
     {
       icon: '🏪',
       title: 'Partner Discounts',
       description: 'Exclusive discounts on ingredients and kitchen tools',
       free: 'No discounts',
-      premium: 'Up to 20% off partners'
-    }
+      premium: 'Up to 20% off partners',
+    },
   ];
 
   if (userSubscription === 'premium') {
@@ -59,7 +59,8 @@ export default function PremiumFeatures({ userSubscription, onUpgrade }: Premium
           <h2 className="text-xl font-bold text-gray-800">Premium Member</h2>
         </div>
         <p className="text-gray-600 mb-4">
-          You have access to all premium features! Enjoy unlimited creative recipes and advanced meal planning.
+          You have access to all premium features! Enjoy unlimited creative recipes and advanced
+          meal planning.
         </p>
         <div className="grid md:grid-cols-2 gap-4">
           {premiumFeatures.map((feature, index) => (
@@ -114,10 +115,8 @@ export default function PremiumFeatures({ userSubscription, onUpgrade }: Premium
         <div className="text-3xl font-bold mb-2">
           $9.99<span className="text-lg font-normal">/month</span>
         </div>
-        <p className="mb-4 opacity-90">
-          Cancel anytime • 7-day free trial
-        </p>
-        <button 
+        <p className="mb-4 opacity-90">Cancel anytime • 7-day free trial</p>
+        <button
           onClick={onUpgrade}
           className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
         >

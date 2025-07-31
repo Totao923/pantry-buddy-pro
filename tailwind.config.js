@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
+  content: ['./pages/**/*.{js,ts,jsx,tsx,mdx}', './components/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
       colors: {
@@ -19,7 +16,7 @@ module.exports = {
           100: '#dcfce7',
           500: '#22c55e',
           600: '#16a34a',
-        }
+        },
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
@@ -27,4 +24,4 @@ module.exports = {
     },
   },
   plugins: [],
-}
+};

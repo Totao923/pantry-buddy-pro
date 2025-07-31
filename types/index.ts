@@ -11,16 +11,16 @@ export interface Ingredient {
   isVegan?: boolean;
 }
 
-export type IngredientCategory = 
-  | 'protein' 
-  | 'vegetables' 
-  | 'fruits' 
-  | 'grains' 
-  | 'dairy' 
-  | 'spices' 
-  | 'herbs' 
-  | 'oils' 
-  | 'pantry' 
+export type IngredientCategory =
+  | 'protein'
+  | 'vegetables'
+  | 'fruits'
+  | 'grains'
+  | 'dairy'
+  | 'spices'
+  | 'herbs'
+  | 'oils'
+  | 'pantry'
   | 'other';
 
 export interface Recipe {
@@ -89,18 +89,18 @@ export interface DietaryInfo {
   allergens: string[];
 }
 
-export type CuisineType = 
+export type CuisineType =
   | 'any'
-  | 'italian' 
-  | 'asian' 
-  | 'mexican' 
-  | 'indian' 
-  | 'american' 
-  | 'mediterranean' 
-  | 'chinese' 
-  | 'french' 
-  | 'thai' 
-  | 'japanese' 
+  | 'italian'
+  | 'asian'
+  | 'mexican'
+  | 'indian'
+  | 'american'
+  | 'mediterranean'
+  | 'chinese'
+  | 'french'
+  | 'thai'
+  | 'japanese'
   | 'middle-eastern'
   | 'korean'
   | 'greek'

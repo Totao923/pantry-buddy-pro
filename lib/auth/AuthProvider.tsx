@@ -52,7 +52,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
           return;
@@ -74,24 +77,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getInitialSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
 
-        if (event === 'SIGNED_IN' && session?.user) {
-          await loadUserData(session.user.id);
-        } else if (event === 'SIGNED_OUT') {
-          setProfile(null);
-          setPreferences(null);
-          setSubscription(null);
-        }
+      setSession(session);
+      setUser(session?.user ?? null);
 
-        setLoading(false);
+      if (event === 'SIGNED_IN' && session?.user) {
+        await loadUserData(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setProfile(null);
+        setPreferences(null);
+        setSubscription(null);
       }
-    );
+
+      setLoading(false);
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -167,9 +170,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         options: {
           data: {
             name: metadata.name || '',
-            ...metadata
-          }
-        }
+            ...metadata,
+          },
+        },
       });
 
       if (error) {
@@ -190,7 +193,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
 
       if (error) {
@@ -209,7 +212,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      
+
       if (!error) {
         setUser(null);
         setProfile(null);
@@ -227,7 +230,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
       return { error };
     } catch (error) {
@@ -302,23 +305,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     updateProfile,
     updatePreferences,
-    refreshUserData
+    refreshUserData,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 // Hook to get subscription features
 export const useSubscriptionFeatures = () => {
   const { subscription } = useAuth();
-  
+
   const getFeatures = () => {
     const tier = subscription?.tier || 'free';
-    
+
     switch (tier) {
       case 'free':
         return {
@@ -331,7 +330,7 @@ export const useSubscriptionFeatures = () => {
           hasAdFreeExperience: false,
           maxFamilyMembers: 1,
           hasBarcodeScan: false,
-          hasAdvancedInventory: false
+          hasAdvancedInventory: false,
         };
       case 'premium':
         return {
@@ -344,7 +343,7 @@ export const useSubscriptionFeatures = () => {
           hasAdFreeExperience: true,
           maxFamilyMembers: 1,
           hasBarcodeScan: true,
-          hasAdvancedInventory: true
+          hasAdvancedInventory: true,
         };
       case 'family':
         return {
@@ -357,7 +356,7 @@ export const useSubscriptionFeatures = () => {
           hasAdFreeExperience: true,
           maxFamilyMembers: 6,
           hasBarcodeScan: true,
-          hasAdvancedInventory: true
+          hasAdvancedInventory: true,
         };
       case 'chef':
         return {
@@ -370,7 +369,7 @@ export const useSubscriptionFeatures = () => {
           hasAdFreeExperience: true,
           maxFamilyMembers: -1, // unlimited
           hasBarcodeScan: true,
-          hasAdvancedInventory: true
+          hasAdvancedInventory: true,
         };
       default:
         return {
@@ -383,7 +382,7 @@ export const useSubscriptionFeatures = () => {
           hasAdFreeExperience: false,
           maxFamilyMembers: 1,
           hasBarcodeScan: false,
-          hasAdvancedInventory: false
+          hasAdvancedInventory: false,
         };
     }
   };
@@ -391,6 +390,6 @@ export const useSubscriptionFeatures = () => {
   return {
     features: getFeatures(),
     tier: subscription?.tier || 'free',
-    status: subscription?.status || 'active'
+    status: subscription?.status || 'active',
   };
 };

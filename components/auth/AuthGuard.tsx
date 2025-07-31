@@ -8,11 +8,7 @@ interface AuthGuardProps {
   requireAuth?: boolean;
 }
 
-export default function AuthGuard({ 
-  children, 
-  fallback,
-  requireAuth = false 
-}: AuthGuardProps) {
+export default function AuthGuard({ children, fallback, requireAuth = false }: AuthGuardProps) {
   const { user, loading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(!user && requireAuth);
 
@@ -38,16 +34,14 @@ export default function AuthGuard({
               <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <span className="text-3xl">🧑‍🍳</span>
               </div>
-              
-              <h1 className="text-3xl font-bold text-gray-800 mb-4">
-                Welcome to Pantry Buddy Pro
-              </h1>
-              
+
+              <h1 className="text-3xl font-bold text-gray-800 mb-4">Welcome to Pantry Buddy Pro</h1>
+
               <p className="text-gray-600 mb-8 leading-relaxed">
-                Sign in to access your personalized pantry, AI-generated recipes, 
-                and cooking preferences across all your devices.
+                Sign in to access your personalized pantry, AI-generated recipes, and cooking
+                preferences across all your devices.
               </p>
-              
+
               <div className="space-y-4">
                 <button
                   onClick={() => setShowAuthModal(true)}
@@ -55,7 +49,7 @@ export default function AuthGuard({
                 >
                   Sign In to Continue
                 </button>
-                
+
                 <div className="text-sm text-gray-500">
                   New to Pantry Buddy?{' '}
                   <button
@@ -91,7 +85,7 @@ export default function AuthGuard({
             </div>
           </div>
         )}
-        
+
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
@@ -112,9 +106,7 @@ export function UserMenu() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   if (loading) {
-    return (
-      <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
-    );
+    return <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>;
   }
 
   if (!user) {
@@ -126,7 +118,7 @@ export function UserMenu() {
         >
           Sign In
         </button>
-        
+
         <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
@@ -153,29 +145,21 @@ export function UserMenu() {
           </span>
         </div>
         <div className="hidden md:block text-left">
-          <div className="text-sm font-medium text-gray-800">
-            {profile?.name || 'User'}
-          </div>
-          <div className="text-xs text-gray-500">
-            {user.email}
-          </div>
+          <div className="text-sm font-medium text-gray-800">{profile?.name || 'User'}</div>
+          <div className="text-xs text-gray-500">{user.email}</div>
         </div>
       </button>
 
       {showMenu && (
         <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
           <div className="px-4 py-3 border-b border-gray-100">
-            <div className="text-sm font-medium text-gray-800">
-              {profile?.name || 'User'}
-            </div>
-            <div className="text-xs text-gray-500">
-              {user.email}
-            </div>
+            <div className="text-sm font-medium text-gray-800">{profile?.name || 'User'}</div>
+            <div className="text-xs text-gray-500">{user.email}</div>
             <div className="text-xs text-blue-600 font-medium mt-1">
               {profile?.subscription_tier?.toUpperCase() || 'FREE'} Plan
             </div>
           </div>
-          
+
           <div className="py-1">
             <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
               Profile Settings
@@ -187,7 +171,7 @@ export function UserMenu() {
               Help & Support
             </button>
           </div>
-          
+
           <div className="border-t border-gray-100 py-1">
             <button
               onClick={handleSignOut}
@@ -200,12 +184,7 @@ export function UserMenu() {
       )}
 
       {/* Click outside to close menu */}
-      {showMenu && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setShowMenu(false)}
-        />
-      )}
+      {showMenu && <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />}
     </div>
   );
 }

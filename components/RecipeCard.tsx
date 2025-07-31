@@ -18,10 +18,14 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Easy': return 'text-green-600 bg-green-100';
-      case 'Medium': return 'text-yellow-600 bg-yellow-100';
-      case 'Hard': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'Easy':
+        return 'text-green-600 bg-green-100';
+      case 'Medium':
+        return 'text-yellow-600 bg-yellow-100';
+      case 'Hard':
+        return 'text-red-600 bg-red-100';
+      default:
+        return 'text-gray-600 bg-gray-100';
     }
   };
 
@@ -39,7 +43,9 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
               <span className="flex items-center gap-1">
                 ⏱️ {recipe.prepTime + recipe.cookTime} min
               </span>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(recipe.difficulty)}`}>
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(recipe.difficulty)}`}
+              >
                 {recipe.difficulty}
               </span>
             </div>
@@ -50,7 +56,7 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
           <div className="flex items-center gap-4 mb-4">
             <h3 className="text-lg font-semibold text-gray-800">Servings:</h3>
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => handleServingChange(currentServings - 1)}
                 className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
                 disabled={currentServings <= 1}
@@ -58,7 +64,7 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
                 -
               </button>
               <span className="w-12 text-center font-medium">{currentServings}</span>
-              <button 
+              <button
                 onClick={() => handleServingChange(currentServings + 1)}
                 className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
                 disabled={currentServings >= 12}
@@ -74,7 +80,10 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
             <h3 className="text-lg font-semibold text-gray-800 mb-3">Ingredients:</h3>
             <ul className="space-y-2">
               {recipe.ingredients.map((ingredient, index) => (
-                <li key={index} className="flex justify-between items-center py-2 border-b border-gray-100">
+                <li
+                  key={index}
+                  className="flex justify-between items-center py-2 border-b border-gray-100"
+                >
                   <span className="text-gray-700 capitalize">{ingredient.name}</span>
                   <span className="text-gray-600 font-medium">
                     {ingredient.amount} {ingredient.unit}
@@ -103,7 +112,7 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
           <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="flex flex-wrap gap-2">
               {recipe.tags.map((tag, index) => (
-                <span 
+                <span
                   key={index}
                   className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
                 >

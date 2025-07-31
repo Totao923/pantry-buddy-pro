@@ -34,7 +34,7 @@ export function useMigration(): MigrationHookReturn {
     isComplete: false,
     hasError: false,
     error: null,
-    result: null
+    result: null,
   });
 
   // Check if migration is needed on mount
@@ -49,19 +49,19 @@ export function useMigration(): MigrationHookReturn {
 
     try {
       const isNeeded = await dataMigrationService.needsMigration(user.id);
-      
+
       setMigrationState(prev => ({
         ...prev,
         isNeeded,
         hasError: false,
-        error: null
+        error: null,
       }));
     } catch (error) {
       console.error('Error checking migration status:', error);
       setMigrationState(prev => ({
         ...prev,
         hasError: true,
-        error: error instanceof Error ? error.message : 'Failed to check migration status'
+        error: error instanceof Error ? error.message : 'Failed to check migration status',
       }));
     }
   };
@@ -73,12 +73,12 @@ export function useMigration(): MigrationHookReturn {
       ...prev,
       isInProgress: true,
       hasError: false,
-      error: null
+      error: null,
     }));
 
     try {
       const result = await dataMigrationService.migrateData(user.id);
-      
+
       if (result.success) {
         setMigrationState(prev => ({
           ...prev,
@@ -87,17 +87,17 @@ export function useMigration(): MigrationHookReturn {
           isNeeded: false,
           result: result.migratedItems,
           hasError: false,
-          error: null
+          error: null,
         }));
 
         // Show success message
         console.log('Migration completed successfully:', result.migratedItems);
-        
+
         // Optional: Show toast notification
         if (typeof window !== 'undefined' && 'Notification' in window) {
           new Notification('Data Migration Complete', {
             body: 'Your data has been successfully migrated to the cloud!',
-            icon: '/favicon.ico'
+            icon: '/favicon.ico',
           });
         }
       } else {
@@ -109,7 +109,7 @@ export function useMigration(): MigrationHookReturn {
         ...prev,
         isInProgress: false,
         hasError: true,
-        error: error instanceof Error ? error.message : 'Migration failed'
+        error: error instanceof Error ? error.message : 'Migration failed',
       }));
     }
   };
@@ -118,9 +118,9 @@ export function useMigration(): MigrationHookReturn {
     setMigrationState(prev => ({
       ...prev,
       hasError: false,
-      error: null
+      error: null,
     }));
-    
+
     await startMigration();
   };
 
@@ -129,9 +129,9 @@ export function useMigration(): MigrationHookReturn {
       ...prev,
       isNeeded: false,
       hasError: false,
-      error: null
+      error: null,
     }));
-    
+
     // Store dismissal in localStorage to avoid showing again
     if (user) {
       localStorage.setItem(`migration-dismissed-${user.id}`, 'true');
@@ -143,7 +143,7 @@ export function useMigration(): MigrationHookReturn {
     startMigration,
     dismissMigration,
     retryMigration,
-    checkMigrationStatus
+    checkMigrationStatus,
   };
 }
 
@@ -155,7 +155,7 @@ export function useMigrationStatus() {
     pantryItemsCount: 0,
     recipesCount: 0,
     ratingsCount: 0,
-    loading: false
+    loading: false,
   });
 
   const getMigrationStatus = async () => {
@@ -167,7 +167,7 @@ export function useMigrationStatus() {
       const migrationStatus = await dataMigrationService.getMigrationStatus(user.id);
       setStatus({
         ...migrationStatus,
-        loading: false
+        loading: false,
       });
     } catch (error) {
       console.error('Error getting migration status:', error);
@@ -183,6 +183,6 @@ export function useMigrationStatus() {
 
   return {
     status,
-    refreshStatus: getMigrationStatus
+    refreshStatus: getMigrationStatus,
   };
 }

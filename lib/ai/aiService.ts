@@ -1,8 +1,20 @@
-import { AIProvider, RecipeGenerationParams, AIRecipeResponse, RecipeCache, RateLimiter, RecipeQuality } from './types';
+import {
+  AIProvider,
+  RecipeGenerationParams,
+  AIRecipeResponse,
+  RecipeCache,
+  RateLimiter,
+  RecipeQuality,
+} from './types';
 import { AnthropicProvider } from './providers/anthropic';
 import { PromptEngine } from './promptEngineering';
 import { AdvancedRecipeEngine } from '../advancedRecipeEngine';
-import { getAIConfig, isAIEnabled, shouldFallbackToMock, isCacheEnabled } from '../config/environment';
+import {
+  getAIConfig,
+  isAIEnabled,
+  shouldFallbackToMock,
+  isCacheEnabled,
+} from '../config/environment';
 import { Recipe } from '../../types';
 
 // Simple in-memory cache implementation
@@ -13,19 +25,19 @@ class MemoryRecipeCache implements RecipeCache {
   async get(key: string): Promise<Recipe | null> {
     const item = this.cache.get(key);
     if (!item) return null;
-    
+
     if (Date.now() > item.expires) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return item.recipe;
   }
 
   async set(key: string, recipe: Recipe, ttl = this.defaultTTL): Promise<void> {
     this.cache.set(key, {
       recipe,
-      expires: Date.now() + ttl
+      expires: Date.now() + ttl,
     });
   }
 
@@ -40,7 +52,9 @@ class MemoryRecipeCache implements RecipeCache {
       servings: params.servings,
       preferences: params.preferences || {},
     };
-    return btoa(JSON.stringify(keyData)).replace(/[^a-zA-Z0-9]/g, '').substr(0, 32);
+    return btoa(JSON.stringify(keyData))
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .substr(0, 32);
   }
 }
 
@@ -54,19 +68,19 @@ class MemoryRateLimiter implements RateLimiter {
     const now = Date.now();
     const hourKey = `${userId}_hour`;
     const minuteKey = `${userId}_minute`;
-    
+
     // Check hourly limit
     const hourData = this.limits.get(hourKey);
     if (hourData && now < hourData.resetTime && hourData.count >= this.maxRequestsPerHour) {
       return false;
     }
-    
+
     // Check minute limit
     const minuteData = this.limits.get(minuteKey);
     if (minuteData && now < minuteData.resetTime && minuteData.count >= this.maxRequestsPerMinute) {
       return false;
     }
-    
+
     return true;
   }
 
@@ -74,7 +88,7 @@ class MemoryRateLimiter implements RateLimiter {
     const now = Date.now();
     const hourKey = `${userId}_hour`;
     const minuteKey = `${userId}_minute`;
-    
+
     // Increment hourly counter
     const hourData = this.limits.get(hourKey);
     if (!hourData || now >= hourData.resetTime) {
@@ -82,7 +96,7 @@ class MemoryRateLimiter implements RateLimiter {
     } else {
       hourData.count++;
     }
-    
+
     // Increment minute counter
     const minuteData = this.limits.get(minuteKey);
     if (!minuteData || now >= minuteData.resetTime) {
@@ -96,13 +110,17 @@ class MemoryRateLimiter implements RateLimiter {
     const now = Date.now();
     const hourData = this.limits.get(`${userId}_hour`);
     const minuteData = this.limits.get(`${userId}_minute`);
-    
-    const hourRemaining = !hourData || now >= hourData.resetTime ? 
-      this.maxRequestsPerHour : Math.max(0, this.maxRequestsPerHour - hourData.count);
-    
-    const minuteRemaining = !minuteData || now >= minuteData.resetTime ?
-      this.maxRequestsPerMinute : Math.max(0, this.maxRequestsPerMinute - minuteData.count);
-    
+
+    const hourRemaining =
+      !hourData || now >= hourData.resetTime
+        ? this.maxRequestsPerHour
+        : Math.max(0, this.maxRequestsPerHour - hourData.count);
+
+    const minuteRemaining =
+      !minuteData || now >= minuteData.resetTime
+        ? this.maxRequestsPerMinute
+        : Math.max(0, this.maxRequestsPerMinute - minuteData.count);
+
     return Math.min(hourRemaining, minuteRemaining);
   }
 
@@ -134,7 +152,7 @@ export class AIService {
 
     try {
       const config = getAIConfig();
-      
+
       if (config.provider === 'anthropic') {
         this.provider = new AnthropicProvider(config.apiKey);
       } else {
@@ -161,7 +179,10 @@ export class AIService {
   /**
    * Generate a recipe using AI or fallback to mock engine
    */
-  async generateRecipe(params: RecipeGenerationParams, userId = 'anonymous'): Promise<AIRecipeResponse> {
+  async generateRecipe(
+    params: RecipeGenerationParams,
+    userId = 'anonymous'
+  ): Promise<AIRecipeResponse> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -189,8 +210,8 @@ export class AIService {
               model: 'cached',
               provider: 'cache',
               responseTime: 0,
-              cacheHit: true
-            }
+              cacheHit: true,
+            },
           };
         }
       }
@@ -202,17 +223,18 @@ export class AIService {
           const response = await this.provider.generateRecipe(prompt, {
             temperature: 0.7,
             maxTokens: 2000,
-            timeout: 30000
+            timeout: 30000,
           });
 
           if (response.success && response.recipe) {
             // Validate recipe quality
             const quality = this.assessRecipeQuality(response.recipe, params);
-            
-            if (quality.score >= 0.6) { // Minimum quality threshold
+
+            if (quality.score >= 0.6) {
+              // Minimum quality threshold
               // Increment usage and cache result
               await this.rateLimiter.incrementUsage(userId);
-              
+
               if (isCacheEnabled() && cacheKey) {
                 await this.cache.set(cacheKey, response.recipe);
               }
@@ -245,20 +267,19 @@ export class AIService {
             model: 'mock-engine',
             provider: 'fallback',
             responseTime: 100,
-            cacheHit: false
-          }
+            cacheHit: false,
+          },
         };
       }
 
       return {
         success: false,
-        error: 'Recipe generation failed and fallback is disabled'
+        error: 'Recipe generation failed and fallback is disabled',
       };
-
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }
@@ -267,14 +288,14 @@ export class AIService {
    * Enhance an existing recipe
    */
   async enhanceRecipe(
-    originalRecipe: Recipe, 
+    originalRecipe: Recipe,
     enhancement: 'add-tips' | 'create-variations' | 'improve-instructions' | 'optimize-nutrition',
     userFeedback?: any
   ): Promise<AIRecipeResponse> {
     if (!this.provider) {
       return {
         success: false,
-        error: 'AI enhancement requires an active AI provider'
+        error: 'AI enhancement requires an active AI provider',
       };
     }
 
@@ -282,17 +303,17 @@ export class AIService {
       const prompt = PromptEngine.generateEnhancementPrompt({
         originalRecipe,
         enhancement,
-        userFeedback
+        userFeedback,
       });
 
       return await this.provider.generateRecipe(prompt, {
         temperature: 0.5, // Lower temperature for enhancements
-        maxTokens: 1500
+        maxTokens: 1500,
       });
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Enhancement failed'
+        error: error instanceof Error ? error.message : 'Enhancement failed',
       };
     }
   }
@@ -304,15 +325,15 @@ export class AIService {
     if (!this.provider) {
       return [
         'Creamy Garlic Parmesan Pasta',
-        'Asian-Style Stir-Fry Bowl', 
-        'Mediterranean Herb-Crusted Salmon'
+        'Asian-Style Stir-Fry Bowl',
+        'Mediterranean Herb-Crusted Salmon',
       ];
     }
 
     try {
       const prompt = PromptEngine.generateSuggestionPrompt(cuisinePreference as any, mood);
       const response = await this.provider.generateRecipe(prompt, { maxTokens: 500 });
-      
+
       if (response.success) {
         // Parse suggestions from response
         // This would need proper JSON parsing
@@ -336,11 +357,10 @@ export class AIService {
     // Check ingredient utilization
     const availableIngredients = params.ingredients.map(i => i.name.toLowerCase());
     const usedIngredients = recipe.ingredients.map(i => i.name.toLowerCase());
-    const utilizationRate = usedIngredients.filter(used => 
-      availableIngredients.some(available => 
-        used.includes(available) || available.includes(used)
-      )
-    ).length / Math.max(availableIngredients.length, 1);
+    const utilizationRate =
+      usedIngredients.filter(used =>
+        availableIngredients.some(available => used.includes(available) || available.includes(used))
+      ).length / Math.max(availableIngredients.length, 1);
 
     const ingredientUtilization = Math.min(utilizationRate * 1.2, 1); // Boost score slightly
     score += ingredientUtilization * 0.3;
@@ -351,9 +371,10 @@ export class AIService {
     }
 
     // Check instruction clarity
-    const avgInstructionLength = recipe.instructions.reduce((sum, inst) => 
-      sum + inst.instruction.length, 0) / recipe.instructions.length;
-    
+    const avgInstructionLength =
+      recipe.instructions.reduce((sum, inst) => sum + inst.instruction.length, 0) /
+      recipe.instructions.length;
+
     const instructionClarity = avgInstructionLength > 30 && avgInstructionLength < 200 ? 1 : 0.7;
     score += instructionClarity * 0.25;
 
@@ -366,24 +387,26 @@ export class AIService {
     // Check nutritional balance
     const nutrition = recipe.nutritionInfo;
     let nutritionalBalance = 0.8; // Default good score
-    
+
     if (nutrition) {
-      const proteinRatio = nutrition.protein * 4 / Math.max(nutrition.calories, 1);
-      const carbRatio = nutrition.carbs * 4 / Math.max(nutrition.calories, 1);
-      const fatRatio = nutrition.fat * 9 / Math.max(nutrition.calories, 1);
-      
+      const proteinRatio = (nutrition.protein * 4) / Math.max(nutrition.calories, 1);
+      const carbRatio = (nutrition.carbs * 4) / Math.max(nutrition.calories, 1);
+      const fatRatio = (nutrition.fat * 9) / Math.max(nutrition.calories, 1);
+
       const totalRatio = proteinRatio + carbRatio + fatRatio;
-      if (Math.abs(totalRatio - 1) < 0.2) { // Close to 100% of calories accounted for
+      if (Math.abs(totalRatio - 1) < 0.2) {
+        // Close to 100% of calories accounted for
         nutritionalBalance = 1;
       }
     }
-    
+
     score += nutritionalBalance * 0.2;
 
     // Creativity and feasibility scores (simplified)
-    const creativityScore = recipe.tags?.includes('creative') || recipe.title.includes('fusion') ? 0.9 : 0.8;
+    const creativityScore =
+      recipe.tags?.includes('creative') || recipe.title.includes('fusion') ? 0.9 : 0.8;
     const feasibilityScore = recipe.totalTime <= (params.preferences?.maxTime || 120) ? 1 : 0.6;
-    
+
     score += creativityScore * 0.15;
     score += feasibilityScore * 0.1;
 
@@ -394,10 +417,10 @@ export class AIService {
         instructionClarity,
         nutritionalBalance,
         creativityScore,
-        feasibilityScore
+        feasibilityScore,
       },
       issues,
-      suggestions
+      suggestions,
     };
   }
 
@@ -409,7 +432,7 @@ export class AIService {
       remainingRequests: await this.rateLimiter.getRemainingRequests(userId),
       providerStatus: this.provider ? 'active' : 'fallback',
       cacheEnabled: isCacheEnabled(),
-      aiEnabled: isAIEnabled()
+      aiEnabled: isAIEnabled(),
     };
   }
 

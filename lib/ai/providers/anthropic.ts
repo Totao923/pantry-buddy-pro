@@ -10,15 +10,18 @@ export class AnthropicProvider implements AIProvider {
     if (!apiKey) {
       throw new Error('Anthropic API key is required');
     }
-    
+
     this.client = new Anthropic({
       apiKey: apiKey,
     });
   }
 
-  async generateRecipe(prompt: string, options: AIGenerationOptions = {}): Promise<AIRecipeResponse> {
+  async generateRecipe(
+    prompt: string,
+    options: AIGenerationOptions = {}
+  ): Promise<AIRecipeResponse> {
     const startTime = Date.now();
-    
+
     try {
       const message = await this.client.messages.create({
         model: options.model || this.defaultModel,
@@ -28,15 +31,15 @@ export class AnthropicProvider implements AIProvider {
         messages: [
           {
             role: 'user',
-            content: prompt
-          }
-        ]
+            content: prompt,
+          },
+        ],
       });
 
       const responseTime = Date.now() - startTime;
       const responseText = message.content[0]?.type === 'text' ? message.content[0].text : '';
       const recipe = this.parseRecipeFromResponse(responseText);
-      
+
       if (!recipe) {
         throw new Error('Failed to parse recipe from AI response');
       }
@@ -48,14 +51,14 @@ export class AnthropicProvider implements AIProvider {
           promptTokens: message.usage.input_tokens,
           completionTokens: message.usage.output_tokens,
           totalTokens: message.usage.input_tokens + message.usage.output_tokens,
-          cost: this.calculateCost(message.usage.input_tokens, message.usage.output_tokens)
+          cost: this.calculateCost(message.usage.input_tokens, message.usage.output_tokens),
         },
         metadata: {
           model: message.model,
           provider: this.name,
           responseTime,
-          cacheHit: false
-        }
+          cacheHit: false,
+        },
       };
     } catch (error) {
       return {
@@ -65,12 +68,11 @@ export class AnthropicProvider implements AIProvider {
           model: options.model || this.defaultModel,
           provider: this.name,
           responseTime: Date.now() - startTime,
-          cacheHit: false
-        }
+          cacheHit: false,
+        },
       };
     }
   }
-
 
   private getDefaultSystemPrompt(): string {
     return `You are a professional chef and culinary expert specializing in creating personalized recipes. Your task is to generate detailed, practical recipes based on available ingredients and user preferences.
@@ -149,14 +151,14 @@ Guidelines:
 
       const jsonString = jsonMatch[0];
       const parsed = JSON.parse(jsonString);
-      
+
       // Add required fields that might be missing
       const recipe = {
         id: Date.now().toString(),
         rating: 4.5,
         reviews: Math.floor(Math.random() * 100) + 10,
         variations: [],
-        ...parsed
+        ...parsed,
       };
 
       // Validate required fields
@@ -186,7 +188,7 @@ Guidelines:
       await this.client.messages.create({
         model: this.defaultModel,
         max_tokens: 10,
-        messages: [{ role: 'user', content: 'Test' }]
+        messages: [{ role: 'user', content: 'Test' }],
       });
       return true;
     } catch (error) {
@@ -205,11 +207,7 @@ Guidelines:
 
   // Helper method to get model information
   public getAvailableModels(): string[] {
-    return [
-      'claude-3-opus-20240229',
-      'claude-3-sonnet-20240229', 
-      'claude-3-haiku-20240307'
-    ];
+    return ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'];
   }
 
   // Method to get pricing information
@@ -217,7 +215,7 @@ Guidelines:
     return {
       'claude-3-opus-20240229': { input: 15, output: 75 }, // per million tokens in cents
       'claude-3-sonnet-20240229': { input: 3, output: 15 },
-      'claude-3-haiku-20240307': { input: 0.25, output: 1.25 }
+      'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
     };
   }
 }

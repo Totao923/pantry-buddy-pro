@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Repository setup and version control
 - Comprehensive documentation and contributing guidelines
 - Code quality tools and development workflows
@@ -15,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-01-31
 
 ### Added
+
 - AI-powered recipe generation using Anthropic Claude API
 - Smart pantry management with inventory tracking
 - Recipe rating and review system
@@ -30,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cost optimization with AI caching and rate limiting
 
 ### Technical Features
+
 - Next.js 14 with TypeScript
 - React 18 with modern hooks patterns
 - Tailwind CSS for styling
@@ -41,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modular architecture with clean separation of concerns
 
 ### Security
+
 - Row Level Security policies in database
 - Encrypted data storage for sensitive information
 - Secure API endpoints with authentication
@@ -48,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSRF protection and security headers
 
 ### Performance
+
 - Lazy loading for components
 - Optimized bundle sizes
 - Image optimization
@@ -60,19 +65,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Release Notes Format
 
 ### Added
+
 - New features and capabilities
 
 ### Changed
+
 - Changes in existing functionality
 
 ### Deprecated
+
 - Soon-to-be removed features
 
 ### Removed
+
 - Now removed features
 
 ### Fixed
+
 - Bug fixes
 
 ### Security
+
 - Security improvements and vulnerability fixes
