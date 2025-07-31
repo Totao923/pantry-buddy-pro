@@ -394,7 +394,7 @@ export interface UsageTracking {
 }
 
 // Enhanced User Interface
-export interface EnhancedUser extends User {
+export interface EnhancedUser extends Omit<User, 'subscription'> {
   subscription: Subscription;
   adPreferences: AdPreferences;
   usageTracking: UsageTracking;
@@ -409,7 +409,7 @@ export interface EnhancedUser extends User {
 }
 
 // Enhanced Recipe with Social Features
-export interface EnhancedRecipe extends Recipe {
+export interface EnhancedRecipe extends Omit<Recipe, 'reviews'> {
   photos: RecipePhoto[];
   reviews: RecipeReview[];
   averageRating: number;

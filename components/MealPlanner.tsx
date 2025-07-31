@@ -148,7 +148,7 @@ export default function MealPlanner({
       ...newMealPlan,
       userId,
       meals: [],
-      shoppingListId: undefined,
+      shoppingList: [],
       totalCalories: 0,
       status: 'draft',
       isTemplate: newMealPlan.isTemplate,

@@ -101,7 +101,7 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
                   <span className="flex-shrink-0 w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
                     {index + 1}
                   </span>
-                  <span className="text-gray-700 leading-relaxed">{instruction}</span>
+                  <span className="text-gray-700 leading-relaxed">{instruction.instruction}</span>
                 </li>
               ))}
             </ol>

@@ -187,7 +187,16 @@ export default function SmartPantry({
     return matchesSearch && matchesCategory && matchesExpiry;
   });
 
-  const ingredientsByCategory = Object.groupBy(filteredIngredients, ing => ing.category);
+  const ingredientsByCategory = filteredIngredients.reduce(
+    (acc, ing) => {
+      if (!acc[ing.category]) {
+        acc[ing.category] = [];
+      }
+      acc[ing.category].push(ing);
+      return acc;
+    },
+    {} as Record<string, typeof filteredIngredients>
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">

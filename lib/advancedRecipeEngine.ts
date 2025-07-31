@@ -495,7 +495,7 @@ export class AdvancedRecipeEngine {
       ingredients: analysis.proteins
         .concat(analysis.vegetables, analysis.grains)
         .slice(0, 8)
-        .map((ing, index) => ({
+        .map((ing: any, index: number) => ({
           name: ing.name,
           amount: 1,
           unit: 'portion',
@@ -574,7 +574,7 @@ export class AdvancedRecipeEngine {
       ingredients: analysis.proteins
         .concat(analysis.vegetables, analysis.grains)
         .slice(0, 6)
-        .map((ing, index) => ({
+        .map((ing: any, index: number) => ({
           name: ing.name,
           amount: index === 0 ? 2 : 1,
           unit: index === 0 ? 'cups' : 'handful',

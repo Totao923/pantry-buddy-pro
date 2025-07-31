@@ -1,20 +1,10 @@
-import {
-  createClientComponentClient,
-  createServerComponentClient,
-} from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 import type { Database } from './types';
 
 // Client-side Supabase client
 export const createSupabaseClient = () => {
   return createClientComponentClient<Database>();
-};
-
-// Server-side Supabase client for API routes
-export const createSupabaseServerClient = () => {
-  const cookieStore = cookies();
-  return createServerComponentClient<Database>({ cookies: () => cookieStore });
 };
 
 // Service role client for admin operations (server-side only)

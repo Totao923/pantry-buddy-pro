@@ -109,23 +109,6 @@ export class DataMigrationService {
         email: user.email || '',
         name: user.name || 'User',
         subscription_tier: user.subscription || 'free',
-        preferences: {
-          dietary_restrictions: preferences.dietaryRestrictions || [],
-          favorite_cuisines: preferences.favoritesCuisines || [],
-          allergies: preferences.allergies || [],
-          spice_level: preferences.spiceLevel || 'medium',
-          cooking_time_preference: preferences.cookingTime || 'medium',
-          default_serving_size: preferences.servingSize || 4,
-          budget_range: preferences.budgetRange || 'medium',
-          experience_level: 'intermediate',
-        },
-        settings: {
-          notifications_enabled: true,
-          email_reminders: true,
-          theme: 'light',
-          language: 'en',
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        },
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -238,11 +221,10 @@ export class DataMigrationService {
           recipe_id: recipeId,
           overall_rating: rating.overall || 5,
           taste_rating: rating.taste || 5,
-          ease_rating: rating.ease || 5,
-          time_rating: rating.time || 5,
+          difficulty_accuracy: rating.ease || 5,
           review_text: review?.text || null,
-          would_make_again: rating.wouldMakeAgain ?? true,
-          cooking_notes: review?.notes || null,
+          would_cook_again: rating.wouldMakeAgain ?? true,
+          cooking_tips: review?.notes || null,
           created_at: rating.createdAt
             ? new Date(rating.createdAt).toISOString()
             : new Date().toISOString(),
