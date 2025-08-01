@@ -7,12 +7,22 @@ export const createSupabaseClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+  // Debug logging for production issues
+  console.log('Supabase Client Debug:', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseAnonKey,
+    nodeEnv: process.env.NODE_ENV,
+    urlLength: supabaseUrl ? supabaseUrl.length : 0,
+    keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0
+  });
+
   if (!supabaseUrl || !supabaseAnonKey) {
     // Return a mock client for development/demo purposes
-    console.warn('Supabase credentials not found, using mock client');
+    console.warn('Supabase credentials not found, using mock client. URL:', !!supabaseUrl, 'Key:', !!supabaseAnonKey);
     return null as any;
   }
 
+  console.log('Creating real Supabase client');
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 };
 

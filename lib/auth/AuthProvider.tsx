@@ -174,12 +174,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signUp = async (email: string, password: string, metadata: any = {}) => {
-    // Never allow demo mode in production
+    // Debug logging for production issues
+    console.log('SignUp Debug:', {
+      isDemo,
+      hasSupabase: !!supabase,
+      nodeEnv: process.env.NODE_ENV,
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    });
+
+    // Only block if we're in demo mode (no Supabase client) AND in production
     if (isDemo && process.env.NODE_ENV === 'production') {
-      return { error: new Error('Authentication required in production') };
+      console.error('Blocking: Demo mode not allowed in production');
+      return { error: new Error('Authentication service unavailable. Please contact support.') };
     }
 
+    // If in demo mode but not production, allow demo auth
     if (isDemo) {
+      console.log('Using demo mode authentication');
       return { error: null };
     }
 
@@ -210,12 +222,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    // Never allow demo mode in production
+    // Debug logging for production issues
+    console.log('SignIn Debug:', {
+      isDemo,
+      hasSupabase: !!supabase,
+      nodeEnv: process.env.NODE_ENV,
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    });
+
+    // Only block if we're in demo mode (no Supabase client) AND in production
     if (isDemo && process.env.NODE_ENV === 'production') {
-      return { error: new Error('Authentication required in production') };
+      console.error('Blocking: Demo mode not allowed in production');
+      return { error: new Error('Authentication service unavailable. Please contact support.') };
     }
 
+    // If in demo mode but not production, allow demo auth
     if (isDemo) {
+      console.log('Using demo mode authentication');
       // Demo mode - return success without actual authentication
       return { error: null };
     }
