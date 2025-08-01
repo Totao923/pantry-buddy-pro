@@ -116,10 +116,11 @@ export const mockSessionStorage = () => {
 // Mock environment setup
 export const mockEnvironment = (env: 'development' | 'test' | 'production' = 'test') => {
   const originalEnv = process.env.NODE_ENV;
-  process.env.NODE_ENV = env;
+  // Use Object.defineProperty to bypass readonly property
+  Object.defineProperty(process.env, 'NODE_ENV', { value: env, writable: true });
 
   return () => {
-    process.env.NODE_ENV = originalEnv;
+    Object.defineProperty(process.env, 'NODE_ENV', { value: originalEnv, writable: true });
   };
 };
 

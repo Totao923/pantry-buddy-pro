@@ -37,6 +37,7 @@ describe('Ingredient Management Flow', () => {
     filterByCategory: jest.fn().mockReturnValue([]),
     getExpiringSoon: jest.fn().mockReturnValue([]),
     getExpiredIngredients: jest.fn().mockReturnValue([]),
+    getIngredientsByCategory: jest.fn().mockReturnValue({}),
     refreshIngredients: jest.fn(),
   };
 

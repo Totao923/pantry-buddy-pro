@@ -113,9 +113,21 @@ function addSecurityHeaders(res: NextApiResponse) {
 function handleCORS(req: NextApiRequest, res: NextApiResponse, allowedOrigins: string[]) {
   const origin = req.headers.origin;
 
-  // In development, allow localhost
+  // In development, allow specific localhost origins only
   if (process.env.NODE_ENV === 'development') {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    const developmentOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+    ];
+
+    if (origin && developmentOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (!origin) {
+      // For same-origin requests
+      res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    }
   } else if (allowedOrigins.length > 0 && origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else if (allowedOrigins.length === 0) {

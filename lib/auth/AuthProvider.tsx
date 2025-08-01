@@ -300,10 +300,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return { error: null };
     }
 
+    // Client-side rate limiting for password reset (3 attempts per 15 minutes)
+    const resetKey = `password_reset_${email}`;
+    const resetAttempts = JSON.parse(localStorage.getItem(resetKey) || '[]');
+    const now = Date.now();
+    const fifteenMinutes = 15 * 60 * 1000;
+
+    // Clean old attempts
+    const recentAttempts = resetAttempts.filter(
+      (timestamp: number) => now - timestamp < fifteenMinutes
+    );
+
+    if (recentAttempts.length >= 3) {
+      return {
+        error: new Error(
+          'Too many password reset attempts. Please wait 15 minutes before trying again.'
+        ),
+      };
+    }
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
+
+      if (!error) {
+        // Record successful attempt
+        recentAttempts.push(now);
+        localStorage.setItem(resetKey, JSON.stringify(recentAttempts));
+      }
+
       return { error };
     } catch (error) {
       return { error };
