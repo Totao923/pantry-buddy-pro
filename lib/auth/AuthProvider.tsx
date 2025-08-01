@@ -174,6 +174,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signUp = async (email: string, password: string, metadata: any = {}) => {
+    // Never allow demo mode in production
+    if (isDemo && process.env.NODE_ENV === 'production') {
+      return { error: new Error('Authentication required in production') };
+    }
+
     if (isDemo) {
       return { error: null };
     }
@@ -205,6 +210,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signIn = async (email: string, password: string) => {
+    // Never allow demo mode in production
+    if (isDemo && process.env.NODE_ENV === 'production') {
+      return { error: new Error('Authentication required in production') };
+    }
+
     if (isDemo) {
       // Demo mode - return success without actual authentication
       return { error: null };

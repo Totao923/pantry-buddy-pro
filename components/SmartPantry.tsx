@@ -81,12 +81,7 @@ export default function SmartPantry({
   const [showExpiringSoon, setShowExpiringSoon] = useState(false);
 
   // Use the ingredients hook to get loading and error states
-  const {
-    loading,
-    error,
-    searchIngredients,
-    filterByCategory,
-  } = useIngredients();
+  const { loading, error, searchIngredients, filterByCategory } = useIngredients();
 
   const generateSmartSuggestions = useCallback(() => {
     const suggestions: SmartSuggestion[] = [];
@@ -137,7 +132,7 @@ export default function SmartPantry({
           !ingredients.some(ing => ing.name.toLowerCase() === item.toLowerCase())
       );
       setSuggestions(filtered.slice(0, 6));
-      
+
       // Call the search function from the hook for testing
       if (searchIngredients) {
         searchIngredients(value);

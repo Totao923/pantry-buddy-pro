@@ -2,6 +2,11 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createSupabaseServiceClient } from '../../lib/supabase/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Restrict access in production - this endpoint exposes authentication configuration
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

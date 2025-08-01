@@ -42,7 +42,10 @@ export default function Home() {
           name: profile?.name || 'Chef User',
           preferences: {
             dietaryRestrictions: preferences?.dietary_restrictions || [],
-            favoritesCuisines: preferences?.favorite_cuisines || ['italian', 'asian'],
+            favoritesCuisines: (preferences?.favorite_cuisines as CuisineType[]) || [
+              'italian',
+              'asian',
+            ],
             allergies: preferences?.allergies || [],
             spiceLevel: preferences?.spice_level || 'medium',
             cookingTime: preferences?.cooking_time || 'medium',
@@ -62,7 +65,7 @@ export default function Home() {
           name: 'Chef User',
           preferences: {
             dietaryRestrictions: [],
-            favoritesCuisines: ['italian', 'asian'],
+            favoritesCuisines: ['italian', 'asian'] as CuisineType[],
             allergies: [],
             spiceLevel: 'medium',
             cookingTime: 'medium',

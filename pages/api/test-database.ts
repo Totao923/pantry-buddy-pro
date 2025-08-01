@@ -2,6 +2,11 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { createSupabaseServiceClient } from '../../lib/supabase/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Restrict access in production - this endpoint exposes database schema information
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -23,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'shopping_lists',
     ];
 
-    const tableStatus = {};
+    const tableStatus: Record<string, { exists: boolean; count?: number; error?: string }> = {};
 
     for (const table of tables) {
       try {
@@ -41,8 +46,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    const existingTables = Object.keys(tableStatus).filter(table => tableStatus[table].exists);
-    const missingTables = Object.keys(tableStatus).filter(table => !tableStatus[table].exists);
+    const existingTables = Object.keys(tableStatus).filter(table => tableStatus[table]?.exists);
+    const missingTables = Object.keys(tableStatus).filter(table => !tableStatus[table]?.exists);
 
     const isFullySetup = missingTables.length === 0;
 
