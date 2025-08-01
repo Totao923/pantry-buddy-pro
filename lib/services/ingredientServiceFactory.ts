@@ -18,24 +18,14 @@ class IngredientServiceFactory {
 
   private async initialize(): Promise<void> {
     try {
-      // Check if authentication is enabled and database is available
-      if (isAuthEnabled()) {
-        const isDbAvailable = await databaseIngredientService.isAvailable();
-
-        if (isDbAvailable) {
-          console.log('Using database ingredient service');
-          this._currentService = databaseIngredientService as any;
-          this._initialized = true;
-          return;
-        } else {
-          console.warn('Database ingredient service not available, falling back to mock service');
-        }
-      }
-
-      // Fallback to mock service
-      console.log('Using mock ingredient service');
+      // For now, always use mock service until user is authenticated
+      // This allows the app to work in demo mode and during initial load
+      console.log('Using mock ingredient service (demo mode)');
       this._currentService = mockIngredientService;
       this._initialized = true;
+
+      // TODO: Switch to database service after user authentication
+      // We can add a method to switch services when auth state changes
     } catch (error) {
       console.warn('Error initializing ingredient service, falling back to mock:', error);
       this._currentService = mockIngredientService;
@@ -68,6 +58,28 @@ class IngredientServiceFactory {
     } catch {
       return false;
     }
+  }
+
+  // Switch to database service when user authenticates
+  async switchToDatabaseService(): Promise<boolean> {
+    try {
+      const isDbAvailable = await databaseIngredientService.isAvailable();
+      if (isDbAvailable) {
+        console.log('Switching to database ingredient service');
+        this._currentService = databaseIngredientService as any;
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.warn('Failed to switch to database service:', error);
+      return false;
+    }
+  }
+
+  // Switch back to mock service (for demo mode or auth failure)
+  switchToMockService(): void {
+    console.log('Switching to mock ingredient service');
+    this._currentService = mockIngredientService;
   }
 }
 
