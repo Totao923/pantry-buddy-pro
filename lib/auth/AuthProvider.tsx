@@ -180,7 +180,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       hasSupabase: !!supabase,
       nodeEnv: process.env.NODE_ENV,
       hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     });
 
     // Only block if we're in demo mode (no Supabase client) AND in production
@@ -228,7 +228,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       hasSupabase: !!supabase,
       nodeEnv: process.env.NODE_ENV,
       hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     });
 
     // Only block if we're in demo mode (no Supabase client) AND in production

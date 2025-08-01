@@ -13,12 +13,17 @@ export const createSupabaseClient = () => {
     hasKey: !!supabaseAnonKey,
     nodeEnv: process.env.NODE_ENV,
     urlLength: supabaseUrl ? supabaseUrl.length : 0,
-    keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0
+    keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0,
   });
 
   if (!supabaseUrl || !supabaseAnonKey) {
     // Return a mock client for development/demo purposes
-    console.warn('Supabase credentials not found, using mock client. URL:', !!supabaseUrl, 'Key:', !!supabaseAnonKey);
+    console.warn(
+      'Supabase credentials not found, using mock client. URL:',
+      !!supabaseUrl,
+      'Key:',
+      !!supabaseAnonKey
+    );
     return null as any;
   }
 
