@@ -48,13 +48,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(false); // Set to false initially for demo mode
 
   const supabase = createSupabaseClient();
-  
+
   // If no Supabase client (demo mode), provide mock functions
   const isDemo = !supabase;
 
   console.log('AuthProvider initialized:', { isDemo, hasSupabase: !!supabase });
 
   useEffect(() => {
+    // Skip auth setup if no Supabase client (demo mode)
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -105,7 +111,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
   const loadUserData = async (userId: string) => {
     try {
@@ -171,7 +177,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (isDemo) {
       return { error: null };
     }
-    
+
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
@@ -203,7 +209,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Demo mode - return success without actual authentication
       return { error: null };
     }
-    
+
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -234,7 +240,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(null);
       return { error: null };
     }
-    
+
     try {
       const { error } = await supabase.auth.signOut();
 
@@ -256,7 +262,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (isDemo) {
       return { error: null };
     }
-    
+
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -283,7 +289,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (isDemo) {
       return { error: null };
     }
-    
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,

@@ -8,29 +8,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const supabase = createSupabaseServiceClient();
-    
+
     // Test each table individually
     const tables = [
       'user_profiles',
-      'user_preferences', 
+      'user_preferences',
       'pantry_items',
       'recipes',
       'subscriptions',
       'usage_tracking',
       'ai_cache',
-      'recipe_ratings', 
+      'recipe_ratings',
       'recipe_photos',
-      'shopping_lists'
+      'shopping_lists',
     ];
-    
+
     const tableStatus = {};
-    
+
     for (const table of tables) {
       try {
         const { count, error } = await supabase
           .from(table)
           .select('*', { count: 'exact', head: true });
-        
+
         if (error) {
           tableStatus[table] = { exists: false, error: error.message };
         } else {
@@ -40,31 +40,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         tableStatus[table] = { exists: false, error: err.message };
       }
     }
-    
+
     const existingTables = Object.keys(tableStatus).filter(table => tableStatus[table].exists);
     const missingTables = Object.keys(tableStatus).filter(table => !tableStatus[table].exists);
-    
+
     const isFullySetup = missingTables.length === 0;
-    
+
     res.status(200).json({
       success: true,
       database: {
         fullySetup: isFullySetup,
         existingTables: existingTables.length,
         missingTables: missingTables.length,
-        tables: tableStatus
+        tables: tableStatus,
       },
-      message: isFullySetup 
-        ? 'Database is fully set up!' 
-        : `Database needs setup. Missing ${missingTables.length} tables.`
+      message: isFullySetup
+        ? 'Database is fully set up!'
+        : `Database needs setup. Missing ${missingTables.length} tables.`,
     });
-    
   } catch (error: any) {
     console.error('Database test error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: error.message || 'Failed to test database',
-      details: error
+      details: error,
     });
   }
 }

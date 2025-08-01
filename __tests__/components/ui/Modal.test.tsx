@@ -17,14 +17,14 @@ describe('Modal Component', () => {
 
   it('renders when open', () => {
     render(<Modal {...defaultProps} />);
-    
+
     expect(screen.getByText('Test Modal')).toBeInTheDocument();
     expect(screen.getByText('Modal content')).toBeInTheDocument();
   });
 
   it('does not render when closed', () => {
     render(<Modal {...defaultProps} isOpen={false} />);
-    
+
     expect(screen.queryByText('Test Modal')).not.toBeInTheDocument();
     expect(screen.queryByText('Modal content')).not.toBeInTheDocument();
   });
@@ -32,17 +32,17 @@ describe('Modal Component', () => {
   it('calls onClose when close button is clicked', async () => {
     const user = userEvent.setup();
     render(<Modal {...defaultProps} />);
-    
+
     const closeButton = screen.getByRole('button');
     await user.click(closeButton);
-    
+
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
   it('calls onClose when overlay is clicked', async () => {
     const user = userEvent.setup();
     render(<Modal {...defaultProps} />);
-    
+
     // Click on overlay (first child of modal container)
     const overlay = document.querySelector('.fixed.inset-0.transition-opacity');
     if (overlay) {
@@ -54,7 +54,7 @@ describe('Modal Component', () => {
   it('does not close when overlay is clicked if closeOnOverlayClick is false', async () => {
     const user = userEvent.setup();
     render(<Modal {...defaultProps} closeOnOverlayClick={false} />);
-    
+
     const overlay = document.querySelector('.fixed.inset-0.transition-opacity');
     if (overlay) {
       await user.click(overlay);
@@ -64,7 +64,7 @@ describe('Modal Component', () => {
 
   it('handles escape key', () => {
     render(<Modal {...defaultProps} />);
-    
+
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
@@ -80,13 +80,13 @@ describe('Modal Component', () => {
   it('renders footer when provided', () => {
     const footer = <div>Footer content</div>;
     render(<Modal {...defaultProps} footer={footer} />);
-    
+
     expect(screen.getByText('Footer content')).toBeInTheDocument();
   });
 
   it('hides close button when showCloseButton is false', () => {
     render(<Modal {...defaultProps} showCloseButton={false} />);
-    
+
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
@@ -106,7 +106,7 @@ describe('ConfirmModal Component', () => {
 
   it('renders correctly', () => {
     render(<ConfirmModal {...defaultProps} />);
-    
+
     expect(screen.getByText('Confirm Action')).toBeInTheDocument();
     expect(screen.getByText('Are you sure you want to proceed?')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('ConfirmModal Component', () => {
   it('calls onConfirm when confirm button is clicked', async () => {
     const user = userEvent.setup();
     render(<ConfirmModal {...defaultProps} />);
-    
+
     await user.click(screen.getByRole('button', { name: /confirm/i }));
     expect(defaultProps.onConfirm).toHaveBeenCalledTimes(1);
   });
@@ -124,17 +124,17 @@ describe('ConfirmModal Component', () => {
   it('calls onClose when cancel button is clicked', async () => {
     const user = userEvent.setup();
     render(<ConfirmModal {...defaultProps} />);
-    
+
     await user.click(screen.getByRole('button', { name: /cancel/i }));
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
   it('shows loading state correctly', () => {
     render(<ConfirmModal {...defaultProps} loading />);
-    
+
     const confirmButton = screen.getByRole('button', { name: /confirm/i });
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
-    
+
     expect(confirmButton).toBeDisabled();
     expect(cancelButton).toBeDisabled();
   });
@@ -151,14 +151,8 @@ describe('ConfirmModal Component', () => {
   });
 
   it('renders custom button text', () => {
-    render(
-      <ConfirmModal 
-        {...defaultProps} 
-        confirmText="Delete" 
-        cancelText="Keep" 
-      />
-    );
-    
+    render(<ConfirmModal {...defaultProps} confirmText="Delete" cancelText="Keep" />);
+
     expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /keep/i })).toBeInTheDocument();
   });

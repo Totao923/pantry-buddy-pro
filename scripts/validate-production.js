@@ -2,7 +2,7 @@
 
 /**
  * Production Environment Validation Script
- * 
+ *
  * This script validates that all required environment variables
  * and configurations are properly set for production deployment.
  */
@@ -15,7 +15,7 @@ function loadEnvFile(envPath) {
   if (fs.existsSync(envPath)) {
     const envFile = fs.readFileSync(envPath, 'utf8');
     const lines = envFile.split('\n');
-    
+
     lines.forEach(line => {
       line = line.trim();
       if (line && !line.startsWith('#')) {
@@ -43,15 +43,15 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   reset: '\x1b[0m',
-  bold: '\x1b[1m'
+  bold: '\x1b[1m',
 };
 
 const log = {
-  success: (msg) => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
-  error: (msg) => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
-  info: (msg) => console.log(`${colors.blue}ℹ️  ${msg}${colors.reset}`),
-  title: (msg) => console.log(`${colors.bold}${colors.blue}\n=== ${msg} ===${colors.reset}`)
+  success: msg => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
+  error: msg => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
+  warning: msg => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
+  info: msg => console.log(`${colors.blue}ℹ️  ${msg}${colors.reset}`),
+  title: msg => console.log(`${colors.bold}${colors.blue}\n=== ${msg} ===${colors.reset}`),
 };
 
 class ProductionValidator {
@@ -83,25 +83,25 @@ class ProductionValidator {
 
     const requiredEnvVars = {
       // Database
-      'NEXT_PUBLIC_SUPABASE_URL': 'Supabase URL is required',
-      'NEXT_PUBLIC_SUPABASE_ANON_KEY': 'Supabase anonymous key is required',
-      'SUPABASE_SERVICE_ROLE_KEY': 'Supabase service role key is required',
-      
+      NEXT_PUBLIC_SUPABASE_URL: 'Supabase URL is required',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'Supabase anonymous key is required',
+      SUPABASE_SERVICE_ROLE_KEY: 'Supabase service role key is required',
+
       // AI Services
-      'ANTHROPIC_API_KEY': 'Anthropic API key is required',
-      
+      ANTHROPIC_API_KEY: 'Anthropic API key is required',
+
       // Security
-      'ENCRYPTION_KEY': 'Encryption key is required for secure data handling',
-      'JWT_SECRET': 'JWT secret is required for token validation',
-      'SESSION_SECRET': 'Session secret is required for cookie encryption',
+      ENCRYPTION_KEY: 'Encryption key is required for secure data handling',
+      JWT_SECRET: 'JWT secret is required for token validation',
+      SESSION_SECRET: 'Session secret is required for cookie encryption',
     };
 
     const optionalEnvVars = {
-      'NEXT_PUBLIC_APP_URL': 'App URL should be set for production',
-      'SENTRY_DSN': 'Sentry DSN recommended for error tracking',
-      'REDIS_URL': 'Redis URL recommended for production rate limiting',
-      'RATE_LIMIT_WINDOW_MS': 'Rate limit window can be customized',
-      'RATE_LIMIT_MAX_REQUESTS': 'Rate limit max requests can be customized',
+      NEXT_PUBLIC_APP_URL: 'App URL should be set for production',
+      SENTRY_DSN: 'Sentry DSN recommended for error tracking',
+      REDIS_URL: 'Redis URL recommended for production rate limiting',
+      RATE_LIMIT_WINDOW_MS: 'Rate limit window can be customized',
+      RATE_LIMIT_MAX_REQUESTS: 'Rate limit max requests can be customized',
     };
 
     // Check required environment variables
@@ -166,23 +166,19 @@ class ProductionValidator {
       'vercel.json',
       'package.json',
       'tsconfig.json',
-      '.env.example'
+      '.env.example',
     ];
 
     requiredFiles.forEach(file => {
       const filePath = path.join(process.cwd(), file);
-      this.check(
-        fs.existsSync(filePath),
-        `${file} exists`,
-        `${file} is missing`
-      );
+      this.check(fs.existsSync(filePath), `${file} exists`, `${file} is missing`);
     });
 
     // Validate package.json scripts
     try {
       const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
       const requiredScripts = ['build', 'start', 'lint', 'type-check'];
-      
+
       requiredScripts.forEach(script => {
         this.check(
           packageJson.scripts && packageJson.scripts[script],
@@ -307,7 +303,7 @@ class ProductionValidator {
     // Check Vercel configuration
     try {
       const vercelConfig = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
-      
+
       this.check(
         vercelConfig.functions && vercelConfig.functions['pages/api/**/*.ts'],
         'API function timeout configured',
@@ -319,7 +315,6 @@ class ProductionValidator {
         'Static asset caching configured',
         'Static asset caching should be configured for performance'
       );
-
     } catch (error) {
       log.warning('Could not validate Vercel configuration');
     }
@@ -351,9 +346,11 @@ class ProductionValidator {
     if (this.errors.length === 0) {
       console.log(`\n${colors.bold}${colors.green}🎉 PRODUCTION READY!${colors.reset}`);
       console.log('Your application passes all critical production checks.');
-      
+
       if (this.warnings.length > 0) {
-        console.log(`${colors.yellow}Consider addressing the ${this.warnings.length} warning(s) for optimal production performance.${colors.reset}`);
+        console.log(
+          `${colors.yellow}Consider addressing the ${this.warnings.length} warning(s) for optimal production performance.${colors.reset}`
+        );
       }
     } else {
       console.log(`\n${colors.bold}${colors.red}🚫 NOT READY FOR PRODUCTION${colors.reset}`);
@@ -364,7 +361,9 @@ class ProductionValidator {
   }
 
   run() {
-    console.log(`${colors.bold}${colors.blue}🔍 Pantry Buddy Pro - Production Validation${colors.reset}\n`);
+    console.log(
+      `${colors.bold}${colors.blue}🔍 Pantry Buddy Pro - Production Validation${colors.reset}\n`
+    );
 
     this.validateEnvironmentVariables();
     this.validateConfigFiles();
@@ -374,7 +373,7 @@ class ProductionValidator {
     this.validatePerformance();
 
     const isReady = this.generateReport();
-    
+
     process.exit(isReady ? 0 : 1);
   }
 }

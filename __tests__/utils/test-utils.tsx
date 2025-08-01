@@ -9,17 +9,11 @@ const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children })
 
 // Create a custom render function that includes providers
 const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return (
-    <MockAuthProvider>
-      {children}
-    </MockAuthProvider>
-  );
+  return <MockAuthProvider>{children}</MockAuthProvider>;
 };
 
-const customRender = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
-) => render(ui, { wrapper: AllTheProviders, ...options });
+const customRender = (ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) =>
+  render(ui, { wrapper: AllTheProviders, ...options });
 
 // Re-export everything
 export * from '@testing-library/react';
@@ -42,9 +36,7 @@ export const createMockRecipe = (overrides = {}) => ({
   id: '1',
   title: 'Test Recipe',
   description: 'A test recipe',
-  ingredients: [
-    { name: 'Test Ingredient', amount: 1, unit: 'cup' }
-  ],
+  ingredients: [{ name: 'Test Ingredient', amount: 1, unit: 'cup' }],
   instructions: ['Step 1: Test'],
   prepTime: 10,
   cookTime: 20,
@@ -96,12 +88,12 @@ export const mockLocalStorage = () => {
     removeItem: jest.fn(),
     clear: jest.fn(),
   };
-  
+
   Object.defineProperty(window, 'localStorage', {
     value: localStorageMock,
     writable: true,
   });
-  
+
   return localStorageMock;
 };
 
@@ -112,12 +104,12 @@ export const mockSessionStorage = () => {
     removeItem: jest.fn(),
     clear: jest.fn(),
   };
-  
+
   Object.defineProperty(window, 'sessionStorage', {
     value: sessionStorageMock,
     writable: true,
   });
-  
+
   return sessionStorageMock;
 };
 
@@ -125,7 +117,7 @@ export const mockSessionStorage = () => {
 export const mockEnvironment = (env: 'development' | 'test' | 'production' = 'test') => {
   const originalEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = env;
-  
+
   return () => {
     process.env.NODE_ENV = originalEnv;
   };
@@ -137,8 +129,9 @@ export const flushPromises = () => new Promise(resolve => setImmediate(resolve))
 // Form testing helpers
 export const fillForm = async (fields: Record<string, string>, user: any) => {
   for (const [label, value] of Object.entries(fields)) {
-    const field = screen.getByLabelText(new RegExp(label, 'i')) || 
-                  screen.getByPlaceholderText(new RegExp(label, 'i'));
+    const field =
+      screen.getByLabelText(new RegExp(label, 'i')) ||
+      screen.getByPlaceholderText(new RegExp(label, 'i'));
     await user.clear(field);
     await user.type(field, value);
   }

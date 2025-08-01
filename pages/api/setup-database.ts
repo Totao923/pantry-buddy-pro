@@ -115,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const supabase = createSupabaseClient();
-    
+
     if (!supabase) {
       return res.status(400).json({
         success: false,
@@ -138,14 +138,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       success: true,
       message: 'Database setup completed successfully',
-      tablesCreated: [
-        'user_profiles',
-        'user_preferences', 
-        'pantry_items',
-        'recipes'
-      ],
+      tablesCreated: ['user_profiles', 'user_preferences', 'pantry_items', 'recipes'],
     });
-
   } catch (error: any) {
     console.error('Database setup error:', error);
     return res.status(500).json({

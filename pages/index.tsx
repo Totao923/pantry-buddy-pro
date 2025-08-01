@@ -29,55 +29,57 @@ export default function Home() {
   // Enable auth and database functionality
   const authEnabled = true;
   const { user, profile, preferences, subscription, loading: authLoading } = useAuth();
-  
+
   const [appState, setAppState] = useState<AppState>({
     ingredients: [],
     selectedCuisine: 'any',
     generatedRecipes: [],
     currentRecipe: undefined,
-    user: user ? {
-      id: user.id,
-      email: user.email || 'user@example.com',
-      name: profile?.name || 'Chef User',
-      preferences: {
-        dietaryRestrictions: preferences?.dietary_restrictions || [],
-        favoritesCuisines: preferences?.favorite_cuisines || ['italian', 'asian'],
-        allergies: preferences?.allergies || [],
-        spiceLevel: preferences?.spice_level || 'medium',
-        cookingTime: preferences?.cooking_time || 'medium',
-        servingSize: preferences?.serving_size || 4,
-        budgetRange: preferences?.budget_range || 'medium',
-      },
-      subscription: (subscription?.tier as SubscriptionTier) || 'free',
-      savedRecipes: [],
-      mealPlans: [],
-      pantry: [],
-      cookingHistory: [],
-      achievements: [],
-    } : {
-      id: '1',
-      email: 'user@example.com',
-      name: 'Chef User',
-      preferences: {
-        dietaryRestrictions: [],
-        favoritesCuisines: ['italian', 'asian'],
-        allergies: [],
-        spiceLevel: 'medium',
-        cookingTime: 'medium',
-        servingSize: 4,
-        budgetRange: 'medium',
-      },
-      subscription: 'free',
-      savedRecipes: [],
-      mealPlans: [],
-      pantry: [],
-      cookingHistory: [],
-      achievements: [],
-    },
+    user: user
+      ? {
+          id: user.id,
+          email: user.email || 'user@example.com',
+          name: profile?.name || 'Chef User',
+          preferences: {
+            dietaryRestrictions: preferences?.dietary_restrictions || [],
+            favoritesCuisines: preferences?.favorite_cuisines || ['italian', 'asian'],
+            allergies: preferences?.allergies || [],
+            spiceLevel: preferences?.spice_level || 'medium',
+            cookingTime: preferences?.cooking_time || 'medium',
+            servingSize: preferences?.serving_size || 4,
+            budgetRange: preferences?.budget_range || 'medium',
+          },
+          subscription: (subscription?.tier as SubscriptionTier) || 'free',
+          savedRecipes: [],
+          mealPlans: [],
+          pantry: [],
+          cookingHistory: [],
+          achievements: [],
+        }
+      : {
+          id: '1',
+          email: 'user@example.com',
+          name: 'Chef User',
+          preferences: {
+            dietaryRestrictions: [],
+            favoritesCuisines: ['italian', 'asian'],
+            allergies: [],
+            spiceLevel: 'medium',
+            cookingTime: 'medium',
+            servingSize: 4,
+            budgetRange: 'medium',
+          },
+          subscription: 'free',
+          savedRecipes: [],
+          mealPlans: [],
+          pantry: [],
+          cookingHistory: [],
+          achievements: [],
+        },
     isLoading: false,
     error: undefined,
   });
-  
+
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const [showDashboard, setShowDashboard] = useState(false);
@@ -540,13 +542,10 @@ export default function Home() {
 
         {/* Migration Banner */}
         {authEnabled && user && <MigrationBanner />}
-        
+
         {/* Authentication Modal */}
         {authEnabled && showAuthModal && (
-          <AuthModal
-            isOpen={showAuthModal}
-            onClose={() => setShowAuthModal(false)}
-          />
+          <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
         )}
 
         {/* Dashboard Modal */}
@@ -670,7 +669,8 @@ export default function Home() {
                   Ready to Transform Your Cooking?
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Sign up to save your ingredients, generate unlimited AI recipes, and track your culinary journey!
+                  Sign up to save your ingredients, generate unlimited AI recipes, and track your
+                  culinary journey!
                 </p>
                 <button
                   onClick={() => setShowAuthModal(true)}

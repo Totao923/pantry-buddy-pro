@@ -8,6 +8,12 @@ import SmartPantry from '../../components/SmartPantry';
 jest.mock('../../lib/hooks/useIngredients');
 const mockUseIngredients = useIngredients as jest.MockedFunction<typeof useIngredients>;
 
+// Mock Supabase client to prevent import errors
+jest.mock('../../lib/supabase/client', () => ({
+  createSupabaseClient: jest.fn(() => null),
+  createSupabaseServiceClient: jest.fn(() => null),
+}));
+
 // Mock the ingredient service factory
 jest.mock('../../lib/services/ingredientServiceFactory', () => ({
   getIngredientService: jest.fn().mockResolvedValue({
@@ -41,7 +47,7 @@ describe('Ingredient Management Flow', () => {
 
   it('allows user to add ingredients through different methods', async () => {
     const user = userEvent.setup();
-    
+
     render(
       <SmartPantry
         ingredients={[]}
@@ -52,7 +58,7 @@ describe('Ingredient Management Flow', () => {
     );
 
     // Test manual input
-    const input = screen.getByPlaceholder(/add ingredient/i);
+    const input = screen.getByPlaceholderText(/add ingredient/i);
     await user.type(input, 'Tomato');
     await user.keyboard('{Enter}');
 
@@ -107,7 +113,7 @@ describe('Ingredient Management Flow', () => {
     );
 
     // Test search functionality
-    const searchInput = screen.getByPlaceholder(/search ingredients/i);
+    const searchInput = screen.getByPlaceholderText(/search ingredients/i);
     await user.type(searchInput, 'tom');
 
     expect(mockIngredientHooks.searchIngredients).toHaveBeenCalledWith('tom');
@@ -153,7 +159,8 @@ describe('Ingredient Management Flow', () => {
       />
     );
 
-    expect(screen.getByText(/failed to load ingredients/i)).toBeInTheDocument();
+    // Should show the error message (use getAllByText since it appears twice)
+    expect(screen.getAllByText(/failed to load ingredients/i)[0]).toBeInTheDocument();
   });
 
   it('shows smart suggestions based on current ingredients', async () => {
@@ -183,10 +190,14 @@ describe('Ingredient Management Flow', () => {
     );
 
     // Wait for smart suggestions to be generated
-    await waitFor(() => {
-      // Should suggest basil as a complement to tomatoes
-      expect(screen.getByText(/add basil/i) || screen.getByText(/basil/i)).toBeInTheDocument();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        // Should suggest basil as a complement to tomatoes
+        const basilSuggestion = screen.queryByText(/add basil/i) || screen.queryByText(/basil/i);
+        expect(basilSuggestion).toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
   });
 
   it('manages ingredient lifecycle correctly', async () => {

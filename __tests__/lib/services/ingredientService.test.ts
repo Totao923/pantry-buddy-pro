@@ -7,6 +7,8 @@ global.fetch = mockFetch;
 describe('IngredientService', () => {
   beforeEach(() => {
     mockFetch.mockClear();
+    // Clear cache before each test
+    ingredientService.clearCache();
   });
 
   describe('getAllIngredients', () => {
@@ -31,19 +33,13 @@ describe('IngredientService', () => {
       });
 
       const ingredients = await ingredientService.getAllIngredients();
-      
+
       expect(mockFetch).toHaveBeenCalledWith('/api/ingredients');
       expect(ingredients).toEqual(mockIngredients);
     });
 
     it('throws error when API call fails', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({
-          success: false,
-          error: 'Server error',
-        }),
-      });
+      mockFetch.mockRejectedValueOnce(new Error('Server error'));
 
       await expect(ingredientService.getAllIngredients()).rejects.toThrow('Server error');
     });
@@ -114,18 +110,14 @@ describe('IngredientService', () => {
     });
 
     it('throws error when creation fails', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({
-          success: false,
-          error: 'Creation failed',
-        }),
-      });
+      mockFetch.mockRejectedValueOnce(new Error('Creation failed'));
 
-      await expect(ingredientService.createIngredient({
-        name: 'Test',
-        category: 'other',
-      })).rejects.toThrow('Creation failed');
+      await expect(
+        ingredientService.createIngredient({
+          name: 'Test',
+          category: 'other',
+        })
+      ).rejects.toThrow('Creation failed');
     });
   });
 
@@ -184,13 +176,7 @@ describe('IngredientService', () => {
     });
 
     it('throws error when deletion fails', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({
-          success: false,
-          error: 'Deletion failed',
-        }),
-      });
+      mockFetch.mockRejectedValueOnce(new Error('Deletion failed'));
 
       await expect(ingredientService.deleteIngredient('1')).rejects.toThrow('Deletion failed');
     });

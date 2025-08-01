@@ -97,7 +97,13 @@ class IngredientService {
         throw new Error(errorData.error || 'Failed to create ingredient');
       }
 
-      const ingredient: Ingredient = await response.json();
+      const data: IngredientsResponse = await response.json();
+
+      if (!data.ingredient) {
+        throw new Error('Created ingredient not returned');
+      }
+
+      const ingredient = data.ingredient;
 
       // Invalidate cache
       this.cache.delete('all');

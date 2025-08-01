@@ -117,8 +117,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name
+              </label>
               <input
+                id="fullName"
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
@@ -131,8 +134,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address
+            </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -145,8 +151,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
 
           {mode !== 'reset' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}

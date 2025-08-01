@@ -2,15 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  
+
   // Browser compatibility - removed invalid option
-  
+
   // Compiler options for Safari compatibility
   compiler: {
     // Support for older Safari versions
     styledComponents: true,
   },
-  
+
   // Security headers
   async headers() {
     return [

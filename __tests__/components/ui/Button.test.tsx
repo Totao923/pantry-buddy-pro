@@ -19,7 +19,11 @@ describe('Button Component', () => {
     expect(screen.getByRole('button')).toHaveClass('bg-red-600', 'hover:bg-red-700');
 
     rerender(<Button variant="gradient">Gradient</Button>);
-    expect(screen.getByRole('button')).toHaveClass('bg-gradient-to-r', 'from-blue-500', 'to-purple-600');
+    expect(screen.getByRole('button')).toHaveClass(
+      'bg-gradient-to-r',
+      'from-blue-500',
+      'to-purple-600'
+    );
   });
 
   it('renders different sizes correctly', () => {
@@ -51,21 +55,25 @@ describe('Button Component', () => {
   it('handles click events', async () => {
     const handleClick = jest.fn();
     const user = userEvent.setup();
-    
+
     render(<Button onClick={handleClick}>Clickable</Button>);
-    
+
     await user.click(screen.getByRole('button'));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
   it('is disabled when disabled prop is true', () => {
     const handleClick = jest.fn();
-    render(<Button disabled onClick={handleClick}>Disabled</Button>);
-    
+    render(
+      <Button disabled onClick={handleClick}>
+        Disabled
+      </Button>
+    );
+
     const button = screen.getByRole('button');
     expect(button).toBeDisabled();
     expect(button).toHaveClass('opacity-50', 'cursor-not-allowed');
-    
+
     fireEvent.click(button);
     expect(handleClick).not.toHaveBeenCalled();
   });
@@ -76,7 +84,11 @@ describe('Button Component', () => {
   });
 
   it('forwards additional props', () => {
-    render(<Button data-testid="custom-button" aria-label="Custom button">Test</Button>);
+    render(
+      <Button data-testid="custom-button" aria-label="Custom button">
+        Test
+      </Button>
+    );
     const button = screen.getByTestId('custom-button');
     expect(button).toHaveAttribute('aria-label', 'Custom button');
   });

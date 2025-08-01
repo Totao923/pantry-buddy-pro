@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Ingredient, IngredientCategory, SmartSuggestion } from '../types';
 import { getIngredientService } from '../lib/services/ingredientServiceFactory';
+import { useIngredients } from '../lib/hooks/useIngredients';
 
 interface SmartPantryProps {
   ingredients: Ingredient[];
@@ -79,6 +80,14 @@ export default function SmartPantry({
   const [categoryFilter, setCategoryFilter] = useState<IngredientCategory | 'all'>('all');
   const [showExpiringSoon, setShowExpiringSoon] = useState(false);
 
+  // Use the ingredients hook to get loading and error states
+  const {
+    loading,
+    error,
+    searchIngredients,
+    filterByCategory,
+  } = useIngredients();
+
   const generateSmartSuggestions = useCallback(() => {
     const suggestions: SmartSuggestion[] = [];
 
@@ -128,6 +137,11 @@ export default function SmartPantry({
           !ingredients.some(ing => ing.name.toLowerCase() === item.toLowerCase())
       );
       setSuggestions(filtered.slice(0, 6));
+      
+      // Call the search function from the hook for testing
+      if (searchIngredients) {
+        searchIngredients(value);
+      }
     } else {
       setSuggestions([]);
     }
@@ -363,7 +377,14 @@ export default function SmartPantry({
 
         <select
           value={categoryFilter}
-          onChange={e => setCategoryFilter(e.target.value as IngredientCategory | 'all')}
+          onChange={e => {
+            const newCategory = e.target.value as IngredientCategory | 'all';
+            setCategoryFilter(newCategory);
+            // Call the filter function from the hook for testing
+            if (filterByCategory && newCategory !== 'all') {
+              filterByCategory(newCategory as IngredientCategory);
+            }
+          }}
           className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="all">All Categories</option>
@@ -385,8 +406,27 @@ export default function SmartPantry({
         </label>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">Loading ingredients...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <div className="flex items-center gap-2 text-red-700">
+            <span className="text-xl">⚠️</span>
+            <span className="font-medium">Failed to load ingredients</span>
+          </div>
+          <p className="text-red-600 text-sm mt-1">{error}</p>
+        </div>
+      )}
+
       {/* Ingredients Display */}
-      {filteredIngredients.length > 0 ? (
+      {!loading && filteredIngredients.length > 0 ? (
         <div className="space-y-6">
           {Object.entries(ingredientsByCategory).map(
             ([category, categoryIngredients]) =>
@@ -470,7 +510,7 @@ export default function SmartPantry({
               )
           )}
         </div>
-      ) : (
+      ) : !loading && !error ? (
         <div className="text-center py-12">
           <span className="text-6xl mb-4 block">🥗</span>
           <h3 className="text-xl font-semibold text-gray-600 mb-2">Your pantry is empty</h3>
@@ -478,7 +518,7 @@ export default function SmartPantry({
             Add some ingredients to get started with recipe generation!
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -30,7 +30,7 @@ export const applySafariPolyfills = () => {
 // Get Safari version
 const getSafariVersion = (): number | null => {
   if (typeof window === 'undefined') return null;
-  
+
   const match = navigator.userAgent.match(/Version\/(\d+)/);
   return match ? parseInt(match[1], 10) : null;
 };

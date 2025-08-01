@@ -5,6 +5,13 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Home from '../../pages/index';
+import { AuthProvider } from '../../lib/auth/AuthProvider';
+
+// Mock Supabase client to prevent import errors
+jest.mock('../../lib/supabase/client', () => ({
+  createSupabaseClient: jest.fn(() => null),
+  createSupabaseServiceClient: jest.fn(() => null),
+}));
 
 // Mock Next.js router
 jest.mock('next/router', () => ({
@@ -30,28 +37,32 @@ jest.mock('../../lib/config/environment', () => ({
 jest.mock('../../lib/ai/aiService', () => ({
   aiService: {
     generateRecipe: jest.fn().mockResolvedValue({
-      title: 'Test Recipe',
-      description: 'A delicious test recipe',
-      ingredients: [
-        { name: 'Test Ingredient', amount: 1, unit: 'cup' }
-      ],
-      instructions: ['Mix ingredients', 'Cook until done'],
-      prepTime: 10,
-      cookTime: 20,
-      totalTime: 30,
-      servings: 4,
-      difficulty: 'Easy',
-      cuisine: 'american',
-      tags: [],
-      nutritionInfo: {
-        calories: 200,
-        protein: 10,
-        carbs: 20,
-        fat: 5,
-        fiber: 3,
-        sugar: 2,
+      success: true,
+      recipe: {
+        id: 'test-recipe-1',
+        title: 'Test Recipe',
+        description: 'A delicious test recipe',
+        ingredients: [{ name: 'Test Ingredient', amount: 1, unit: 'cup' }],
+        instructions: ['Mix ingredients', 'Cook until done'],
+        prepTime: 10,
+        cookTime: 20,
+        totalTime: 30,
+        servings: 4,
+        difficulty: 'Easy',
+        cuisine: 'american',
+        tags: [],
+        nutritionInfo: {
+          calories: 200,
+          protein: 10,
+          carbs: 20,
+          fat: 5,
+          fiber: 3,
+          sugar: 2,
+        },
       },
     }),
+    initialize: jest.fn().mockResolvedValue(undefined),
+    getUsageStats: jest.fn().mockResolvedValue({ aiEnabled: true }),
     isAvailable: jest.fn().mockResolvedValue(true),
     getStatus: jest.fn().mockReturnValue('enabled'),
   },
@@ -80,20 +91,33 @@ describe('App Flow E2E', () => {
   });
 
   it('renders the main application', async () => {
-    render(<Home />);
-    
+    render(
+      <AuthProvider>
+        <Home />
+      </AuthProvider>
+    );
+
     // Check if main elements are present
     expect(screen.getByText(/pantry buddy/i)).toBeInTheDocument();
-    
+
     // Wait for components to load
-    await waitFor(() => {
-      expect(screen.getByText(/smart pantry/i) || screen.getByText(/ingredients/i)).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/smart pantry/i) || screen.getByText(/ingredients/i)
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
   });
 
   it('allows users to add ingredients and generate recipes', async () => {
     const user = userEvent.setup();
-    render(<Home />);
+    render(
+      <AuthProvider>
+        <Home />
+      </AuthProvider>
+    );
 
     // Wait for app to load
     await waitFor(() => {
@@ -113,31 +137,45 @@ describe('App Flow E2E', () => {
         await user.click(generateButtons[0]);
 
         // Wait for recipe to be generated
-        await waitFor(() => {
-          expect(screen.queryByText(/test recipe/i)).toBeInTheDocument();
-        }, { timeout: 5000 });
+        await waitFor(
+          () => {
+            expect(screen.queryByText(/test recipe/i)).toBeInTheDocument();
+          },
+          { timeout: 5000 }
+        );
       }
     }
   });
 
   it('displays proper loading states', async () => {
-    render(<Home />);
+    render(
+      <AuthProvider>
+        <Home />
+      </AuthProvider>
+    );
 
     // Should show some loading indication initially
-    await waitFor(() => {
-      const loadingElements = screen.queryAllByText(/loading/i);
-      const spinners = document.querySelectorAll('.animate-spin');
-      expect(loadingElements.length > 0 || spinners.length > 0).toBe(true);
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        const loadingElements = screen.queryAllByText(/loading/i);
+        const spinners = document.querySelectorAll('.animate-spin');
+        expect(loadingElements.length > 0 || spinners.length > 0).toBe(true);
+      },
+      { timeout: 1000 }
+    );
   });
 
   it('shows navigation and header elements', async () => {
-    render(<Home />);
+    render(
+      <AuthProvider>
+        <Home />
+      </AuthProvider>
+    );
 
     await waitFor(() => {
       // Should have header with app name
       expect(screen.getByText(/pantry buddy/i)).toBeInTheDocument();
-      
+
       // Should have navigation elements
       const navElements = screen.queryAllByRole('button');
       expect(navElements.length).toBeGreaterThan(0);
@@ -149,7 +187,11 @@ describe('App Flow E2E', () => {
     const { aiService } = require('../../lib/ai/aiService');
     aiService.generateRecipe.mockRejectedValueOnce(new Error('API Error'));
 
-    render(<Home />);
+    render(
+      <AuthProvider>
+        <Home />
+      </AuthProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByText(/pantry buddy/i)).toBeInTheDocument();
@@ -168,7 +210,11 @@ describe('App Flow E2E', () => {
     });
     window.dispatchEvent(new Event('resize'));
 
-    render(<Home />);
+    render(
+      <AuthProvider>
+        <Home />
+      </AuthProvider>
+    );
 
     await waitFor(() => {
       expect(screen.getByText(/pantry buddy/i)).toBeInTheDocument();
