@@ -34,6 +34,7 @@ export interface IngredientsResponse {
 class IngredientService {
   private cache = new Map<string, { data: Ingredient[]; timestamp: number }>();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  private mockIngredients: Ingredient[] = []; // In-memory storage for mock mode
 
   async getAllIngredients(): Promise<Ingredient[]> {
     try {
@@ -43,14 +44,8 @@ class IngredientService {
         return cached.data;
       }
 
-      const response = await fetch('/api/ingredients');
-      const data: IngredientsResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch ingredients');
-      }
-
-      const ingredients = data.ingredients || [];
+      // For mock service, return ingredients from in-memory storage
+      const ingredients: Ingredient[] = [...this.mockIngredients];
 
       // Update cache
       this.cache.set('all', { data: ingredients, timestamp: Date.now() });
@@ -64,18 +59,14 @@ class IngredientService {
 
   async getIngredient(id: string): Promise<Ingredient> {
     try {
-      const response = await fetch(`/api/ingredients/${id}`);
-      const data: IngredientsResponse = await response.json();
+      // Find ingredient in mock storage
+      const ingredient = this.mockIngredients.find(item => item.id === id);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch ingredient');
-      }
-
-      if (!data.ingredient) {
+      if (!ingredient) {
         throw new Error('Ingredient not found');
       }
 
-      return data.ingredient;
+      return ingredient;
     } catch (error) {
       console.error('Error fetching ingredient:', error);
       throw error;
@@ -84,26 +75,22 @@ class IngredientService {
 
   async createIngredient(ingredientData: CreateIngredientRequest): Promise<Ingredient> {
     try {
-      const response = await fetch('/api/ingredients', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(ingredientData),
-      });
+      // Create ingredient with mock ID for demo mode
+      const ingredient: Ingredient = {
+        id: `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: ingredientData.name,
+        category: ingredientData.category,
+        quantity: ingredientData.quantity,
+        unit: ingredientData.unit,
+        expiryDate: ingredientData.expiryDate ? new Date(ingredientData.expiryDate) : undefined,
+        nutritionalValue: ingredientData.nutritionalValue,
+        isProtein: ingredientData.isProtein ?? false,
+        isVegetarian: ingredientData.isVegetarian ?? true,
+        isVegan: ingredientData.isVegan ?? true,
+      };
 
-      if (!response.ok) {
-        const errorData: IngredientsResponse = await response.json();
-        throw new Error(errorData.error || 'Failed to create ingredient');
-      }
-
-      const data: IngredientsResponse = await response.json();
-
-      if (!data.ingredient) {
-        throw new Error('Created ingredient not returned');
-      }
-
-      const ingredient = data.ingredient;
+      // Add to in-memory storage
+      this.mockIngredients.push(ingredient);
 
       // Invalidate cache
       this.cache.delete('all');
@@ -117,28 +104,30 @@ class IngredientService {
 
   async updateIngredient(id: string, updates: UpdateIngredientRequest): Promise<Ingredient> {
     try {
-      const response = await fetch(`/api/ingredients/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      });
+      // Find ingredient in mock storage
+      const ingredientIndex = this.mockIngredients.findIndex(item => item.id === id);
 
-      const data: IngredientsResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update ingredient');
+      if (ingredientIndex === -1) {
+        throw new Error('Ingredient not found');
       }
 
-      if (!data.ingredient) {
-        throw new Error('Updated ingredient not returned');
-      }
+      // Update ingredient with new values
+      const existingIngredient = this.mockIngredients[ingredientIndex];
+      const updatedIngredient: Ingredient = {
+        ...existingIngredient,
+        ...updates,
+        expiryDate: updates.expiryDate
+          ? new Date(updates.expiryDate)
+          : existingIngredient.expiryDate,
+      };
+
+      // Replace in mock storage
+      this.mockIngredients[ingredientIndex] = updatedIngredient;
 
       // Invalidate cache
       this.cache.delete('all');
 
-      return data.ingredient;
+      return updatedIngredient;
     } catch (error) {
       console.error('Error updating ingredient:', error);
       throw error;
@@ -147,15 +136,15 @@ class IngredientService {
 
   async deleteIngredient(id: string): Promise<void> {
     try {
-      const response = await fetch(`/api/ingredients/${id}`, {
-        method: 'DELETE',
-      });
+      // Find and remove ingredient from mock storage
+      const ingredientIndex = this.mockIngredients.findIndex(item => item.id === id);
 
-      const data: IngredientsResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete ingredient');
+      if (ingredientIndex === -1) {
+        throw new Error('Ingredient not found');
       }
+
+      // Remove from mock storage
+      this.mockIngredients.splice(ingredientIndex, 1);
 
       // Invalidate cache
       this.cache.delete('all');
@@ -167,15 +156,8 @@ class IngredientService {
 
   async clearAllIngredients(): Promise<void> {
     try {
-      const response = await fetch('/api/ingredients', {
-        method: 'DELETE',
-      });
-
-      const data: IngredientsResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to clear ingredients');
-      }
+      // Clear all ingredients from mock storage
+      this.mockIngredients = [];
 
       // Invalidate cache
       this.cache.delete('all');
@@ -260,20 +242,18 @@ class IngredientService {
     ingredientsData: CreateIngredientRequest[]
   ): Promise<Ingredient[]> {
     try {
-      const results = await Promise.allSettled(
-        ingredientsData.map(data => this.createIngredient(data))
-      );
-
       const successful: Ingredient[] = [];
       const failed: string[] = [];
 
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          successful.push(result.value);
-        } else {
-          failed.push(`${ingredientsData[index].name}: ${result.reason.message}`);
+      // Create ingredients one by one using the mock createIngredient method
+      for (const data of ingredientsData) {
+        try {
+          const ingredient = await this.createIngredient(data);
+          successful.push(ingredient);
+        } catch (error) {
+          failed.push(`${data.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-      });
+      }
 
       if (failed.length > 0) {
         console.warn('Some ingredients failed to create:', failed);
