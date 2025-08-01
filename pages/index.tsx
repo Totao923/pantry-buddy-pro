@@ -8,9 +8,10 @@ import PantryInventoryManager from '../components/PantryInventoryManager';
 import RecipeRatingSystem from '../components/RecipeRatingSystem';
 import MigrationBanner from '../components/migration/MigrationBanner';
 import AppHeader from '../components/layout/AppHeader';
+import AuthModal from '../components/auth/AuthModal';
 import { AdvancedRecipeEngine } from '../lib/advancedRecipeEngine';
 import { aiService } from '../lib/ai/aiService';
-import { isAuthEnabled } from '../lib/config/environment';
+import { useAuth } from '../lib/auth/AuthProvider';
 import {
   Ingredient,
   Recipe,
@@ -25,13 +26,35 @@ import {
 } from '../types';
 
 export default function Home() {
-  const authEnabled = isAuthEnabled();
+  // Enable auth and database functionality
+  const authEnabled = true;
+  const { user, profile, preferences, subscription, loading: authLoading } = useAuth();
+  
   const [appState, setAppState] = useState<AppState>({
     ingredients: [],
     selectedCuisine: 'any',
     generatedRecipes: [],
     currentRecipe: undefined,
-    user: {
+    user: user ? {
+      id: user.id,
+      email: user.email || 'user@example.com',
+      name: profile?.name || 'Chef User',
+      preferences: {
+        dietaryRestrictions: preferences?.dietary_restrictions || [],
+        favoritesCuisines: preferences?.favorite_cuisines || ['italian', 'asian'],
+        allergies: preferences?.allergies || [],
+        spiceLevel: preferences?.spice_level || 'medium',
+        cookingTime: preferences?.cooking_time || 'medium',
+        servingSize: preferences?.serving_size || 4,
+        budgetRange: preferences?.budget_range || 'medium',
+      },
+      subscription: (subscription?.tier as SubscriptionTier) || 'free',
+      savedRecipes: [],
+      mealPlans: [],
+      pantry: [],
+      cookingHistory: [],
+      achievements: [],
+    } : {
       id: '1',
       email: 'user@example.com',
       name: 'Chef User',
@@ -54,6 +77,8 @@ export default function Home() {
     isLoading: false,
     error: undefined,
   });
+  
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const [showDashboard, setShowDashboard] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
@@ -218,6 +243,12 @@ export default function Home() {
         ...prev,
         error: 'Please add at least one ingredient to generate a recipe!',
       }));
+      return;
+    }
+
+    // Require authentication for recipe generation
+    if (authEnabled && !user) {
+      setShowAuthModal(true);
       return;
     }
 
@@ -504,10 +535,19 @@ export default function Home() {
           setShowDashboard={setShowDashboard}
           setShowInventory={setShowInventory}
           aiStatus={aiStatus}
+          onShowAuth={() => setShowAuthModal(true)}
         />
 
         {/* Migration Banner */}
-        {authEnabled && <MigrationBanner />}
+        {authEnabled && user && <MigrationBanner />}
+        
+        {/* Authentication Modal */}
+        {authEnabled && showAuthModal && (
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+          />
+        )}
 
         {/* Dashboard Modal */}
         {showDashboard && (
@@ -620,6 +660,24 @@ export default function Home() {
             {appState.error && (
               <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 max-w-2xl mx-auto">
                 {appState.error}
+              </div>
+            )}
+
+            {/* Sign Up CTA for non-authenticated users */}
+            {authEnabled && !user && !authLoading && (
+              <div className="mb-12 p-8 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl max-w-4xl mx-auto text-center">
+                <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                  Ready to Transform Your Cooking?
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Sign up to save your ingredients, generate unlimited AI recipes, and track your culinary journey!
+                </p>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all font-semibold shadow-lg"
+                >
+                  Get Started Free
+                </button>
               </div>
             )}
           </div>

@@ -1,20 +1,18 @@
 import type { AppProps } from 'next/app';
 import { AuthProvider } from '../lib/auth/AuthProvider';
-import { isAuthEnabled } from '../lib/config/environment';
 import '../styles/globals.css';
+import { useEffect } from 'react';
 
 export default function App({ Component, pageProps }: AppProps) {
-  // Check if authentication is enabled
-  const authEnabled = isAuthEnabled();
+  // Initialize Safari polyfills
+  useEffect(() => {
+    import('../lib/utils/safari-polyfill');
+  }, []);
 
-  if (authEnabled) {
-    return (
-      <AuthProvider>
-        <Component {...pageProps} />
-      </AuthProvider>
-    );
-  }
-
-  // Fallback to non-authenticated mode
-  return <Component {...pageProps} />;
+  // Always wrap in AuthProvider to avoid context errors
+  return (
+    <AuthProvider>
+      <Component {...pageProps} />
+    </AuthProvider>
+  );
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { UserMenu } from '../auth/AuthGuard';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { isAuthEnabled } from '../../lib/config/environment';
@@ -11,6 +12,7 @@ interface AppHeaderProps {
   setShowDashboard: (show: boolean) => void;
   setShowInventory: (show: boolean) => void;
   aiStatus: string;
+  onShowAuth?: () => void;
 }
 
 export default function AppHeader({
@@ -21,8 +23,10 @@ export default function AppHeader({
   setShowDashboard,
   setShowInventory,
   aiStatus,
+  onShowAuth,
 }: AppHeaderProps) {
   const authEnabled = isAuthEnabled();
+  const { user } = useAuth();
 
   return (
     <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-gray-200 sticky top-0 z-50">
@@ -66,6 +70,13 @@ export default function AppHeader({
               </div>
             </div>
 
+            <Link href="/ingredients">
+              <button className="px-4 py-2 bg-white text-gray-700 rounded-xl border border-gray-300 hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm">
+                <span className="text-lg">🥗</span>
+                <span className="hidden md:inline">Ingredients</span>
+              </button>
+            </Link>
+
             <button
               onClick={() => setShowInventory(!showInventory)}
               className="px-4 py-2 bg-white text-gray-700 rounded-xl border border-gray-300 hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm"
@@ -91,8 +102,23 @@ export default function AppHeader({
               {appState.user.subscription === 'free' ? 'Upgrade' : 'Premium'}
             </button>
 
-            {authEnabled ? (
+            {authEnabled && user ? (
               <UserMenu />
+            ) : authEnabled && !user ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onShowAuth}
+                  className="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={onShowAuth}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Sign Up
+                </button>
+              </div>
             ) : (
               <div className="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 rounded-full flex items-center justify-center">
                 <span className="text-lg">👤</span>

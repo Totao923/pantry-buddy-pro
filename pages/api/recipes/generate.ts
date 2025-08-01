@@ -1,20 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { aiService } from '../../../lib/ai/aiService';
 import { CuisineType, Ingredient, Recipe } from '../../../types';
-
-interface GenerateRecipeRequest {
-  ingredients: Ingredient[];
-  cuisine: CuisineType;
-  servings?: number;
-  preferences?: {
-    maxTime?: number;
-    difficulty?: 'Easy' | 'Medium' | 'Hard';
-    dietary?: string[];
-    spiceLevel?: 'mild' | 'medium' | 'hot' | 'extra-hot';
-    experienceLevel?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-  };
-  userId?: string;
-}
+import { withAuth, type AuthenticatedRequest } from '../../../lib/middleware/auth';
+import { withSecurity, sanitizeError } from '../../../lib/middleware/enhanced-security';
+import { validateAndSanitize, GenerateRecipeSchema } from '../../../lib/validation/schemas';
 
 interface GenerateRecipeResponse {
   success: boolean;
@@ -32,8 +21,8 @@ interface GenerateRecipeResponse {
   };
 }
 
-export default async function handler(
-  req: NextApiRequest,
+async function generateRecipeHandler(
+  req: AuthenticatedRequest,
   res: NextApiResponse<GenerateRecipeResponse>
 ) {
   if (req.method !== 'POST') {
@@ -45,43 +34,28 @@ export default async function handler(
   }
 
   try {
-    const {
-      ingredients,
-      cuisine,
-      servings = 4,
-      preferences,
-      userId = 'anonymous',
-    }: GenerateRecipeRequest = req.body;
+    // Validate and sanitize input
+    const validatedData = validateAndSanitize(GenerateRecipeSchema, req.body);
+    const { ingredients, cuisine, servings = 4, preferences } = validatedData;
 
-    // Validate required fields
-    if (!ingredients || !cuisine) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields: ingredients and cuisine',
-      });
-    }
+    // Use authenticated user ID
+    const userId = req.user.id;
 
-    if (!Array.isArray(ingredients) || ingredients.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'At least one ingredient is required',
-      });
-    }
-
-    // Validate servings
-    if (servings < 1 || servings > 12) {
-      return res.status(400).json({
-        success: false,
-        error: 'Servings must be between 1 and 12',
-      });
-    }
+    // Transform validated ingredients to expected format
+    const transformedIngredients = ingredients.map(ing => ({
+      id: ing.id || Math.random().toString(36).substr(2, 9),
+      name: ing.name,
+      category: ing.category as any,
+      quantity: ing.quantity,
+      unit: ing.unit,
+    }));
 
     // Generate recipe using AI service
     const startTime = Date.now();
     const result = await aiService.generateRecipe(
       {
-        ingredients,
-        cuisine,
+        ingredients: transformedIngredients,
+        cuisine: cuisine as any,
         servings,
         preferences,
       },
@@ -112,12 +86,27 @@ export default async function handler(
         usageStats,
       });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Recipe generation API error:', error);
+    const sanitizedError = sanitizeError(error, process.env.NODE_ENV === 'development');
+
+    if (error instanceof Error && error.message && error.message.includes('Validation failed')) {
+      return res.status(400).json({
+        success: false,
+        error: sanitizedError.error || 'Validation failed',
+      });
+    }
 
     return res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error',
+      error: sanitizedError.error || 'Internal server error',
     });
   }
 }
+
+// Apply security middleware with authentication requirement
+export default withSecurity({
+  rateLimit: { windowMs: 15 * 60 * 1000, max: 20 }, // Lower limit for AI operations
+  allowedMethods: ['POST'],
+  maxBodySize: 50 * 1024, // 50KB for recipe data
+})(withAuth(generateRecipeHandler));

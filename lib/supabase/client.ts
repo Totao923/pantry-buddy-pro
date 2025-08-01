@@ -16,14 +16,22 @@ export const createSupabaseClient = () => {
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 };
 
-// Service role client for admin operations (server-side only)
+// SECURITY WARNING: Service role client for admin operations (server-side only)
+// This function should NEVER be called from client-side code
 export const createSupabaseServiceClient = () => {
+  // Ensure this only runs on server-side
+  if (typeof window !== 'undefined') {
+    throw new Error('SECURITY ERROR: Service role client cannot be used on client-side');
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Missing Supabase service role credentials');
   }
+
+  console.warn('Using service role client - ensure this is server-side only');
 
   return createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: {

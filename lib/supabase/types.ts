@@ -103,6 +103,10 @@ export interface Database {
           auto_reorder_level: number | null;
           last_used_date: string | null;
           usage_frequency: number;
+          nutritional_value: number | null;
+          is_protein: boolean;
+          is_vegetarian: boolean;
+          is_vegan: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -123,6 +127,10 @@ export interface Database {
           auto_reorder_level?: number | null;
           last_used_date?: string | null;
           usage_frequency?: number;
+          nutritional_value?: number | null;
+          is_protein?: boolean;
+          is_vegetarian?: boolean;
+          is_vegan?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -143,6 +151,10 @@ export interface Database {
           auto_reorder_level?: number | null;
           last_used_date?: string | null;
           usage_frequency?: number;
+          nutritional_value?: number | null;
+          is_protein?: boolean;
+          is_vegetarian?: boolean;
+          is_vegan?: boolean;
           created_at?: string;
           updated_at?: string;
         };

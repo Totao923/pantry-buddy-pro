@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Ingredient, IngredientCategory, SmartSuggestion } from '../types';
+import { getIngredientService } from '../lib/services/ingredientServiceFactory';
 
 interface SmartPantryProps {
   ingredients: Ingredient[];
@@ -78,11 +79,7 @@ export default function SmartPantry({
   const [categoryFilter, setCategoryFilter] = useState<IngredientCategory | 'all'>('all');
   const [showExpiringSoon, setShowExpiringSoon] = useState(false);
 
-  useEffect(() => {
-    generateSmartSuggestions();
-  }, [ingredients]);
-
-  const generateSmartSuggestions = () => {
+  const generateSmartSuggestions = useCallback(() => {
     const suggestions: SmartSuggestion[] = [];
 
     // Suggest complementary ingredients
@@ -110,7 +107,16 @@ export default function SmartPantry({
     }
 
     setSmartSuggestions(suggestions);
-  };
+  }, [ingredients]);
+
+  // Debounced effect
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      generateSmartSuggestions();
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [generateSmartSuggestions]);
 
   const handleInputChange = (value: string) => {
     setInputValue(value);
@@ -127,20 +133,39 @@ export default function SmartPantry({
     }
   };
 
-  const addIngredient = (name: string, category?: IngredientCategory) => {
+  const addIngredient = async (name: string, category?: IngredientCategory) => {
     if (name.trim() && !ingredients.some(ing => ing.name.toLowerCase() === name.toLowerCase())) {
-      const detectedCategory = category || detectCategory(name);
-      const ingredient: Ingredient = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        category: detectedCategory,
-        isVegetarian: isVegetarian(name, detectedCategory),
-        isVegan: isVegan(name, detectedCategory),
-        isProtein: detectedCategory === 'protein',
-      };
-      onAddIngredient(ingredient);
-      setInputValue('');
-      setSuggestions([]);
+      try {
+        const detectedCategory = category || detectCategory(name);
+        const ingredientData = {
+          name: name.trim(),
+          category: detectedCategory,
+          isVegetarian: isVegetarian(name, detectedCategory),
+          isVegan: isVegan(name, detectedCategory),
+          isProtein: detectedCategory === 'protein',
+        };
+
+        const service = await getIngredientService();
+        const newIngredient = await service.createIngredient(ingredientData);
+        onAddIngredient(newIngredient);
+        setInputValue('');
+        setSuggestions([]);
+      } catch (error) {
+        console.error('Failed to add ingredient:', error);
+        // Fallback to local addition for better UX
+        const detectedCategory = category || detectCategory(name);
+        const ingredient: Ingredient = {
+          id: Date.now().toString(),
+          name: name.trim(),
+          category: detectedCategory,
+          isVegetarian: isVegetarian(name, detectedCategory),
+          isVegan: isVegan(name, detectedCategory),
+          isProtein: detectedCategory === 'protein',
+        };
+        onAddIngredient(ingredient);
+        setInputValue('');
+        setSuggestions([]);
+      }
     }
   };
 
@@ -300,7 +325,7 @@ export default function SmartPantry({
         </div>
 
         {/* Quick Add Categories */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {Object.entries(categoryData).map(([category, data]) => (
             <div key={category} className="bg-gray-50 rounded-xl p-3">
               <div className="text-center mb-2">
@@ -312,7 +337,7 @@ export default function SmartPantry({
                   <button
                     key={example}
                     onClick={() => addIngredient(example)}
-                    className="w-full px-2 py-1 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
+                    className="w-full px-2 py-2 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700 touch-manipulation min-h-[32px]"
                     disabled={ingredients.some(
                       ing => ing.name.toLowerCase() === example.toLowerCase()
                     )}

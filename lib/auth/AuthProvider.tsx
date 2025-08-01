@@ -17,6 +17,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithProvider: (provider: 'google' | 'github') => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
@@ -44,9 +45,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Set to false initially for demo mode
 
   const supabase = createSupabaseClient();
+  
+  // If no Supabase client (demo mode), provide mock functions
+  const isDemo = !supabase;
+
+  console.log('AuthProvider initialized:', { isDemo, hasSupabase: !!supabase });
 
   useEffect(() => {
     // Get initial session
@@ -162,6 +168,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signUp = async (email: string, password: string, metadata: any = {}) => {
+    if (isDemo) {
+      return { error: null };
+    }
+    
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
@@ -189,6 +199,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (isDemo) {
+      // Demo mode - return success without actual authentication
+      return { error: null };
+    }
+    
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -210,6 +225,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async () => {
+    if (isDemo) {
+      // Demo mode - just clear state
+      setUser(null);
+      setProfile(null);
+      setPreferences(null);
+      setSubscription(null);
+      setSession(null);
+      return { error: null };
+    }
+    
     try {
       const { error } = await supabase.auth.signOut();
 
@@ -227,7 +252,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInWithProvider = async (provider: 'google' | 'github') => {
+    if (isDemo) {
+      return { error: null };
+    }
+    
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      // OAuth will redirect, so we don't need to handle user data here
+      return { error: null };
+    } catch (error) {
+      return { error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetPassword = async (email: string) => {
+    if (isDemo) {
+      return { error: null };
+    }
+    
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
@@ -301,6 +357,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signUp,
     signIn,
+    signInWithProvider,
     signOut,
     resetPassword,
     updateProfile,

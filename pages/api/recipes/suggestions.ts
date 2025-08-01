@@ -1,11 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { aiService } from '../../../lib/ai/aiService';
-
-interface SuggestionsRequest {
-  cuisinePreference?: string;
-  mood?: string;
-  count?: number;
-}
+import { withAuth, type AuthenticatedRequest } from '../../../lib/middleware/auth';
+import { withSecurity, sanitizeError } from '../../../lib/middleware/enhanced-security';
 
 interface SuggestionsResponse {
   success: boolean;
@@ -13,8 +9,8 @@ interface SuggestionsResponse {
   error?: string;
 }
 
-export default async function handler(
-  req: NextApiRequest,
+async function suggestionsHandler(
+  req: AuthenticatedRequest,
   res: NextApiResponse<SuggestionsResponse>
 ) {
   if (req.method !== 'GET') {
@@ -48,11 +44,19 @@ export default async function handler(
     });
   } catch (error) {
     console.error('Recipe suggestions API error:', error);
+    const sanitizedError = sanitizeError(error, process.env.NODE_ENV === 'development');
 
     return res.status(500).json({
       success: false,
       suggestions: [],
-      error: error instanceof Error ? error.message : 'Internal server error',
+      error: sanitizedError.error || 'Internal server error',
     });
   }
 }
+
+// Apply security middleware with authentication requirement
+export default withSecurity({
+  rateLimit: { windowMs: 15 * 60 * 1000, max: 30 }, // Moderate limit for suggestions
+  allowedMethods: ['GET'],
+  maxBodySize: 1024, // Small body for GET requests
+})(withAuth(suggestionsHandler));

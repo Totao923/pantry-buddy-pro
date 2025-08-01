@@ -97,9 +97,9 @@ export default function EnhancedRecipeCard({
   }));
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden max-w-4xl mx-auto">
+    <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden w-full max-w-4xl mx-auto">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8">
+      <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 md:p-8">
         <div className="absolute top-4 right-4 flex gap-2">
           <button
             onClick={() => onSaveRecipe?.(recipe)}
@@ -126,11 +126,11 @@ export default function EnhancedRecipeCard({
           </button>
         </div>
 
-        <div className="pr-20">
-          <h1 className="text-3xl font-bold mb-2">{recipe.title}</h1>
-          <p className="text-blue-100 text-lg mb-4">{recipe.description}</p>
+        <div className="pr-16 md:pr-20">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">{recipe.title}</h1>
+          <p className="text-blue-100 text-base md:text-lg mb-4">{recipe.description}</p>
 
-          <div className="flex flex-wrap items-center gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-4">
             <div
               className={`px-3 py-1 rounded-full border font-medium ${getDifficultyColor(recipe.difficulty)}`}
             >
@@ -157,14 +157,14 @@ export default function EnhancedRecipeCard({
       </div>
 
       {/* Servings Control */}
-      <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+      <div className="px-4 md:px-8 py-4 md:py-6 bg-gray-50 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <h3 className="text-lg font-semibold text-gray-800">Servings:</h3>
+            <h3 className="text-base md:text-lg font-semibold text-gray-800">Servings:</h3>
             <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-2">
               <button
                 onClick={() => handleServingChange(currentServings - 1)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600"
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 touch-manipulation"
                 disabled={currentServings <= 1}
               >
                 -
@@ -172,7 +172,7 @@ export default function EnhancedRecipeCard({
               <span className="w-16 text-center font-bold text-lg">{currentServings}</span>
               <button
                 onClick={() => handleServingChange(currentServings + 1)}
-                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600"
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold text-gray-600 touch-manipulation"
                 disabled={currentServings >= 20}
               >
                 +
@@ -182,17 +182,18 @@ export default function EnhancedRecipeCard({
 
           <button
             onClick={() => onStartCooking?.(recipe)}
-            className="px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl hover:from-green-600 hover:to-blue-600 transition-all font-semibold shadow-lg flex items-center gap-2"
+            className="px-4 md:px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl hover:from-green-600 hover:to-blue-600 transition-all font-semibold shadow-lg flex items-center justify-center gap-2 touch-manipulation"
           >
             <span className="text-lg">👨‍🍳</span>
-            Start Cooking
+            <span className="hidden sm:inline">Start Cooking</span>
+            <span className="sm:hidden">Cook</span>
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="px-8 py-4 bg-white border-b border-gray-200">
-        <div className="flex gap-1">
+      <div className="px-4 md:px-8 py-4 bg-white border-b border-gray-200">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
           {[
             { id: 'ingredients', label: 'Ingredients', icon: '🧄' },
             { id: 'instructions', label: 'Instructions', icon: '📋' },

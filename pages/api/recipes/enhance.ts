@@ -1,15 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { aiService } from '../../../lib/ai/aiService';
 import { Recipe } from '../../../types';
+import { withAuth, type AuthenticatedRequest } from '../../../lib/middleware/auth';
+import { withSecurity, sanitizeError } from '../../../lib/middleware/enhanced-security';
 
 interface EnhanceRecipeRequest {
   originalRecipe: Recipe;
   enhancement: 'add-tips' | 'create-variations' | 'improve-instructions' | 'optimize-nutrition';
-  userFeedback?: {
-    rating?: number;
-    comments?: string;
-    issues?: string[];
-  };
+  userFeedback?: string;
 }
 
 interface EnhanceRecipeResponse {
@@ -23,8 +21,8 @@ interface EnhanceRecipeResponse {
   };
 }
 
-export default async function handler(
-  req: NextApiRequest,
+async function enhanceRecipeHandler(
+  req: AuthenticatedRequest,
   res: NextApiResponse<EnhanceRecipeResponse>
 ) {
   if (req.method !== 'POST') {
@@ -83,10 +81,18 @@ export default async function handler(
     }
   } catch (error) {
     console.error('Recipe enhancement API error:', error);
+    const sanitizedError = sanitizeError(error, process.env.NODE_ENV === 'development');
 
     return res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error',
+      error: sanitizedError.error || 'Internal server error',
     });
   }
 }
+
+// Apply security middleware with authentication requirement
+export default withSecurity({
+  rateLimit: { windowMs: 15 * 60 * 1000, max: 10 }, // Lower limit for enhancement operations
+  allowedMethods: ['POST'],
+  maxBodySize: 100 * 1024, // 100KB for recipe enhancement data
+})(withAuth(enhanceRecipeHandler));

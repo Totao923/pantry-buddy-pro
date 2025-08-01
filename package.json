@@ -12,6 +12,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ui": "jest --testPathPatterns=components",
+    "test:integration": "jest --testPathPatterns=integration",
+    "test:api": "jest --testPathPatterns=api",
+    "validate:prod": "node scripts/validate-production.js",
+    "pre-deploy": "npm run type-check && npm run lint && npm run validate:prod",
     "prepare": "husky"
   },
   "dependencies": {
@@ -20,23 +28,31 @@
     "@eslint/object-schema": "^2.1.6",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.39.0",
+    "@types/ioredis": "^4.28.10",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.0.0",
     "autoprefixer": "^10.0.0",
     "bcryptjs": "^2.4.3",
     "crypto-js": "^4.2.0",
+    "dotenv": "^17.2.1",
+    "ioredis": "^5.7.0",
     "next": "^14.2.30",
     "postcss": "^8.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwindcss": "^3.0.0",
     "typescript": "^5.8.3",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "zod": "^4.0.14"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/crypto-js": "^4.2.1",
+    "@types/jest": "^30.0.0",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
@@ -45,7 +61,10 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.3",
     "husky": "^9.1.7",
+    "jest": "^30.0.5",
+    "jest-environment-jsdom": "^30.0.5",
     "lint-staged": "^16.1.2",
+    "node-mocks-http": "^1.17.2",
     "prettier": "^3.6.2"
   },
   "keywords": [
@@ -60,10 +79,14 @@
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix",
-      "prettier --write"
+      "prettier --write",
+      "npm run type-check"
     ],
     "*.{json,md,css}": [
       "prettier --write"
+    ],
+    "**/__tests__/**/*.{js,jsx,ts,tsx}": [
+      "npm test -- --findRelatedTests --passWithNoTests"
     ]
   }
 }

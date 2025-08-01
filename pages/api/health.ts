@@ -1,4 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { DatabaseSetup } from '../../lib/database/setup';
+import { withSecurity } from '../../lib/middleware/enhanced-security';
 
 interface HealthResponse {
   status: 'ok' | 'error';
@@ -9,12 +11,18 @@ interface HealthResponse {
     database: 'connected' | 'disconnected' | 'not_configured';
     ai: 'connected' | 'disconnected' | 'not_configured';
   };
+  database?: {
+    connected: boolean;
+    tablesSetup: boolean;
+    existingTables: number;
+    totalTables: number;
+  };
   uptime: number;
 }
 
 const startTime = Date.now();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<HealthResponse>) {
+async function healthHandler(req: NextApiRequest, res: NextApiResponse<HealthResponse>) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
     return res.status(405).json({
@@ -31,11 +39,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   }
 
   try {
-    // Check Supabase connection
-    const supabaseStatus = process.env.NEXT_PUBLIC_SUPABASE_URL ? 'connected' : 'not_configured';
-
     // Check AI service
     const aiStatus = process.env.ANTHROPIC_API_KEY ? 'connected' : 'not_configured';
+
+    // Check database with detailed status
+    let supabaseStatus: 'connected' | 'disconnected' | 'not_configured' = 'not_configured';
+    let databaseDetails;
+
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      try {
+        const setup = new DatabaseSetup();
+        const dbStatus = await setup.getSetupStatus();
+
+        supabaseStatus = dbStatus.connected ? 'connected' : 'disconnected';
+        databaseDetails = {
+          connected: dbStatus.connected,
+          tablesSetup: dbStatus.allTablesExist,
+          existingTables: dbStatus.existingTables,
+          totalTables: dbStatus.totalTables,
+        };
+      } catch (error) {
+        console.warn('Database status check failed:', error);
+        supabaseStatus = 'disconnected';
+        databaseDetails = {
+          connected: false,
+          tablesSetup: false,
+          existingTables: 0,
+          totalTables: 0,
+        };
+      }
+    }
 
     const healthData: HealthResponse = {
       status: 'ok',
@@ -46,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         database: supabaseStatus,
         ai: aiStatus,
       },
+      database: databaseDetails,
       uptime: Date.now() - startTime,
     };
 
@@ -66,3 +100,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     });
   }
 }
+
+// Apply security middleware without authentication (health checks should be public)
+export default withSecurity({
+  rateLimit: { windowMs: 1 * 60 * 1000, max: 30 }, // 30 requests per minute
+  allowedMethods: ['GET'],
+  maxBodySize: 1024, // Small body for GET requests
+})(healthHandler);
