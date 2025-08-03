@@ -89,14 +89,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-xl flex items-center justify-center overflow-hidden">
-                <img src="/logo.png" alt="Pantry Buddy Logo" className="w-8 h-8 object-contain" />
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-700 to-orange-800 rounded-xl flex items-center justify-center overflow-hidden">
+                <img src="/logo.png" alt="Pantry Buddy Logo" className="w-12 h-12 object-contain" />
               </div>
               <div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-pantry-700 to-pantry-600 bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-orange-700 to-orange-600 bg-clip-text text-transparent">
                   Pantry Buddy
                 </h1>
-                <p className="text-xs text-gray-500">Dashboard</p>
+                <p className="text-sm text-gray-500">Dashboard</p>
               </div>
             </div>
             <button
@@ -110,7 +110,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* User Profile */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-pantry-600 to-pantry-700 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-600 to-orange-700 rounded-full flex items-center justify-center text-white font-bold">
                 {user?.email?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
@@ -126,7 +126,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="p-6 border-b border-gray-200">
             <div className="space-y-3">
               <Link href="/dashboard/create-recipe">
-                <button className="w-full px-4 py-3 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-all font-medium text-sm flex items-center justify-center gap-2">
+                <button className="w-full px-4 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-xl hover:from-orange-700 hover:to-orange-800 transition-all font-medium text-sm flex items-center justify-center gap-2">
                   <span className="text-lg">✨</span>
                   Generate Recipe
                 </button>
@@ -148,7 +148,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <div
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${
                       isActiveRoute(item.href)
-                        ? 'bg-pantry-50 text-pantry-700 border border-pantry-200'
+                        ? 'bg-orange-50 text-orange-700 border border-orange-200'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
@@ -168,7 +168,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <div
                           className={`flex items-center px-3 py-2 text-sm rounded-lg transition-colors cursor-pointer ${
                             router.asPath === subItem.href
-                              ? 'bg-pantry-100 text-pantry-800'
+                              ? 'bg-orange-100 text-orange-800'
                               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                           }`}
                         >

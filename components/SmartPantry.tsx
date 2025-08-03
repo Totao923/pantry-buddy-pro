@@ -240,7 +240,7 @@ export default function SmartPantry({
           <h2 className="text-3xl font-bold text-gray-800">Smart Pantry</h2>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">
+          <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full font-medium">
             {ingredients.length} ingredients
           </span>
         </div>
@@ -248,7 +248,7 @@ export default function SmartPantry({
 
       {/* Smart Suggestions */}
       {smartSuggestions.length > 0 && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
+        <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
           <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
             <span className="text-xl">💡</span>
             Smart Suggestions
@@ -257,7 +257,7 @@ export default function SmartPantry({
             {smartSuggestions.map((suggestion, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100"
+                className="flex items-center justify-between p-3 bg-white rounded-lg border border-orange-100"
               >
                 <div>
                   <h4 className="font-medium text-gray-800">{suggestion.title}</h4>
@@ -265,7 +265,7 @@ export default function SmartPantry({
                 </div>
                 <button
                   onClick={() => addIngredient(suggestion.title.replace('Add ', ''))}
-                  className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                  className="px-3 py-1 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm"
                 >
                   Add
                 </button>
@@ -285,7 +285,7 @@ export default function SmartPantry({
               onChange={e => handleInputChange(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && addIngredient(inputValue)}
               placeholder="Add ingredient (e.g., chicken breast, organic tomatoes...)"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
             />
 
             {suggestions.length > 0 && (
@@ -316,7 +316,7 @@ export default function SmartPantry({
           <select
             value={selectedCategory}
             onChange={e => setSelectedCategory(e.target.value as IngredientCategory)}
-            className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           >
             {Object.entries(categoryData).map(([key, data]) => (
               <option key={key} value={key}>
@@ -327,7 +327,7 @@ export default function SmartPantry({
 
           <button
             onClick={() => addIngredient(inputValue, selectedCategory)}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all font-semibold shadow-lg"
+            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all font-semibold shadow-lg"
           >
             Add
           </button>
@@ -367,7 +367,7 @@ export default function SmartPantry({
           value={searchFilter}
           onChange={e => setSearchFilter(e.target.value)}
           placeholder="Search ingredients..."
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         />
 
         <select
@@ -380,7 +380,7 @@ export default function SmartPantry({
               filterByCategory(newCategory as IngredientCategory);
             }
           }}
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         >
           <option value="all">All Categories</option>
           {Object.entries(categoryData).map(([key, data]) => (
@@ -404,7 +404,7 @@ export default function SmartPantry({
       {/* Loading State */}
       {loading && (
         <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
           <p className="mt-2 text-gray-600">Loading ingredients...</p>
         </div>
       )}
