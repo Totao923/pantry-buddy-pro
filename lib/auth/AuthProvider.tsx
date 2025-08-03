@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { User, Session } from '@supabase/supabase-js';
 import { createSupabaseClient } from '../supabase/client';
 import { dataMigrationService } from '../migration/dataMigration';
+import { ingredientService } from '../services/ingredientService';
 import type { Database } from '../supabase/types';
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
@@ -78,6 +79,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          // Reset ingredients when loading existing session
+          try {
+            await ingredientService.clearAllIngredients();
+            console.log('Ingredients reset on session load');
+          } catch (error) {
+            console.error('Error resetting ingredients on session load:', error);
+          }
+
           await loadUserData(session.user.id);
         }
       } catch (error) {
@@ -99,6 +108,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN' && session?.user) {
+        // Reset ingredients every time user signs in
+        try {
+          await ingredientService.clearAllIngredients();
+          console.log('Ingredients reset on sign-in');
+        } catch (error) {
+          console.error('Error resetting ingredients on sign-in:', error);
+        }
+
         await loadUserData(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
@@ -241,6 +258,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // If in demo mode but not production, allow demo auth
     if (isDemo) {
       console.log('Using demo mode authentication');
+
+      // Reset ingredients on demo sign-in
+      try {
+        await ingredientService.clearAllIngredients();
+        console.log('Ingredients reset on demo sign-in');
+      } catch (error) {
+        console.error('Error resetting ingredients on demo sign-in:', error);
+      }
 
       // Simulate a brief loading delay for demo purposes
       await new Promise(resolve => setTimeout(resolve, 500));
