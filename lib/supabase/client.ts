@@ -2,12 +2,20 @@ import { createBrowserClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// Cached Supabase client instance
+let supabaseInstance: any = null;
+
 // Client-side Supabase client
 export const createSupabaseClient = () => {
+  // Return cached instance if already created
+  if (supabaseInstance) {
+    return supabaseInstance;
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Debug logging for production issues
+  // Debug logging for production issues (only on first creation)
   console.log('Supabase Client Debug:', {
     hasUrl: !!supabaseUrl,
     hasKey: !!supabaseAnonKey,
@@ -24,11 +32,13 @@ export const createSupabaseClient = () => {
       'Key:',
       !!supabaseAnonKey
     );
-    return null as any;
+    supabaseInstance = null as any;
+    return supabaseInstance;
   }
 
   console.log('Creating real Supabase client');
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  supabaseInstance = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  return supabaseInstance;
 };
 
 // SECURITY WARNING: Service role client for admin operations (server-side only)

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { createSupabaseClient } from '../supabase/client';
 import { dataMigrationService } from '../migration/dataMigration';
@@ -47,7 +47,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(false); // Set to false initially for demo mode
 
-  const supabase = createSupabaseClient();
+  const supabaseRef = useRef(createSupabaseClient());
+  const supabase = supabaseRef.current;
 
   // If no Supabase client (demo mode), provide mock functions
   const isDemo = !supabase;
