@@ -89,8 +89,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="w-16 h-16 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-xl flex items-center justify-center overflow-hidden">
-                <img src="/logo.png" alt="Pantry Buddy Logo" className="w-14 h-14 object-contain" />
+              <div className="w-20 h-20 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-xl flex items-center justify-center overflow-hidden">
+                <img src="/logo.png" alt="Pantry Buddy Logo" className="w-16 h-16 object-contain" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-pantry-700 to-pantry-600 bg-clip-text text-transparent">

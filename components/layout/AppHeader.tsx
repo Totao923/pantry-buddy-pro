@@ -33,14 +33,14 @@ export default function AppHeader({
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-2xl flex items-center justify-center overflow-hidden">
-              <img src="/logo.png" alt="Pantry Buddy Logo" className="w-16 h-16 object-contain" />
+            <div className="w-24 h-24 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-2xl flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="Pantry Buddy Logo" className="w-20 h-20 object-contain" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-pantry-700 to-pantry-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-pantry-700 to-pantry-600 bg-clip-text text-transparent">
                 Pantry Buddy Pro
               </h1>
-              <p className="text-lg text-gray-600">AI-Powered Culinary Assistant</p>
+              <p className="text-sm text-gray-600">AI-Powered Culinary Assistant</p>
             </div>
           </div>
 

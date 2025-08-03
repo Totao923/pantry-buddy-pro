@@ -704,7 +704,7 @@ export default function Home() {
                 <div
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg transition-all ${
                     getStepNumber() >= 1
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                      ? 'bg-gradient-to-r from-pantry-500 to-pantry-600 text-white shadow-lg'
                       : 'bg-gray-200 text-gray-500'
                   }`}
                 >

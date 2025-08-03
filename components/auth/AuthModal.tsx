@@ -131,7 +131,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
                 placeholder="Enter your full name"
                 required={mode === 'signup'}
                 disabled={loading}
@@ -148,7 +148,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
               placeholder="Enter your email"
               required
               disabled={loading}
@@ -165,7 +165,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
                 placeholder="Enter your password"
                 required
                 disabled={loading}
@@ -194,7 +194,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 px-4 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="w-full bg-gradient-to-r from-pantry-500 to-pantry-600 text-white py-3 px-4 rounded-lg hover:from-pantry-600 hover:to-pantry-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
             {loading ? (
               <div className="flex items-center justify-center gap-2">
@@ -271,7 +271,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
             <>
               <button
                 onClick={() => setMode('reset')}
-                className="text-orange-600 hover:text-orange-700 text-sm"
+                className="text-pantry-600 hover:text-pantry-700 text-sm"
                 disabled={loading}
               >
                 Forgot your password?
@@ -280,7 +280,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
                 Don't have an account?{' '}
                 <button
                   onClick={() => setMode('signup')}
-                  className="text-orange-600 hover:text-orange-700 font-medium"
+                  className="text-pantry-600 hover:text-pantry-700 font-medium"
                   disabled={loading}
                 >
                   Sign up
@@ -294,7 +294,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
               Already have an account?{' '}
               <button
                 onClick={() => setMode('signin')}
-                className="text-orange-600 hover:text-orange-700 font-medium"
+                className="text-pantry-600 hover:text-pantry-700 font-medium"
                 disabled={loading}
               >
                 Sign in
@@ -307,7 +307,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
               Remember your password?{' '}
               <button
                 onClick={() => setMode('signin')}
-                className="text-orange-600 hover:text-orange-700 font-medium"
+                className="text-pantry-600 hover:text-pantry-700 font-medium"
                 disabled={loading}
               >
                 Sign in
@@ -317,11 +317,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
         </div>
 
         {mode === 'signup' && (
-          <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-            <h3 className="font-semibold text-orange-800 mb-2">
+          <div className="mt-6 p-4 bg-pantry-50 border border-pantry-200 rounded-lg">
+            <h3 className="font-semibold text-pantry-800 mb-2">
               🎉 What you get with your free account:
             </h3>
-            <ul className="text-sm text-orange-700 space-y-1">
+            <ul className="text-sm text-pantry-700 space-y-1">
               <li>• Store up to 50 pantry items</li>
               <li>• Generate 5 AI recipes daily</li>
               <li>• Basic pantry management</li>
