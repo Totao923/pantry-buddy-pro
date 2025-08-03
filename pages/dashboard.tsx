@@ -51,28 +51,28 @@ export default function Dashboard() {
       description: 'Create a new recipe from your ingredients',
       icon: '✨',
       href: '/dashboard/create-recipe',
-      color: 'from-orange-500 to-orange-600',
+      color: 'from-green-500 to-green-600',
     },
     {
       title: 'Add Ingredients',
       description: 'Stock up your virtual pantry',
       icon: '🥗',
       href: '/dashboard/pantry',
-      color: 'from-orange-400 to-orange-500',
+      color: 'from-orange-500 to-orange-600',
     },
     {
       title: 'Browse Recipes',
       description: 'Explore your recipe collection',
       icon: '📚',
       href: '/dashboard/recipes',
-      color: 'from-orange-600 to-orange-700',
+      color: 'from-yellow-500 to-yellow-600',
     },
     {
       title: 'Plan Meals',
       description: 'Organize your weekly menu',
       icon: '📅',
       href: '/dashboard/meal-plans',
-      color: 'from-orange-500 to-red-500',
+      color: 'from-gray-100 to-gray-200 text-gray-800',
     },
   ];
 
@@ -185,7 +185,7 @@ export default function Dashboard() {
                 <Link key={action.title} href={action.href}>
                   <div className="group cursor-pointer">
                     <div
-                      className={`bg-gradient-to-r ${action.color} p-6 rounded-xl text-white hover:shadow-lg transition-all`}
+                      className={`bg-gradient-to-r ${action.color} p-6 rounded-xl ${action.color.includes('text-gray-800') ? '' : 'text-white'} hover:shadow-lg transition-all`}
                     >
                       <div className="text-3xl mb-3">{action.icon}</div>
                       <h3 className="text-lg font-semibold mb-2">{action.title}</h3>
