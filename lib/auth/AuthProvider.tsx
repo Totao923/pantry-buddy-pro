@@ -241,7 +241,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // If in demo mode but not production, allow demo auth
     if (isDemo) {
       console.log('Using demo mode authentication');
-      // Demo mode - return success without actual authentication
+      
+      // Simulate a brief loading delay for demo purposes
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Set a mock user for demo mode
+      const mockUser = {
+        id: 'demo-user-123',
+        email: email,
+        user_metadata: { name: 'Demo User' }
+      } as any;
+      
+      setUser(mockUser);
+      setSession({ user: mockUser } as any);
+      
       return { error: null };
     }
 

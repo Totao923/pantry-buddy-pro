@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/auth/AuthProvider';
 
 interface AuthModalProps {
@@ -16,7 +16,15 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const { signIn, signUp, resetPassword, signInWithProvider } = useAuth();
+  const { signIn, signUp, resetPassword, signInWithProvider, user } = useAuth();
+
+  // Auto-close modal when user successfully signs in
+  useEffect(() => {
+    if (user && isOpen) {
+      setMessage('Successfully signed in!');
+      setTimeout(handleClose, 1000);
+    }
+  }, [user, isOpen]);
 
   const resetForm = () => {
     setEmail('');
@@ -43,10 +51,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
         const { error } = await signIn(email, password);
         if (error) {
           setError(error.message || 'Failed to sign in');
-        } else {
-          setMessage('Successfully signed in!');
-          setTimeout(handleClose, 1000);
         }
+        // Success case is handled by useEffect watching user state
       } else if (mode === 'signup') {
         const { error } = await signUp(email, password, { name });
         if (error) {
