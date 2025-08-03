@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import SmartPantry from '../components/SmartPantry';
 import AdvancedCuisineSelector from '../components/AdvancedCuisineSelector';
 import EnhancedRecipeCard from '../components/EnhancedRecipeCard';
@@ -29,6 +30,14 @@ export default function Home() {
   // Enable auth and database functionality
   const authEnabled = true;
   const { user, profile, preferences, subscription, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
 
   const [appState, setAppState] = useState<AppState>({
     ingredients: [],

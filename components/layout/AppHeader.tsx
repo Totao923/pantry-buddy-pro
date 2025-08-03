@@ -70,12 +70,21 @@ export default function AppHeader({
               </div>
             </div>
 
-            <Link href="/ingredients">
-              <button className="px-4 py-2 bg-white text-gray-700 rounded-xl border border-gray-300 hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm">
-                <span className="text-lg">🥗</span>
-                <span className="hidden md:inline">Ingredients</span>
-              </button>
-            </Link>
+            {authEnabled && user ? (
+              <Link href="/dashboard">
+                <button className="px-4 py-2 bg-white text-gray-700 rounded-xl border border-gray-300 hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm">
+                  <span className="text-lg">🏠</span>
+                  <span className="hidden md:inline">Dashboard</span>
+                </button>
+              </Link>
+            ) : (
+              <Link href="/ingredients">
+                <button className="px-4 py-2 bg-white text-gray-700 rounded-xl border border-gray-300 hover:bg-gray-50 transition-all flex items-center gap-2 shadow-sm">
+                  <span className="text-lg">🥗</span>
+                  <span className="hidden md:inline">Ingredients</span>
+                </button>
+              </Link>
+            )}
 
             <button
               onClick={() => setShowInventory(!showInventory)}
