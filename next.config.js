@@ -65,7 +65,7 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               // Allow unsafe-eval in development for Next.js Fast Refresh, remove in production
-              process.env.NODE_ENV === 'development' 
+              process.env.NODE_ENV === 'development'
                 ? "script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net"
                 : "script-src 'self' https://cdn.jsdelivr.net",
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
@@ -76,8 +76,10 @@ const nextConfig = {
               "base-uri 'self'",
               "form-action 'self'",
               "frame-ancestors 'none'",
-              process.env.NODE_ENV === 'production' ? "upgrade-insecure-requests" : "",
-            ].filter(Boolean).join('; '),
+              process.env.NODE_ENV === 'production' ? 'upgrade-insecure-requests' : '',
+            ]
+              .filter(Boolean)
+              .join('; '),
           },
           {
             key: 'Strict-Transport-Security',

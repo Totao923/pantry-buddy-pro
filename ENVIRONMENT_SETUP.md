@@ -61,7 +61,7 @@ Generate secure random keys for encryption:
 # Encryption key (32 bytes)
 openssl rand -base64 32
 
-# JWT secret (64 bytes)  
+# JWT secret (64 bytes)
 openssl rand -base64 64
 
 # Session secret (32 bytes)
@@ -140,20 +140,24 @@ For production (Vercel, Railway, etc.), set these as **environment variables** i
 ### Common Issues:
 
 **"Missing environment variables" error:**
+
 - Make sure you copied all required variables
 - Check for typos in variable names
 - Ensure no extra spaces around the `=` sign
 
 **"Invalid Supabase URL" error:**
+
 - URL must start with `https://`
 - URL should end with `.supabase.co`
 
 **"Authentication failed" errors:**
+
 - Double-check your Supabase keys
 - Make sure you're using the correct project keys
 - Verify the anon key vs service role key
 
 **API rate limit errors:**
+
 - Check your Anthropic API key is valid
 - Verify you have credits/quota remaining
 
@@ -162,6 +166,7 @@ For production (Vercel, Railway, etc.), set these as **environment variables** i
 Once your environment is configured:
 
 1. **Start the development server:**
+
    ```bash
    npm run dev
    ```
@@ -182,6 +187,7 @@ Once your environment is configured:
 ## 📞 Need Help?
 
 If you run into issues:
+
 1. Check the validation output: `npm run validate:prod`
 2. Review this guide step by step
 3. Check the browser console for specific error messages

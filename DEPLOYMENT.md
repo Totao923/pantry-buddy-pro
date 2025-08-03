@@ -7,6 +7,7 @@ This guide covers deploying Pantry Buddy Pro to production with proper security,
 ## 📋 Pre-Deployment Checklist
 
 ### Security Verification ✅
+
 - [x] All API endpoints have authentication middleware
 - [x] Input validation implemented with Zod schemas
 - [x] Rate limiting configured
@@ -15,6 +16,7 @@ This guide covers deploying Pantry Buddy Pro to production with proper security,
 - [x] Environment variables properly configured
 
 ### Environment Setup
+
 - [x] Production environment variables configured
 - [x] Database migrations ready
 - [x] Supabase project configured with RLS policies
@@ -25,36 +27,40 @@ This guide covers deploying Pantry Buddy Pro to production with proper security,
 ### Option 1: Vercel (Recommended)
 
 **Prerequisites:**
+
 - Vercel account
 - GitHub repository connected
 - Environment variables configured
 
 **Steps:**
+
 1. **Connect Repository**
+
    ```bash
    # Push to GitHub if not already done
    git push origin main
    ```
 
 2. **Configure Environment Variables in Vercel Dashboard:**
+
    ```env
    # Database
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   
+
    # AI Services
    ANTHROPIC_API_KEY=your-anthropic-key
-   
+
    # Security
    ENCRYPTION_KEY=your-32-char-encryption-key
    JWT_SECRET=your-jwt-secret
    SESSION_SECRET=your-session-secret
-   
+
    # App Configuration
    NODE_ENV=production
    NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
-   
+
    # Rate Limiting (Optional - defaults provided)
    RATE_LIMIT_WINDOW_MS=900000
    RATE_LIMIT_MAX_REQUESTS=100
@@ -68,10 +74,12 @@ This guide covers deploying Pantry Buddy Pro to production with proper security,
 ### Option 2: Railway
 
 **Prerequisites:**
+
 - Railway account
 - GitHub repository
 
 **Steps:**
+
 1. Connect GitHub repository to Railway
 2. Set environment variables (same as Vercel list above)
 3. Deploy and configure custom domain
@@ -79,10 +87,12 @@ This guide covers deploying Pantry Buddy Pro to production with proper security,
 ### Option 3: Netlify
 
 **Prerequisites:**
+
 - Netlify account
 - Build settings configured
 
 **Build Settings:**
+
 ```
 Build command: npm run build
 Publish directory: .next
@@ -93,6 +103,7 @@ Publish directory: .next
 ### Database (Supabase)
 
 1. **Enable RLS on all tables**
+
    ```sql
    ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
    ALTER TABLE pantry_items ENABLE ROW LEVEL SECURITY;
@@ -147,17 +158,19 @@ For high-traffic production deployments:
    - AWS ElastiCache
 
 2. **Install Redis Client:**
+
    ```bash
    npm install ioredis
    ```
 
 3. **Update Rate Limiting Middleware:**
+
    ```typescript
    // lib/middleware/redis-rate-limit.ts
    import Redis from 'ioredis';
-   
+
    const redis = new Redis(process.env.REDIS_URL);
-   
+
    export const redisRateLimit = async (key: string, limit: number, window: number) => {
      // Implementation for Redis-based rate limiting
    };
@@ -185,15 +198,17 @@ For high-traffic production deployments:
 ### Sentry Setup (Recommended)
 
 1. **Install Sentry:**
+
    ```bash
    npm install @sentry/nextjs
    ```
 
 2. **Configure Sentry:**
+
    ```javascript
    // sentry.client.config.ts
    import * as Sentry from '@sentry/nextjs';
-   
+
    Sentry.init({
      dsn: process.env.SENTRY_DSN,
      environment: process.env.NODE_ENV,
@@ -222,6 +237,7 @@ For high-traffic production deployments:
 ## 🚨 Post-Deployment Verification
 
 ### 1. Functionality Tests
+
 - [ ] User registration and login
 - [ ] Recipe generation with AI
 - [ ] Ingredient management (CRUD operations)
@@ -229,17 +245,20 @@ For high-traffic production deployments:
 - [ ] Authentication flows
 
 ### 2. Security Tests
+
 - [ ] API endpoints require authentication
 - [ ] Rate limiting is working
 - [ ] Security headers are present
 - [ ] No sensitive data in client bundles
 
 ### 3. Performance Tests
+
 - [ ] Page load times < 3 seconds
 - [ ] API response times < 2 seconds
 - [ ] Recipe generation < 30 seconds
 
 ### 4. Monitoring Setup
+
 - [ ] Error tracking configured
 - [ ] Performance monitoring active
 - [ ] Uptime monitoring configured

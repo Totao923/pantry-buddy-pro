@@ -25,7 +25,11 @@
       "Bash(npm run test:ui:*)",
       "Bash(npm run test:coverage:*)",
       "Bash(chmod:*)",
-      "Bash(npm run validate:prod:*)"
+      "Bash(npm run validate:prod:*)",
+      "Bash(node:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
