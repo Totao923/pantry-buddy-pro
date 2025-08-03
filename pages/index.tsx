@@ -628,7 +628,7 @@ export default function Home() {
               Advanced AI Recipe Engine
             </div>
 
-            <h2 className="text-5xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
+            <h2 className="text-5xl font-bold bg-gradient-to-r from-gray-800 via-pantry-600 to-orange-500 bg-clip-text text-transparent mb-6">
               Transform Your Kitchen Into a<br />
               <span className="text-6xl">Culinary Studio</span>
             </h2>
@@ -642,25 +642,25 @@ export default function Home() {
             {/* Enhanced Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mb-16">
               <div className="text-center">
-                <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <div className="text-4xl font-bold bg-gradient-to-r from-pantry-600 to-pantry-700 bg-clip-text text-transparent">
                   50K+
                 </div>
                 <div className="text-gray-600 font-medium">Recipes Generated</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                <div className="text-4xl font-bold bg-gradient-to-r from-pantry-500 to-pantry-600 bg-clip-text text-transparent">
                   15+
                 </div>
                 <div className="text-gray-600 font-medium">Global Cuisines</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <div className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
                   99.2%
                 </div>
                 <div className="text-gray-600 font-medium">Success Rate</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                <div className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">
                   4.9★
                 </div>
                 <div className="text-gray-600 font-medium">User Rating</div>
@@ -676,7 +676,7 @@ export default function Home() {
 
             {/* Sign Up CTA for non-authenticated users */}
             {authEnabled && !user && !authLoading && (
-              <div className="mb-12 p-8 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-2xl max-w-4xl mx-auto text-center">
+              <div className="mb-12 p-8 bg-gradient-to-r from-pantry-50 to-orange-50 border border-pantry-200 rounded-2xl max-w-4xl mx-auto text-center">
                 <h3 className="text-2xl font-bold text-gray-800 mb-4">
                   Ready to Transform Your Cooking?
                 </h3>
@@ -686,7 +686,7 @@ export default function Home() {
                 </p>
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all font-semibold shadow-lg"
+                  className="px-8 py-3 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-all font-semibold shadow-lg"
                 >
                   Get Started Free
                 </button>
@@ -771,9 +771,9 @@ export default function Home() {
                 <button
                   onClick={generateAdvancedRecipe}
                   disabled={appState.isLoading}
-                  className="group relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white px-12 py-6 rounded-2xl font-bold text-xl hover:shadow-2xl transition-all disabled:opacity-50 shadow-xl"
+                  className="group relative overflow-hidden bg-gradient-to-r from-pantry-600 via-pantry-700 to-orange-500 text-white px-12 py-6 rounded-2xl font-bold text-xl hover:shadow-2xl transition-all disabled:opacity-50 shadow-xl"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-700 via-purple-700 to-pink-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-pantry-700 via-pantry-800 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <span className="relative flex items-center gap-3">
                     {appState.isLoading ? (
                       <>
@@ -874,8 +874,8 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6 py-12">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="text-2xl">🧑‍🍳</span>
-                <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <img src="/logo.png" alt="Pantry Buddy Logo" className="w-8 h-8 object-contain" />
+                <span className="text-xl font-bold bg-gradient-to-r from-pantry-600 to-orange-500 bg-clip-text text-transparent">
                   Pantry Buddy Pro
                 </span>
               </div>
