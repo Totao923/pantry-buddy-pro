@@ -144,7 +144,7 @@ export default function Dashboard() {
                   <p className="text-sm text-gray-600 mb-1">Recipes Created</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.totalRecipes}</p>
                 </div>
-                <div className="w-12 h-12 bg-pantry-100 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
                   <span className="text-2xl">📚</span>
                 </div>
               </div>
@@ -202,7 +202,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Recent Recipes</h2>
               <Link href="/dashboard/recipes">
-                <button className="text-pantry-600 hover:text-pantry-700 font-medium">
+                <button className="text-orange-600 hover:text-orange-700 font-medium">
                   View All
                 </button>
               </Link>
@@ -233,7 +233,7 @@ export default function Dashboard() {
                   Start creating delicious recipes from your ingredients!
                 </p>
                 <Link href="/dashboard/create-recipe">
-                  <button className="px-6 py-3 bg-gradient-to-r from-pantry-500 to-pantry-600 text-white rounded-xl hover:from-pantry-600 hover:to-pantry-700 transition-all font-medium">
+                  <button className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all font-medium">
                     Generate Your First Recipe
                   </button>
                 </Link>
@@ -253,7 +253,7 @@ export default function Dashboard() {
                   <span className="text-2xl">{feature.icon}</span>
                   <div>
                     <p className="font-medium text-gray-900">{feature.name}</p>
-                    <p className="text-xs text-pantry-600">{feature.status}</p>
+                    <p className="text-xs text-orange-600">{feature.status}</p>
                   </div>
                 </div>
               ))}

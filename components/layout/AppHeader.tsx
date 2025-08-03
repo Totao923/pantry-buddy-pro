@@ -33,11 +33,11 @@ export default function AppHeader({
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-2xl flex items-center justify-center overflow-hidden">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-700 to-orange-800 rounded-2xl flex items-center justify-center overflow-hidden">
               <img src="/logo.png" alt="Pantry Buddy Logo" className="w-10 h-10 object-contain" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-pantry-700 to-pantry-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-700 to-orange-600 bg-clip-text text-transparent">
                 Pantry Buddy Pro
               </h1>
               <p className="text-sm text-gray-600">AI-Powered Culinary Assistant</p>
@@ -51,7 +51,7 @@ export default function AppHeader({
                 <span>{appState.ingredients.length} ingredients</span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
-                <span className="w-2 h-2 bg-pantry-500 rounded-full"></span>
+                <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
                 <span>{appState.generatedRecipes.length} recipes</span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
@@ -93,7 +93,7 @@ export default function AppHeader({
               <span className="text-lg">🏺</span>
               <span className="hidden md:inline">Inventory</span>
               {pantryInventory.totalItems > 0 && (
-                <span className="bg-pantry-500 text-white text-xs rounded-full px-2 py-0.5 min-w-5 text-center">
+                <span className="bg-orange-500 text-white text-xs rounded-full px-2 py-0.5 min-w-5 text-center">
                   {pantryInventory.totalItems}
                 </span>
               )}
@@ -103,7 +103,7 @@ export default function AppHeader({
               onClick={() => setShowDashboard(!showDashboard)}
               className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
                 appState.user.subscription === 'free'
-                  ? 'bg-gradient-to-r from-pantry-500 to-pantry-600 text-white hover:from-pantry-600 hover:to-pantry-700'
+                  ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700'
                   : 'bg-gradient-to-r from-orange-400 to-orange-500 text-white'
               }`}
             >
@@ -117,13 +117,13 @@ export default function AppHeader({
               <div className="flex items-center gap-2">
                 <button
                   onClick={onShowAuth}
-                  className="px-4 py-2 text-pantry-600 hover:text-pantry-700 font-medium transition-colors"
+                  className="px-4 py-2 text-orange-600 hover:text-orange-700 font-medium transition-colors"
                 >
                   Sign In
                 </button>
                 <button
                   onClick={onShowAuth}
-                  className="px-4 py-2 bg-pantry-600 text-white rounded-xl hover:bg-pantry-700 transition-colors font-medium"
+                  className="px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-medium"
                 >
                   Sign Up
                 </button>
