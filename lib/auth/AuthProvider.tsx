@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { useRouter } from 'next/router';
 import { createSupabaseClient } from '../supabase/client';
 import { dataMigrationService } from '../migration/dataMigration';
 import { ingredientService } from '../services/ingredientService';
@@ -48,6 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true); // Start with loading to check auth state
 
+  const router = useRouter();
   const supabaseRef = useRef(createSupabaseClient());
   const supabase = supabaseRef.current;
 
@@ -128,6 +130,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         await loadUserData(session.user.id);
+
+        // Redirect to dashboard after successful sign-in
+        // Only redirect if not already on dashboard or auth pages
+        if (
+          router.pathname !== '/dashboard' &&
+          !router.pathname.startsWith('/dashboard/') &&
+          router.pathname !== '/auth/callback'
+        ) {
+          console.log('Redirecting to dashboard after sign-in');
+          router.push('/dashboard');
+        }
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
         setPreferences(null);
@@ -305,6 +318,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setUser(mockUser);
       setSession({ user: mockUser } as any);
+
+      // Redirect to dashboard after successful demo sign-in
+      // Only redirect if not already on dashboard
+      if (router.pathname !== '/dashboard' && !router.pathname.startsWith('/dashboard/')) {
+        console.log('Redirecting to dashboard after demo sign-in');
+        setTimeout(() => router.push('/dashboard'), 100); // Small delay to ensure state is set
+      }
 
       return { error: null };
     }
