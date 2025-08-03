@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(false); // Set to false initially for demo mode
+  const [loading, setLoading] = useState(true); // Start with loading to check auth state
 
   const supabaseRef = useRef(createSupabaseClient());
   const supabase = supabaseRef.current;
@@ -57,8 +57,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   console.log('AuthProvider initialized:', { isDemo, hasSupabase: !!supabase });
 
   useEffect(() => {
+    // Add timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      console.log('Auth loading timeout - setting loading to false');
+      setLoading(false);
+    }, 5000); // 5 second timeout
+
     // Skip auth setup if no Supabase client (demo mode)
     if (!supabase) {
+      console.log('No Supabase client detected - using demo mode');
+      clearTimeout(loadingTimeout);
       setLoading(false);
       return;
     }
@@ -72,6 +80,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
+          clearTimeout(loadingTimeout);
+          setLoading(false);
           return;
         }
 
@@ -92,6 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('Error in getInitialSession:', error);
       } finally {
+        clearTimeout(loadingTimeout);
         setLoading(false);
       }
     };
@@ -127,13 +138,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
     return () => {
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, [supabase]);
 
   const loadUserData = async (userId: string) => {
+    // Skip if no Supabase client (demo mode)
+    if (!supabase) {
+      console.log('Skipping loadUserData - no Supabase client');
+      return;
+    }
+
     try {
       setLoading(true);
+
+      // Add timeout for database operations
+      const dataTimeout = setTimeout(() => {
+        console.log('User data loading timeout - setting loading to false');
+        setLoading(false);
+      }, 10000); // 10 second timeout for data loading
 
       // Load user profile
       const { data: profileData, error: profileError } = await supabase
@@ -184,6 +208,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('Error checking migration status:', error);
       }
+
+      clearTimeout(dataTimeout);
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {

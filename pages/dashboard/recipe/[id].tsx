@@ -143,7 +143,7 @@ export default function RecipeDetail() {
 
   if (loading) {
     return (
-      <AuthGuard>
+      <AuthGuard requireAuth={false}>
         <DashboardLayout>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -158,7 +158,7 @@ export default function RecipeDetail() {
 
   if (!recipe) {
     return (
-      <AuthGuard>
+      <AuthGuard requireAuth={false}>
         <DashboardLayout>
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
@@ -178,7 +178,7 @@ export default function RecipeDetail() {
   }
 
   return (
-    <AuthGuard>
+    <AuthGuard requireAuth={false}>
       <Head>
         <title>{recipe.title} - Pantry Buddy Pro</title>
         <meta name="description" content={recipe.description} />

@@ -149,7 +149,7 @@ export default function RecipesBrowser() {
 
   if (loading) {
     return (
-      <AuthGuard>
+      <AuthGuard requireAuth={false}>
         <DashboardLayout>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -163,7 +163,7 @@ export default function RecipesBrowser() {
   }
 
   return (
-    <AuthGuard>
+    <AuthGuard requireAuth={false}>
       <Head>
         <title>My Recipes - Pantry Buddy Pro</title>
         <meta name="description" content="Browse and manage your recipe collection" />
