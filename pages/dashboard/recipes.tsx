@@ -181,7 +181,7 @@ export default function RecipesBrowser() {
             </div>
             <div className="flex items-center gap-3">
               <Link href="/dashboard/create-recipe">
-                <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all font-medium flex items-center gap-2">
+                <button className="px-4 py-2 bg-gradient-to-r from-pantry-500 to-pantry-600 text-white rounded-lg hover:from-pantry-600 hover:to-pantry-700 transition-all font-medium flex items-center gap-2">
                   <span>✨</span>
                   Create Recipe
                 </button>
@@ -232,13 +232,13 @@ export default function RecipesBrowser() {
                 <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-pantry-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                   >
                     ⊞
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`px-3 py-2 ${viewMode === 'list' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    className={`px-3 py-2 ${viewMode === 'list' ? 'bg-pantry-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                   >
                     ☰
                   </button>
@@ -259,7 +259,7 @@ export default function RecipesBrowser() {
                 onClick={() => setFilter(tab.key as typeof filter)}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   filter === tab.key
-                    ? 'bg-blue-100 text-blue-700'
+                    ? 'bg-pantry-100 text-pantry-700'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
@@ -318,14 +318,14 @@ export default function RecipesBrowser() {
                           {recipe.tags.slice(0, 2).map((tag, index) => (
                             <span
                               key={index}
-                              className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs"
+                              className="px-2 py-1 bg-pantry-100 text-pantry-800 rounded-full text-xs"
                             >
                               {tag}
                             </span>
                           ))}
                         </div>
                         <Link href={`/dashboard/recipe/${recipe.id}`}>
-                          <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                          <button className="text-pantry-600 hover:text-pantry-700 font-medium text-sm">
                             View Recipe
                           </button>
                         </Link>
@@ -358,7 +358,7 @@ export default function RecipesBrowser() {
                               ♥
                             </button>
                             <Link href={`/dashboard/recipe/${recipe.id}`}>
-                              <button className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg font-medium text-sm">
+                              <button className="px-4 py-2 text-pantry-600 hover:bg-pantry-50 rounded-lg font-medium text-sm">
                                 View Recipe
                               </button>
                             </Link>
@@ -380,7 +380,7 @@ export default function RecipesBrowser() {
                   : 'Start creating delicious recipes from your ingredients!'}
               </p>
               <Link href="/dashboard/create-recipe">
-                <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-medium">
+                <button className="px-6 py-3 bg-gradient-to-r from-pantry-500 to-pantry-600 text-white rounded-xl hover:from-pantry-600 hover:to-pantry-700 transition-all font-medium">
                   Create Your First Recipe
                 </button>
               </Link>

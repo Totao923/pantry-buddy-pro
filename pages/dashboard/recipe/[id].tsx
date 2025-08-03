@@ -167,7 +167,7 @@ export default function RecipeDetail() {
               The recipe you're looking for doesn't exist or has been removed.
             </p>
             <Link href="/dashboard/recipes">
-              <button className="px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium">
+              <button className="px-6 py-3 bg-pantry-500 text-white rounded-xl hover:bg-pantry-600 transition-colors font-medium">
                 Back to Recipes
               </button>
             </Link>
@@ -188,11 +188,11 @@ export default function RecipeDetail() {
         <div className="space-y-6">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-gray-600">
-            <Link href="/dashboard" className="hover:text-blue-600">
+            <Link href="/dashboard" className="hover:text-pantry-600">
               Dashboard
             </Link>
             <span>→</span>
-            <Link href="/dashboard/recipes" className="hover:text-blue-600">
+            <Link href="/dashboard/recipes" className="hover:text-pantry-600">
               Recipes
             </Link>
             <span>→</span>
@@ -286,7 +286,7 @@ export default function RecipeDetail() {
 
               <button
                 onClick={() => setShowRatingModal(true)}
-                className="mt-4 text-blue-600 hover:text-blue-700 font-medium text-sm"
+                className="mt-4 text-pantry-600 hover:text-pantry-700 font-medium text-sm"
               >
                 Update Rating & Review
               </button>
@@ -296,7 +296,7 @@ export default function RecipeDetail() {
           {/* Actions */}
           <div className="flex flex-wrap gap-4">
             <Link href="/dashboard/create-recipe">
-              <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-medium">
+              <button className="px-6 py-3 bg-gradient-to-r from-pantry-500 to-pantry-600 text-white rounded-xl hover:from-pantry-600 hover:to-pantry-700 transition-all font-medium">
                 🎲 Create Similar Recipe
               </button>
             </Link>

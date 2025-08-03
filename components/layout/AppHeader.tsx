@@ -51,7 +51,7 @@ export default function AppHeader({
                 <span>{appState.ingredients.length} ingredients</span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
-                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                <span className="w-2 h-2 bg-pantry-500 rounded-full"></span>
                 <span>{appState.generatedRecipes.length} recipes</span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
@@ -93,7 +93,7 @@ export default function AppHeader({
               <span className="text-lg">🏺</span>
               <span className="hidden md:inline">Inventory</span>
               {pantryInventory.totalItems > 0 && (
-                <span className="bg-blue-500 text-white text-xs rounded-full px-2 py-0.5 min-w-5 text-center">
+                <span className="bg-pantry-500 text-white text-xs rounded-full px-2 py-0.5 min-w-5 text-center">
                   {pantryInventory.totalItems}
                 </span>
               )}
@@ -103,8 +103,8 @@ export default function AppHeader({
               onClick={() => setShowDashboard(!showDashboard)}
               className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
                 appState.user.subscription === 'free'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700'
-                  : 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white'
+                  ? 'bg-gradient-to-r from-pantry-500 to-pantry-600 text-white hover:from-pantry-600 hover:to-pantry-700'
+                  : 'bg-gradient-to-r from-orange-400 to-orange-500 text-white'
               }`}
             >
               <span className="text-lg">{appState.user.subscription === 'free' ? '⭐' : '👑'}</span>
@@ -117,13 +117,13 @@ export default function AppHeader({
               <div className="flex items-center gap-2">
                 <button
                   onClick={onShowAuth}
-                  className="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  className="px-4 py-2 text-pantry-600 hover:text-pantry-700 font-medium transition-colors"
                 >
                   Sign In
                 </button>
                 <button
                   onClick={onShowAuth}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+                  className="px-4 py-2 bg-pantry-600 text-white rounded-xl hover:bg-pantry-700 transition-colors font-medium"
                 >
                   Sign Up
                 </button>

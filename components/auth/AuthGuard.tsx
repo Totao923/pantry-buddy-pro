@@ -45,7 +45,7 @@ export default function AuthGuard({ children, fallback, requireAuth = false }: A
               <div className="space-y-4">
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-medium"
+                  className="w-full bg-gradient-to-r from-pantry-500 to-pantry-600 text-white py-3 px-6 rounded-xl hover:from-pantry-600 hover:to-pantry-700 transition-all font-medium"
                 >
                   Sign In to Continue
                 </button>
@@ -54,7 +54,7 @@ export default function AuthGuard({ children, fallback, requireAuth = false }: A
                   New to Pantry Buddy?{' '}
                   <button
                     onClick={() => setShowAuthModal(true)}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-pantry-600 hover:text-pantry-700 font-medium"
                   >
                     Create a free account
                   </button>
@@ -114,7 +114,7 @@ export function UserMenu() {
       <>
         <button
           onClick={() => setShowAuthModal(true)}
-          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-medium text-sm"
+          className="px-4 py-2 bg-gradient-to-r from-pantry-500 to-pantry-600 text-white rounded-xl hover:from-pantry-600 hover:to-pantry-700 transition-all font-medium text-sm"
         >
           Sign In
         </button>
@@ -155,7 +155,7 @@ export function UserMenu() {
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="text-sm font-medium text-gray-800">{profile?.name || 'User'}</div>
             <div className="text-xs text-gray-500">{user.email}</div>
-            <div className="text-xs text-blue-600 font-medium mt-1">
+            <div className="text-xs text-pantry-600 font-medium mt-1">
               {profile?.subscription_tier?.toUpperCase() || 'FREE'} Plan
             </div>
           </div>
