@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { v4 as uuidv4 } from 'uuid';
@@ -44,6 +44,33 @@ export default function MealPlans() {
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
 
+  const generateWeekStructure = useCallback(() => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + selectedWeek * 7);
+
+    const week: WeekDay[] = [];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+
+      week.push({
+        day: dayNames[i],
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        meals: {
+          breakfast: undefined,
+          lunch: undefined,
+          dinner: undefined,
+          snacks: [],
+        },
+      });
+    }
+
+    setCurrentWeek(week);
+  }, [selectedWeek]);
+
   useEffect(() => {
     const loadMealPlans = async () => {
       try {
@@ -73,34 +100,7 @@ export default function MealPlans() {
     };
 
     loadMealPlans();
-  }, [selectedWeek]);
-
-  const generateWeekStructure = () => {
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + selectedWeek * 7);
-
-    const week: WeekDay[] = [];
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
-
-      week.push({
-        day: dayNames[i],
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        meals: {
-          breakfast: undefined,
-          lunch: undefined,
-          dinner: undefined,
-          snacks: [],
-        },
-      });
-    }
-
-    setCurrentWeek(week);
-  };
+  }, [selectedWeek, generateWeekStructure]);
 
   const handleCreateMealPlan = () => {
     // Placeholder for meal plan creation
@@ -114,30 +114,33 @@ export default function MealPlans() {
 
   const generateAIMealPlan = async () => {
     if (!user || generatingPlan) return;
-    
+
     setGeneratingPlan(true);
     try {
       const mealTypes = ['breakfast', 'lunch', 'dinner'];
       const weekWithMeals = [...currentWeek];
-      
+
       // Generate meals for each day of the week
       for (let dayIndex = 0; dayIndex < weekWithMeals.length; dayIndex++) {
         for (const mealType of mealTypes) {
           try {
             // Use available ingredients for meal generation
-            const response = await aiService.generateRecipe({
-              ingredients: availableIngredients.slice(0, 8), // Use up to 8 ingredients
-              cuisine: 'any',
-              servings: 2,
-              preferences: {
-                mealType: mealType as any,
-                maxTime: mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60,
-                difficulty: 'easy',
+            const response = await aiService.generateRecipe(
+              {
+                ingredients: availableIngredients.slice(0, 8), // Use up to 8 ingredients
+                cuisine: 'any',
+                servings: 2,
+                preferences: {
+                  mealType: mealType as any,
+                  maxTime: mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60,
+                  difficulty: 'easy',
+                },
               },
-            }, user.id);
+              user.id
+            );
 
             if (response.success && response.recipe) {
-              weekWithMeals[dayIndex].meals[mealType as keyof typeof weekWithMeals[0]['meals']] = response.recipe;
+              (weekWithMeals[dayIndex].meals as any)[mealType] = response.recipe;
             }
           } catch (error) {
             console.error(`Error generating ${mealType} for day ${dayIndex}:`, error);
@@ -174,7 +177,6 @@ export default function MealPlans() {
       const updatedPlans = [...mealPlans, newMealPlan];
       setMealPlans(updatedPlans);
       localStorage.setItem('userMealPlans', JSON.stringify(updatedPlans));
-
     } catch (error) {
       console.error('Error generating AI meal plan:', error);
       alert('Failed to generate meal plan. Please try again.');
@@ -188,8 +190,10 @@ export default function MealPlans() {
 
     try {
       // Collect all ingredients from planned meals
-      const allMealIngredients: { [key: string]: { name: string; quantity: number; unit: string; category: string } } = {};
-      
+      const allMealIngredients: {
+        [key: string]: { name: string; quantity: number; unit: string; category: string };
+      } = {};
+
       currentWeek.forEach(day => {
         [day.meals.breakfast, day.meals.lunch, day.meals.dinner].forEach(meal => {
           if (meal && meal.ingredients) {
@@ -251,7 +255,9 @@ export default function MealPlans() {
       const updatedLists = [...existingLists, newShoppingList];
       localStorage.setItem('shoppingLists', JSON.stringify(updatedLists));
 
-      alert(`Shopping list created with ${missingIngredients.length} items! View it in the Shopping Lists page.`);
+      alert(
+        `Shopping list created with ${missingIngredients.length} items! View it in the Shopping Lists page.`
+      );
     } catch (error) {
       console.error('Error generating shopping list:', error);
       alert('Failed to generate shopping list. Please try again.');
@@ -288,7 +294,7 @@ export default function MealPlans() {
           dayProtein += nutrition.protein || 0;
           dayCarbs += nutrition.carbs || 0;
           dayFat += nutrition.fat || 0;
-          
+
           totalCalories += nutrition.calories || 0;
           totalProtein += nutrition.protein || 0;
           totalCarbs += nutrition.carbs || 0;
@@ -402,8 +408,8 @@ export default function MealPlans() {
                 {selectedWeek === 0
                   ? 'This Week'
                   : selectedWeek === 1
-                    ? 'Next Week'
-                    : `Week ${selectedWeek + 1}`}
+                  ? 'Next Week'
+                  : `Week ${selectedWeek + 1}`}
               </h2>
             </div>
 
@@ -474,7 +480,7 @@ export default function MealPlans() {
               <p className="text-gray-600 text-sm mb-4">
                 Let AI create a balanced meal plan based on your preferences and pantry items.
               </p>
-              <button 
+              <button
                 onClick={generateAIMealPlan}
                 disabled={generatingPlan || availableIngredients.length === 0}
                 className="w-full px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
@@ -489,9 +495,11 @@ export default function MealPlans() {
               <p className="text-gray-600 text-sm mb-4">
                 Generate a shopping list based on your planned meals and current pantry.
               </p>
-              <button 
+              <button
                 onClick={generateShoppingList}
-                disabled={currentWeek.every(day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner)}
+                disabled={currentWeek.every(
+                  day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner
+                )}
                 className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create List
@@ -504,9 +512,11 @@ export default function MealPlans() {
               <p className="text-gray-600 text-sm mb-4">
                 View nutritional breakdown and balance of your weekly meal plan.
               </p>
-              <button 
+              <button
                 onClick={() => setShowNutritionModal(true)}
-                disabled={currentWeek.every(day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner)}
+                disabled={currentWeek.every(
+                  day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner
+                )}
                 className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 View Analysis
