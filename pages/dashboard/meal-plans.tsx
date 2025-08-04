@@ -150,27 +150,44 @@ export default function MealPlans() {
       // Update the current week with generated meals
       setCurrentWeek(weekWithMeals);
 
-      // Save the meal plan
+      // Convert week structure to PlannedMeal format
+      const plannedMeals: any[] = [];
+      const startDate = new Date();
+      
+      weekWithMeals.forEach((day, dayIndex) => {
+        const mealDate = new Date(startDate);
+        mealDate.setDate(startDate.getDate() + dayIndex);
+        
+        ['breakfast', 'lunch', 'dinner'].forEach(mealType => {
+          const recipe = (day.meals as any)[mealType];
+          if (recipe) {
+            plannedMeals.push({
+              id: uuidv4(),
+              recipeId: recipe.id,
+              date: mealDate,
+              mealType,
+              servings: recipe.servings || 2,
+            });
+          }
+        });
+      });
+
+      // Save the meal plan using the correct MealPlan interface
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      
       const newMealPlan: MealPlan = {
         id: uuidv4(),
         name: `AI Generated Plan - ${new Date().toLocaleDateString()}`,
         userId: user.id,
-        weeklyMeals: weekWithMeals.reduce((acc, day, index) => {
-          acc[index] = {
-            day: day.day,
-            date: day.date,
-            meals: day.meals,
-          };
-          return acc;
-        }, {} as any),
-        createdDate: new Date(),
-        lastModified: new Date(),
-        isActive: true,
-        preferences: {
-          cuisineTypes: ['any'],
-          dietaryRestrictions: [],
-          maxPrepTime: 60,
-        },
+        startDate,
+        endDate,
+        meals: plannedMeals,
+        totalCalories: 0, // Calculate from meals if needed
+        status: 'active' as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isTemplate: false,
       };
 
       const updatedPlans = [...mealPlans, newMealPlan];
