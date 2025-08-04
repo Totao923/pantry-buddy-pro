@@ -217,13 +217,13 @@ export default function MealPlans() {
             meal.ingredients.forEach(ingredient => {
               const key = ingredient.name.toLowerCase();
               if (allMealIngredients[key]) {
-                allMealIngredients[key].quantity += ingredient.quantity;
+                allMealIngredients[key].quantity += ingredient.amount;
               } else {
                 allMealIngredients[key] = {
                   name: ingredient.name,
-                  quantity: ingredient.quantity,
+                  quantity: ingredient.amount,
                   unit: ingredient.unit,
-                  category: ingredient.category || 'other',
+                  category: 'other', // RecipeIngredient doesn't have category
                 };
               }
             });
