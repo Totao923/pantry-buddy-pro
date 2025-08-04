@@ -133,7 +133,7 @@ export default function MealPlans() {
                 preferences: {
                   mealType: mealType as any,
                   maxTime: mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60,
-                  difficulty: 'easy',
+                  difficulty: 'Easy',
                 },
               },
               user.id
