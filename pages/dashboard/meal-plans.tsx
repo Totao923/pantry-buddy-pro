@@ -408,8 +408,8 @@ export default function MealPlans() {
                 {selectedWeek === 0
                   ? 'This Week'
                   : selectedWeek === 1
-                  ? 'Next Week'
-                  : `Week ${selectedWeek + 1}`}
+                    ? 'Next Week'
+                    : `Week ${selectedWeek + 1}`}
               </h2>
             </div>
 
@@ -543,134 +543,141 @@ export default function MealPlans() {
         </div>
 
         {/* Nutrition Analysis Modal */}
-        {showNutritionModal && (() => {
-          const nutritionData = calculateNutritionAnalysis();
-          return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">Weekly Nutrition Analysis</h3>
-                  <button
-                    onClick={() => setShowNutritionModal(false)}
-                    className="text-gray-400 hover:text-gray-600 text-2xl"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {nutritionData.mealCount === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="text-6xl mb-4">📊</div>
-                    <h4 className="text-lg font-semibold text-gray-900 mb-2">No nutrition data available</h4>
-                    <p className="text-gray-600">Add meals to your plan to see nutrition analysis.</p>
+        {showNutritionModal &&
+          (() => {
+            const nutritionData = calculateNutritionAnalysis();
+            return (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      Weekly Nutrition Analysis
+                    </h3>
+                    <button
+                      onClick={() => setShowNutritionModal(false)}
+                      className="text-gray-400 hover:text-gray-600 text-2xl"
+                    >
+                      ✕
+                    </button>
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Summary Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div className="bg-blue-50 rounded-lg p-4 text-center">
-                        <p className="text-sm text-blue-600 font-medium">Total Calories</p>
-                        <p className="text-2xl font-bold text-blue-900">{nutritionData.totalCalories}</p>
-                        <p className="text-xs text-blue-700">~{nutritionData.averageCalories}/day</p>
-                      </div>
-                      <div className="bg-red-50 rounded-lg p-4 text-center">
-                        <p className="text-sm text-red-600 font-medium">Protein</p>
-                        <p className="text-2xl font-bold text-red-900">{nutritionData.totalProtein}g</p>
-                        <p className="text-xs text-red-700">~{Math.round(nutritionData.totalProtein / 7)}g/day</p>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-4 text-center">
-                        <p className="text-sm text-green-600 font-medium">Carbs</p>
-                        <p className="text-2xl font-bold text-green-900">{nutritionData.totalCarbs}g</p>
-                        <p className="text-xs text-green-700">~{Math.round(nutritionData.totalCarbs / 7)}g/day</p>
-                      </div>
-                      <div className="bg-orange-50 rounded-lg p-4 text-center">
-                        <p className="text-sm text-orange-600 font-medium">Fat</p>
-                        <p className="text-2xl font-bold text-orange-900">{nutritionData.totalFat}g</p>
-                        <p className="text-xs text-orange-700">~{Math.round(nutritionData.totalFat / 7)}g/day</p>
-                      </div>
-                    </div>
 
-                    {/* Charts */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Daily Calories */}
+                  {nutritionData.mealCount === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4">📊</div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                        No nutrition data available
+                      </h4>
+                      <p className="text-gray-600">
+                        Add meals to your plan to see nutrition analysis.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Summary Stats */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-blue-50 rounded-lg p-4 text-center">
+                          <p className="text-sm text-blue-600 font-medium">Total Calories</p>
+                          <p className="text-2xl font-bold text-blue-900">{nutritionData.totalCalories}</p>
+                          <p className="text-xs text-blue-700">~{nutritionData.averageCalories}/day</p>
+                        </div>
+                        <div className="bg-red-50 rounded-lg p-4 text-center">
+                          <p className="text-sm text-red-600 font-medium">Protein</p>
+                          <p className="text-2xl font-bold text-red-900">{nutritionData.totalProtein}g</p>
+                          <p className="text-xs text-red-700">~{Math.round(nutritionData.totalProtein / 7)}g/day</p>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 text-center">
+                          <p className="text-sm text-green-600 font-medium">Carbs</p>
+                          <p className="text-2xl font-bold text-green-900">{nutritionData.totalCarbs}g</p>
+                          <p className="text-xs text-green-700">~{Math.round(nutritionData.totalCarbs / 7)}g/day</p>
+                        </div>
+                        <div className="bg-orange-50 rounded-lg p-4 text-center">
+                          <p className="text-sm text-orange-600 font-medium">Fat</p>
+                          <p className="text-2xl font-bold text-orange-900">{nutritionData.totalFat}g</p>
+                          <p className="text-xs text-orange-700">~{Math.round(nutritionData.totalFat / 7)}g/day</p>
+                        </div>
+                      </div>
+
+                      {/* Charts */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Daily Calories */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Daily Calories</h4>
+                          <ResponsiveContainer width="100%" height={250}>
+                            <BarChart data={nutritionData.dailyNutrition}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="day" />
+                              <YAxis />
+                              <Tooltip />
+                              <Bar dataKey="calories" fill="#3B82F6" name="Calories" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        {/* Macro Distribution */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Macronutrient Distribution</h4>
+                          <ResponsiveContainer width="100%" height={250}>
+                            <PieChart>
+                              <Pie
+                                data={nutritionData.macroDistribution}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={80}
+                                dataKey="calories"
+                                label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                              >
+                                {nutritionData.macroDistribution.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value: number) => `${value} calories`} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      {/* Daily Macros */}
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Daily Calories</h4>
-                        <ResponsiveContainer width="100%" height={250}>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Daily Macronutrients</h4>
+                        <ResponsiveContainer width="100%" height={300}>
                           <BarChart data={nutritionData.dailyNutrition}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="day" />
                             <YAxis />
                             <Tooltip />
-                            <Bar dataKey="calories" fill="#3B82F6" name="Calories" />
+                            <Legend />
+                            <Bar dataKey="protein" fill="#FF6B6B" name="Protein (g)" />
+                            <Bar dataKey="carbs" fill="#4ECDC4" name="Carbs (g)" />
+                            <Bar dataKey="fat" fill="#45B7D1" name="Fat (g)" />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
 
-                      {/* Macro Distribution */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Macronutrient Distribution</h4>
-                        <ResponsiveContainer width="100%" height={250}>
-                          <PieChart>
-                            <Pie
-                              data={nutritionData.macroDistribution}
-                              cx="50%"
-                              cy="50%"
-                              outerRadius={80}
-                              dataKey="calories"
-                              label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                            >
-                              {nutritionData.macroDistribution.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(value: number) => `${value} calories`} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-
-                    {/* Daily Macros */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">Daily Macronutrients</h4>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={nutritionData.dailyNutrition}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="day" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="protein" fill="#FF6B6B" name="Protein (g)" />
-                          <Bar dataKey="carbs" fill="#4ECDC4" name="Carbs (g)" />
-                          <Bar dataKey="fat" fill="#45B7D1" name="Fat (g)" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    {/* Health Insights */}
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <h4 className="text-lg font-semibold text-blue-900 mb-3">💡 Health Insights</h4>
-                      <div className="space-y-2 text-sm">
-                        <p className="text-blue-800">
-                          • Average daily calories: {nutritionData.averageCalories} (Target: 1800-2200 for most adults)
-                        </p>
-                        <p className="text-blue-800">
-                          • Average daily protein: {Math.round(nutritionData.totalProtein / 7)}g (Target: 50-100g)
-                        </p>
-                        <p className="text-blue-800">
-                          • Protein makes up {Math.round((nutritionData.totalProtein * 4 / nutritionData.totalCalories) * 100)}% of calories (Target: 10-35%)
-                        </p>
-                        {nutritionData.totalFiber > 0 && (
+                      {/* Health Insights */}
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-blue-900 mb-3">💡 Health Insights</h4>
+                        <div className="space-y-2 text-sm">
                           <p className="text-blue-800">
-                            • Total fiber: {nutritionData.totalFiber}g (Target: 175g+ per week)
+                            • Average daily calories: {nutritionData.averageCalories} (Target: 1800-2200 for most adults)
                           </p>
-                        )}
+                          <p className="text-blue-800">
+                            • Average daily protein: {Math.round(nutritionData.totalProtein / 7)}g (Target: 50-100g)
+                          </p>
+                          <p className="text-blue-800">
+                            • Protein makes up {Math.round((nutritionData.totalProtein * 4 / nutritionData.totalCalories) * 100)}% of calories (Target: 10-35%)
+                          </p>
+                          {nutritionData.totalFiber > 0 && (
+                            <p className="text-blue-800">
+                              • Total fiber: {nutritionData.totalFiber}g (Target: 175g+ per week)
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          );
+            );
         })()}
       </DashboardLayout>
     </AuthGuard>
