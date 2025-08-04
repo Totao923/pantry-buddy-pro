@@ -131,7 +131,6 @@ export default function MealPlans() {
                 cuisine: 'any',
                 servings: 2,
                 preferences: {
-                  mealType: mealType as any,
                   maxTime: mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60,
                   difficulty: 'Easy',
                 },
