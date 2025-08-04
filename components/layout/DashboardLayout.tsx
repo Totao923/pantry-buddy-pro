@@ -44,6 +44,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       description: 'Plan your meals',
     },
     {
+      name: 'Shopping Lists',
+      href: '/dashboard/shopping-lists',
+      icon: '🛒',
+      description: 'Manage shopping lists',
+    },
+    {
       name: 'Analytics',
       href: '/dashboard/analytics',
       icon: '📊',
@@ -85,7 +91,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
@@ -126,13 +132,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="p-6 border-b border-gray-200">
             <div className="space-y-3">
               <Link href="/dashboard/create-recipe">
-                <button className="w-full px-4 py-3 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-all font-medium text-sm flex items-center justify-center gap-2">
+                <button className="w-full px-4 py-3 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-all font-medium text-sm flex items-center justify-center gap-2 min-h-[44px]">
                   <span className="text-lg">✨</span>
                   Generate Recipe
                 </button>
               </Link>
               <Link href="/dashboard/pantry">
-                <button className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm flex items-center justify-center gap-2">
+                <button className="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm flex items-center justify-center gap-2 min-h-[44px]">
                   <span>🥗</span>
                   Add Ingredients
                 </button>
@@ -141,7 +147,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-6 space-y-2">
+          <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
             {navigationItems.map(item => (
               <div key={item.name}>
                 <Link href={item.href}>
@@ -183,10 +189,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </nav>
 
           {/* Footer */}
-          <div className="p-6 border-t border-gray-200">
+          <div className="p-6 border-t border-gray-200 flex-shrink-0">
             <button
               onClick={handleSignOut}
-              className="w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2"
+              className="w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2 min-h-[44px]"
             >
               <span>🚪</span>
               Sign Out
