@@ -153,11 +153,11 @@ export default function MealPlans() {
       // Convert week structure to PlannedMeal format
       const plannedMeals: any[] = [];
       const startDate = new Date();
-      
+
       weekWithMeals.forEach((day, dayIndex) => {
         const mealDate = new Date(startDate);
         mealDate.setDate(startDate.getDate() + dayIndex);
-        
+
         ['breakfast', 'lunch', 'dinner'].forEach(mealType => {
           const recipe = (day.meals as any)[mealType];
           if (recipe) {
@@ -175,7 +175,7 @@ export default function MealPlans() {
       // Save the meal plan using the correct MealPlan interface
       const endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 6);
-      
+
       const newMealPlan: MealPlan = {
         id: uuidv4(),
         name: `AI Generated Plan - ${new Date().toLocaleDateString()}`,
