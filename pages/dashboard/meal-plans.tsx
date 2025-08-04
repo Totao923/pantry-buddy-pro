@@ -183,6 +183,7 @@ export default function MealPlans() {
         startDate,
         endDate,
         meals: plannedMeals,
+        shoppingList: [], // Empty shopping list initially
         totalCalories: 0, // Calculate from meals if needed
         status: 'active' as any,
         createdAt: new Date(),
