@@ -577,23 +577,39 @@ export default function MealPlans() {
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="bg-blue-50 rounded-lg p-4 text-center">
                           <p className="text-sm text-blue-600 font-medium">Total Calories</p>
-                          <p className="text-2xl font-bold text-blue-900">{nutritionData.totalCalories}</p>
-                          <p className="text-xs text-blue-700">~{nutritionData.averageCalories}/day</p>
+                          <p className="text-2xl font-bold text-blue-900">
+                            {nutritionData.totalCalories}
+                          </p>
+                          <p className="text-xs text-blue-700">
+                            ~{nutritionData.averageCalories}/day
+                          </p>
                         </div>
                         <div className="bg-red-50 rounded-lg p-4 text-center">
                           <p className="text-sm text-red-600 font-medium">Protein</p>
-                          <p className="text-2xl font-bold text-red-900">{nutritionData.totalProtein}g</p>
-                          <p className="text-xs text-red-700">~{Math.round(nutritionData.totalProtein / 7)}g/day</p>
+                          <p className="text-2xl font-bold text-red-900">
+                            {nutritionData.totalProtein}g
+                          </p>
+                          <p className="text-xs text-red-700">
+                            ~{Math.round(nutritionData.totalProtein / 7)}g/day
+                          </p>
                         </div>
                         <div className="bg-green-50 rounded-lg p-4 text-center">
                           <p className="text-sm text-green-600 font-medium">Carbs</p>
-                          <p className="text-2xl font-bold text-green-900">{nutritionData.totalCarbs}g</p>
-                          <p className="text-xs text-green-700">~{Math.round(nutritionData.totalCarbs / 7)}g/day</p>
+                          <p className="text-2xl font-bold text-green-900">
+                            {nutritionData.totalCarbs}g
+                          </p>
+                          <p className="text-xs text-green-700">
+                            ~{Math.round(nutritionData.totalCarbs / 7)}g/day
+                          </p>
                         </div>
                         <div className="bg-orange-50 rounded-lg p-4 text-center">
                           <p className="text-sm text-orange-600 font-medium">Fat</p>
-                          <p className="text-2xl font-bold text-orange-900">{nutritionData.totalFat}g</p>
-                          <p className="text-xs text-orange-700">~{Math.round(nutritionData.totalFat / 7)}g/day</p>
+                          <p className="text-2xl font-bold text-orange-900">
+                            {nutritionData.totalFat}g
+                          </p>
+                          <p className="text-xs text-orange-700">
+                            ~{Math.round(nutritionData.totalFat / 7)}g/day
+                          </p>
                         </div>
                       </div>
 
@@ -601,7 +617,9 @@ export default function MealPlans() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Daily Calories */}
                         <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Daily Calories</h4>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                            Daily Calories
+                          </h4>
                           <ResponsiveContainer width="100%" height={250}>
                             <BarChart data={nutritionData.dailyNutrition}>
                               <CartesianGrid strokeDasharray="3 3" />
@@ -615,7 +633,9 @@ export default function MealPlans() {
 
                         {/* Macro Distribution */}
                         <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Macronutrient Distribution</h4>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                            Macronutrient Distribution
+                          </h4>
                           <ResponsiveContainer width="100%" height={250}>
                             <PieChart>
                               <Pie
@@ -624,7 +644,9 @@ export default function MealPlans() {
                                 cy="50%"
                                 outerRadius={80}
                                 dataKey="calories"
-                                label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                                label={({ name, percent }) =>
+                                  `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                                }
                               >
                                 {nutritionData.macroDistribution.map((entry, index) => (
                                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -638,7 +660,9 @@ export default function MealPlans() {
 
                       {/* Daily Macros */}
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Daily Macronutrients</h4>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                          Daily Macronutrients
+                        </h4>
                         <ResponsiveContainer width="100%" height={300}>
                           <BarChart data={nutritionData.dailyNutrition}>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -655,16 +679,24 @@ export default function MealPlans() {
 
                       {/* Health Insights */}
                       <div className="bg-blue-50 rounded-lg p-4">
-                        <h4 className="text-lg font-semibold text-blue-900 mb-3">💡 Health Insights</h4>
+                        <h4 className="text-lg font-semibold text-blue-900 mb-3">
+                          💡 Health Insights
+                        </h4>
                         <div className="space-y-2 text-sm">
                           <p className="text-blue-800">
-                            • Average daily calories: {nutritionData.averageCalories} (Target: 1800-2200 for most adults)
+                            • Average daily calories: {nutritionData.averageCalories} (Target:
+                            1800-2200 for most adults)
                           </p>
                           <p className="text-blue-800">
-                            • Average daily protein: {Math.round(nutritionData.totalProtein / 7)}g (Target: 50-100g)
+                            • Average daily protein: {Math.round(nutritionData.totalProtein / 7)}g
+                            (Target: 50-100g)
                           </p>
                           <p className="text-blue-800">
-                            • Protein makes up {Math.round((nutritionData.totalProtein * 4 / nutritionData.totalCalories) * 100)}% of calories (Target: 10-35%)
+                            • Protein makes up{' '}
+                            {Math.round(
+                              ((nutritionData.totalProtein * 4) / nutritionData.totalCalories) * 100
+                            )}
+                            % of calories (Target: 10-35%)
                           </p>
                           {nutritionData.totalFiber > 0 && (
                             <p className="text-blue-800">
@@ -678,8 +710,9 @@ export default function MealPlans() {
                 </div>
               </div>
             );
-        })()}
+          })()}
       </DashboardLayout>
     </AuthGuard>
   );
 }
+
