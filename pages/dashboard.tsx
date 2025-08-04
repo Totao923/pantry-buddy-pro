@@ -78,7 +78,6 @@ export default function Dashboard() {
 
   const upcomingFeatures = [
     { name: 'Nutrition Tracking', status: 'Premium', icon: '📊' },
-    { name: 'Shopping Lists', status: 'Coming Soon', icon: '🛒' },
     { name: 'Video Tutorials', status: 'Premium', icon: '🎥' },
     { name: 'Family Sharing', status: 'Family Plan', icon: '👥' },
   ];
