@@ -29,7 +29,9 @@
       "Bash(node:*)",
       "Bash(pkill:*)",
       "Bash(true)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(sed:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }

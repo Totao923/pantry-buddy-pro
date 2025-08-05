@@ -50,6 +50,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       description: 'Manage shopping lists',
     },
     {
+      name: 'Receipt Scanner',
+      href: '/dashboard/receipts',
+      icon: '📄',
+      description: 'Scan receipts & track spending',
+    },
+    {
       name: 'Analytics',
       href: '/dashboard/analytics',
       icon: '📊',
