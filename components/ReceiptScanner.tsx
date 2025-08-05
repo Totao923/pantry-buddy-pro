@@ -23,7 +23,9 @@ export default function ReceiptScanner({
   const streamRef = useRef<MediaStream | null>(null);
 
   const isFreeTier = subscription?.tier === 'free';
-  const canScanReceipts = !isFreeTier; // For now, receipt scanning is premium only
+  // Allow receipt scanning for all users during development/testing
+  // In production, change this to: const canScanReceipts = !isFreeTier;
+  const canScanReceipts = true;
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
