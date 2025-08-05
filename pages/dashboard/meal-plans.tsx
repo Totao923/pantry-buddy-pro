@@ -43,6 +43,14 @@ export default function MealPlans() {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
+  const [newPlanName, setNewPlanName] = useState('');
+  const [newPlanWeek, setNewPlanWeek] = useState<WeekDay[]>([]);
+  const [availableRecipes, setAvailableRecipes] = useState<Recipe[]>([]);
+  const [showRecipeSelector, setShowRecipeSelector] = useState(false);
+  const [selectedMealSlot, setSelectedMealSlot] = useState<{
+    dayIndex: number;
+    mealType: string;
+  } | null>(null);
 
   const generateWeekStructure = useCallback(() => {
     const today = new Date();
@@ -87,6 +95,13 @@ export default function MealPlans() {
         const ingredients = await ingredientService.getAllIngredients();
         setAvailableIngredients(ingredients);
 
+        // Load available recipes from localStorage
+        const savedRecipes = localStorage.getItem('recentRecipes');
+        if (savedRecipes) {
+          const recipes = JSON.parse(savedRecipes);
+          setAvailableRecipes(recipes);
+        }
+
         // Initialize AI service
         await aiService.initialize();
 
@@ -103,8 +118,108 @@ export default function MealPlans() {
   }, [selectedWeek, generateWeekStructure]);
 
   const handleCreateMealPlan = () => {
-    // Placeholder for meal plan creation
+    // Initialize new plan with empty week structure
+    const emptyWeek = generateEmptyWeek();
+    setNewPlanWeek(emptyWeek);
+    setNewPlanName('');
     setShowCreateModal(true);
+  };
+
+  const generateEmptyWeek = () => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+
+    const week: WeekDay[] = [];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+
+      week.push({
+        day: dayNames[i],
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        meals: {
+          breakfast: undefined,
+          lunch: undefined,
+          dinner: undefined,
+          snacks: [],
+        },
+      });
+    }
+
+    return week;
+  };
+
+  const handleSelectMealSlot = (dayIndex: number, mealType: string) => {
+    setSelectedMealSlot({ dayIndex, mealType });
+    setShowRecipeSelector(true);
+  };
+
+  const handleSelectRecipe = (recipe: Recipe) => {
+    if (!selectedMealSlot) return;
+
+    const updatedWeek = [...newPlanWeek];
+    (updatedWeek[selectedMealSlot.dayIndex].meals as any)[selectedMealSlot.mealType] = recipe;
+    setNewPlanWeek(updatedWeek);
+    setShowRecipeSelector(false);
+    setSelectedMealSlot(null);
+  };
+
+  const handleSaveManualPlan = () => {
+    if (!user || !newPlanName.trim()) return;
+
+    // Convert to proper MealPlan format
+    const plannedMeals: any[] = [];
+    const startDate = new Date();
+
+    newPlanWeek.forEach((day, dayIndex) => {
+      const mealDate = new Date(startDate);
+      mealDate.setDate(startDate.getDate() + dayIndex);
+
+      ['breakfast', 'lunch', 'dinner'].forEach(mealType => {
+        const recipe = (day.meals as any)[mealType];
+        if (recipe) {
+          plannedMeals.push({
+            id: uuidv4(),
+            recipeId: recipe.id,
+            date: mealDate,
+            mealType,
+            servings: recipe.servings || 2,
+          });
+        }
+      });
+    });
+
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+
+    const newMealPlan: MealPlan = {
+      id: uuidv4(),
+      name: newPlanName.trim(),
+      userId: user.id,
+      startDate,
+      endDate,
+      meals: plannedMeals,
+      shoppingList: [],
+      totalCalories: 0,
+      status: 'active' as any,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isTemplate: false,
+    };
+
+    const updatedPlans = [...mealPlans, newMealPlan];
+    setMealPlans(updatedPlans);
+    localStorage.setItem('userMealPlans', JSON.stringify(updatedPlans));
+
+    // Reset form and close modal
+    setNewPlanName('');
+    setNewPlanWeek([]);
+    setShowCreateModal(false);
+
+    alert('Meal plan created successfully!');
   };
 
   const handleAddMeal = (dayIndex: number, mealType: 'breakfast' | 'lunch' | 'dinner') => {
@@ -728,6 +843,202 @@ export default function MealPlans() {
               </div>
             );
           })()}
+
+        {/* Manual Meal Plan Creation Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">Create New Meal Plan</h3>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Plan Name Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Meal Plan Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newPlanName}
+                    onChange={e => setNewPlanName(e.target.value)}
+                    placeholder="Enter meal plan name..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Weekly Meal Grid */}
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Plan Your Week</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                    {newPlanWeek.map((day, dayIndex) => (
+                      <div key={day.day} className="border border-gray-200 rounded-lg p-3">
+                        <div className="text-center mb-3">
+                          <h5 className="font-semibold text-gray-900">{day.day}</h5>
+                          <p className="text-sm text-gray-500">{day.date}</p>
+                        </div>
+
+                        <div className="space-y-2">
+                          {/* Breakfast */}
+                          <div className="bg-yellow-50 rounded-lg p-2">
+                            <h6 className="text-xs font-medium text-yellow-800 mb-1">BREAKFAST</h6>
+                            {day.meals.breakfast ? (
+                              <div>
+                                <p className="text-xs text-gray-900 font-medium">
+                                  {day.meals.breakfast.title}
+                                </p>
+                                <button
+                                  onClick={() => handleSelectMealSlot(dayIndex, 'breakfast')}
+                                  className="text-xs text-yellow-600 hover:text-yellow-700 mt-1"
+                                >
+                                  Change
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleSelectMealSlot(dayIndex, 'breakfast')}
+                                className="text-xs text-yellow-600 hover:text-yellow-700 font-medium"
+                              >
+                                + Add Recipe
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Lunch */}
+                          <div className="bg-green-50 rounded-lg p-2">
+                            <h6 className="text-xs font-medium text-green-800 mb-1">LUNCH</h6>
+                            {day.meals.lunch ? (
+                              <div>
+                                <p className="text-xs text-gray-900 font-medium">
+                                  {day.meals.lunch.title}
+                                </p>
+                                <button
+                                  onClick={() => handleSelectMealSlot(dayIndex, 'lunch')}
+                                  className="text-xs text-green-600 hover:text-green-700 mt-1"
+                                >
+                                  Change
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleSelectMealSlot(dayIndex, 'lunch')}
+                                className="text-xs text-green-600 hover:text-green-700 font-medium"
+                              >
+                                + Add Recipe
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Dinner */}
+                          <div className="bg-blue-50 rounded-lg p-2">
+                            <h6 className="text-xs font-medium text-blue-800 mb-1">DINNER</h6>
+                            {day.meals.dinner ? (
+                              <div>
+                                <p className="text-xs text-gray-900 font-medium">
+                                  {day.meals.dinner.title}
+                                </p>
+                                <button
+                                  onClick={() => handleSelectMealSlot(dayIndex, 'dinner')}
+                                  className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+                                >
+                                  Change
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleSelectMealSlot(dayIndex, 'dinner')}
+                                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                              >
+                                + Add Recipe
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveManualPlan}
+                    disabled={!newPlanName.trim()}
+                    className="px-6 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Save Meal Plan
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Recipe Selector Modal */}
+        {showRecipeSelector && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Select Recipe for {selectedMealSlot?.mealType}
+                </h3>
+                <button
+                  onClick={() => setShowRecipeSelector(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {availableRecipes.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🍽️</div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">No recipes available</h4>
+                  <p className="text-gray-600 mb-6">
+                    You need to create some recipes first before you can add them to meal plans.
+                  </p>
+                  <Link href="/dashboard/create-recipe">
+                    <button className="px-6 py-3 bg-pantry-600 text-white rounded-xl hover:bg-pantry-700 transition-all font-medium">
+                      Create Your First Recipe
+                    </button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {availableRecipes.map(recipe => (
+                    <div
+                      key={recipe.id}
+                      className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => handleSelectRecipe(recipe)}
+                    >
+                      <h4 className="font-semibold text-gray-900 mb-2">{recipe.title}</h4>
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                        {recipe.description}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>⏱️ {recipe.totalTime}m</span>
+                        <span className="capitalize">{recipe.cuisine}</span>
+                        <span>👥 {recipe.servings}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </DashboardLayout>
     </AuthGuard>
   );
