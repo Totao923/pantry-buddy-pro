@@ -90,7 +90,7 @@ class BarcodeService {
     const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Pantry Buddy Pro';
     const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0';
     const appContact = process.env.NEXT_PUBLIC_APP_CONTACT || 'pantry-buddy-app';
-    
+
     const response = await fetch(`${this.OPEN_FOOD_FACTS_URL}/${barcode}.json`, {
       headers: {
         'User-Agent': `${appName}/${appVersion} (${appContact})`,
@@ -397,7 +397,7 @@ class BarcodeService {
       }));
     } catch (error) {
       console.error('Failed to get scanned products from Supabase:', error);
-      
+
       // Fallback to localStorage
       try {
         const history = localStorage.getItem('scannedProducts');
@@ -415,7 +415,10 @@ class BarcodeService {
       if (!userId) {
         // Fallback to localStorage for anonymous users
         const history = await this.getScannedProducts();
-        const updated = [product, ...history.filter(p => p.barcode !== product.barcode)].slice(0, 50);
+        const updated = [product, ...history.filter(p => p.barcode !== product.barcode)].slice(
+          0,
+          50
+        );
         localStorage.setItem('scannedProducts', JSON.stringify(updated));
         return;
       }
@@ -466,11 +469,14 @@ class BarcodeService {
       }
     } catch (error) {
       console.error('Failed to save scanned product to Supabase:', error);
-      
+
       // Fallback to localStorage
       try {
         const history = await this.getScannedProducts();
-        const updated = [product, ...history.filter(p => p.barcode !== product.barcode)].slice(0, 50);
+        const updated = [product, ...history.filter(p => p.barcode !== product.barcode)].slice(
+          0,
+          50
+        );
         localStorage.setItem('scannedProducts', JSON.stringify(updated));
       } catch (localError) {
         console.error('Failed to save scanned product:', localError);
@@ -497,7 +503,7 @@ class BarcodeService {
 
       const totalScans = products.reduce((sum: number, p: any) => sum + p.scan_count, 0);
       const uniqueProducts = products.length;
-      
+
       const topCategories: Record<string, number> = {};
       products.forEach((product: any) => {
         const category = product.category || 'other';
@@ -505,7 +511,10 @@ class BarcodeService {
       });
 
       const recentScans = products
-        .sort((a: any, b: any) => new Date(b.last_scanned_at).getTime() - new Date(a.last_scanned_at).getTime())
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.last_scanned_at).getTime() - new Date(a.last_scanned_at).getTime()
+        )
         .slice(0, 10)
         .map((product: any) => ({
           id: product.id,

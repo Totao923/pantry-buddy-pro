@@ -426,7 +426,7 @@ class ReceiptService {
       console.log('Receipt saved successfully:', receiptData.id);
     } catch (error) {
       console.error('Failed to save receipt:', error);
-      
+
       // Fallback to localStorage for offline support
       try {
         const existingReceipts = JSON.parse(localStorage.getItem('userReceipts') || '[]');
@@ -448,10 +448,12 @@ class ReceiptService {
       // Get receipts with their items
       const { data: receipts, error } = await supabase
         .from('receipts')
-        .select(`
+        .select(
+          `
           *,
           receipt_items (*)
-        `)
+        `
+        )
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -481,7 +483,7 @@ class ReceiptService {
       }));
     } catch (error) {
       console.error('Failed to get receipts from Supabase:', error);
-      
+
       // Fallback to localStorage
       try {
         const receipts = JSON.parse(localStorage.getItem('userReceipts') || '[]');
@@ -524,13 +526,15 @@ class ReceiptService {
       // Get receipts in date range
       const { data: receipts, error } = await supabase
         .from('receipts')
-        .select(`
+        .select(
+          `
           *,
           receipt_items (
             category,
             price
           )
-        `)
+        `
+        )
         .eq('user_id', userId)
         .gte('receipt_date', fromDate.toISOString().split('T')[0])
         .order('receipt_date', { ascending: false });
