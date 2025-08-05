@@ -199,6 +199,27 @@ export default function CreateRecipe() {
     }
   };
 
+  const renderNavigationButtons = () => (
+    <div className="flex justify-between mt-6">
+      <button
+        onClick={() => setStep(Math.max(1, step - 1))}
+        disabled={step === 1}
+        className="px-6 py-3 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        ← Previous
+      </button>
+      {step < 3 && (
+        <button
+          onClick={() => setStep(Math.min(4, step + 1))}
+          disabled={!canProceedToStep(step + 1)}
+          className="px-6 py-3 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next →
+        </button>
+      )}
+    </div>
+  );
+
   const renderStepContent = () => {
     // Premium mode selection
     if (showModeSelection) {
@@ -302,6 +323,8 @@ export default function CreateRecipe() {
               onCuisineSelect={setSelectedCuisine}
               onPreferencesChange={setCookingPreferences}
             />
+
+            {renderNavigationButtons()}
           </div>
         );
 
@@ -350,6 +373,8 @@ export default function CreateRecipe() {
                   </>
                 )}
               </button>
+
+              {renderNavigationButtons()}
             </div>
           </div>
         );
