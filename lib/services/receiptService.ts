@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { IngredientCategory } from '../../types';
+import { getSupabaseClient } from '../config/supabase';
 
 export interface ExtractedReceiptItem {
   id: string;
@@ -30,7 +31,7 @@ export interface OCRResult {
 }
 
 class ReceiptService {
-  private readonly VISION_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_VISION_API_KEY;
+  private readonly VISION_API_KEY = process.env.GOOGLE_VISION_API_KEY;
   private readonly FALLBACK_OCR_ENABLED = true;
 
   async processReceiptImage(imageFile: File): Promise<ExtractedReceiptData> {
@@ -378,33 +379,200 @@ class ReceiptService {
   // Save receipt data to database
   async saveReceiptData(receiptData: ExtractedReceiptData, userId: string): Promise<void> {
     try {
-      // This would integrate with Supabase to save receipt data
-      // For now, we'll save to localStorage for development
-      const existingReceipts = JSON.parse(localStorage.getItem('userReceipts') || '[]');
-      const receiptWithUser = { ...receiptData, userId, createdAt: new Date().toISOString() };
+      const supabase = getSupabaseClient();
 
-      existingReceipts.push(receiptWithUser);
-      localStorage.setItem('userReceipts', JSON.stringify(existingReceipts));
+      // Insert receipt record
+      const { data: receipt, error: receiptError } = await supabase
+        .from('receipts')
+        .insert({
+          id: receiptData.id,
+          user_id: userId,
+          store_name: receiptData.storeName,
+          receipt_date: receiptData.receiptDate.toISOString().split('T')[0],
+          total_amount: receiptData.totalAmount,
+          tax_amount: receiptData.taxAmount,
+          raw_text: receiptData.rawText,
+          confidence: receiptData.confidence,
+        })
+        .select()
+        .single();
+
+      if (receiptError) {
+        console.error('Error saving receipt:', receiptError);
+        throw new Error('Failed to save receipt data');
+      }
+
+      // Insert receipt items
+      if (receiptData.items.length > 0) {
+        const { error: itemsError } = await supabase.from('receipt_items').insert(
+          receiptData.items.map(item => ({
+            id: item.id,
+            receipt_id: receiptData.id,
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            price: item.price,
+            category: item.category || 'other',
+            confidence: item.confidence,
+          }))
+        );
+
+        if (itemsError) {
+          console.error('Error saving receipt items:', itemsError);
+          throw new Error('Failed to save receipt items');
+        }
+      }
 
       console.log('Receipt saved successfully:', receiptData.id);
     } catch (error) {
       console.error('Failed to save receipt:', error);
-      throw new Error('Failed to save receipt data');
+      
+      // Fallback to localStorage for offline support
+      try {
+        const existingReceipts = JSON.parse(localStorage.getItem('userReceipts') || '[]');
+        const receiptWithUser = { ...receiptData, userId, createdAt: new Date().toISOString() };
+        existingReceipts.push(receiptWithUser);
+        localStorage.setItem('userReceipts', JSON.stringify(existingReceipts));
+        console.log('Receipt saved to localStorage as fallback');
+      } catch (localError) {
+        throw new Error('Failed to save receipt data');
+      }
     }
   }
 
   // Get user's receipt history
   async getUserReceipts(userId: string): Promise<ExtractedReceiptData[]> {
     try {
-      const receipts = JSON.parse(localStorage.getItem('userReceipts') || '[]');
-      return receipts
-        .filter((receipt: any) => receipt.userId === userId)
-        .sort(
-          (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+      const supabase = getSupabaseClient();
+
+      // Get receipts with their items
+      const { data: receipts, error } = await supabase
+        .from('receipts')
+        .select(`
+          *,
+          receipt_items (*)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching receipts:', error);
+        throw error;
+      }
+
+      // Transform data to match our interface
+      return receipts.map((receipt: any) => ({
+        id: receipt.id,
+        storeName: receipt.store_name,
+        receiptDate: new Date(receipt.receipt_date),
+        totalAmount: parseFloat(receipt.total_amount),
+        taxAmount: parseFloat(receipt.tax_amount || 0),
+        rawText: receipt.raw_text || '',
+        confidence: parseFloat(receipt.confidence || 0.7),
+        items: receipt.receipt_items.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          quantity: parseFloat(item.quantity),
+          unit: item.unit,
+          price: parseFloat(item.price),
+          category: item.category as IngredientCategory,
+          confidence: parseFloat(item.confidence),
+        })),
+      }));
     } catch (error) {
-      console.error('Failed to get receipts:', error);
-      return [];
+      console.error('Failed to get receipts from Supabase:', error);
+      
+      // Fallback to localStorage
+      try {
+        const receipts = JSON.parse(localStorage.getItem('userReceipts') || '[]');
+        return receipts
+          .filter((receipt: any) => receipt.userId === userId)
+          .sort(
+            (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+      } catch (localError) {
+        console.error('Failed to get receipts from localStorage:', localError);
+        return [];
+      }
+    }
+  }
+
+  // Get spending analytics for a user
+  async getSpendingAnalytics(
+    userId: string,
+    timeRange: '7days' | '30days' | '90days' | '1year' = '30days'
+  ): Promise<{
+    totalSpent: number;
+    totalReceipts: number;
+    avgTicket: number;
+    categoryTotals: Record<string, number>;
+    storeTotals: Record<string, number>;
+  }> {
+    try {
+      const supabase = getSupabaseClient();
+
+      // Calculate date range
+      const now = new Date();
+      const daysBack = {
+        '7days': 7,
+        '30days': 30,
+        '90days': 90,
+        '1year': 365,
+      }[timeRange];
+      const fromDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+
+      // Get receipts in date range
+      const { data: receipts, error } = await supabase
+        .from('receipts')
+        .select(`
+          *,
+          receipt_items (
+            category,
+            price
+          )
+        `)
+        .eq('user_id', userId)
+        .gte('receipt_date', fromDate.toISOString().split('T')[0])
+        .order('receipt_date', { ascending: false });
+
+      if (error) throw error;
+
+      // Calculate analytics
+      let totalSpent = 0;
+      const categoryTotals: Record<string, number> = {};
+      const storeTotals: Record<string, number> = {};
+
+      receipts.forEach((receipt: any) => {
+        const amount = parseFloat(receipt.total_amount);
+        totalSpent += amount;
+
+        // Store totals
+        storeTotals[receipt.store_name] = (storeTotals[receipt.store_name] || 0) + amount;
+
+        // Category totals
+        receipt.receipt_items.forEach((item: any) => {
+          const category = item.category || 'other';
+          const price = parseFloat(item.price);
+          categoryTotals[category] = (categoryTotals[category] || 0) + price;
+        });
+      });
+
+      return {
+        totalSpent,
+        totalReceipts: receipts.length,
+        avgTicket: receipts.length > 0 ? totalSpent / receipts.length : 0,
+        categoryTotals,
+        storeTotals,
+      };
+    } catch (error) {
+      console.error('Failed to get spending analytics:', error);
+      return {
+        totalSpent: 0,
+        totalReceipts: 0,
+        avgTicket: 0,
+        categoryTotals: {},
+        storeTotals: {},
+      };
     }
   }
 }

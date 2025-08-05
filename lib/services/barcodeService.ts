@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { IngredientCategory } from '../../types';
+import { getSupabaseClient } from '../config/supabase';
 
 export interface ProductInfo {
   id: string;
@@ -86,7 +87,15 @@ class BarcodeService {
   }
 
   private async lookupFromOpenFoodFacts(barcode: string): Promise<ProductInfo> {
-    const response = await fetch(`${this.OPEN_FOOD_FACTS_URL}/${barcode}.json`);
+    const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Pantry Buddy Pro';
+    const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0';
+    const appContact = process.env.NEXT_PUBLIC_APP_CONTACT || 'pantry-buddy-app';
+    
+    const response = await fetch(`${this.OPEN_FOOD_FACTS_URL}/${barcode}.json`, {
+      headers: {
+        'User-Agent': `${appName}/${appVersion} (${appContact})`,
+      },
+    });
 
     if (!response.ok) {
       throw new Error('Failed to fetch product data');
@@ -353,24 +362,178 @@ class BarcodeService {
   }
 
   // Get product history for analytics
-  getScannedProducts(): ProductInfo[] {
+  async getScannedProducts(userId?: string): Promise<ProductInfo[]> {
     try {
-      const history = localStorage.getItem('scannedProducts');
-      return history ? JSON.parse(history) : [];
+      if (!userId) {
+        // Fallback to localStorage for anonymous users
+        const history = localStorage.getItem('scannedProducts');
+        return history ? JSON.parse(history) : [];
+      }
+
+      const supabase = getSupabaseClient();
+      const { data: products, error } = await supabase
+        .from('scanned_products')
+        .select('*')
+        .eq('user_id', userId)
+        .order('last_scanned_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching scanned products:', error);
+        throw error;
+      }
+
+      return products.map((product: any) => ({
+        id: product.id,
+        barcode: product.barcode,
+        name: product.product_name,
+        brand: product.brand,
+        category: product.category as IngredientCategory,
+        price: product.price ? parseFloat(product.price) : undefined,
+        nutritionInfo: product.nutrition_info,
+        isVegetarian: true, // Default for now
+        isVegan: true, // Default for now
+        confidence: 0.9,
+      }));
     } catch (error) {
-      console.error('Failed to get scanned products:', error);
-      return [];
+      console.error('Failed to get scanned products from Supabase:', error);
+      
+      // Fallback to localStorage
+      try {
+        const history = localStorage.getItem('scannedProducts');
+        return history ? JSON.parse(history) : [];
+      } catch (localError) {
+        console.error('Failed to get scanned products from localStorage:', localError);
+        return [];
+      }
     }
   }
 
   // Save scanned product to history
-  saveScannedProduct(product: ProductInfo): void {
+  async saveScannedProduct(product: ProductInfo, userId?: string): Promise<void> {
     try {
-      const history = this.getScannedProducts();
-      const updated = [product, ...history.filter(p => p.barcode !== product.barcode)].slice(0, 50); // Keep last 50
-      localStorage.setItem('scannedProducts', JSON.stringify(updated));
+      if (!userId) {
+        // Fallback to localStorage for anonymous users
+        const history = await this.getScannedProducts();
+        const updated = [product, ...history.filter(p => p.barcode !== product.barcode)].slice(0, 50);
+        localStorage.setItem('scannedProducts', JSON.stringify(updated));
+        return;
+      }
+
+      const supabase = getSupabaseClient();
+
+      // Check if product already exists for this user
+      const { data: existing } = await supabase
+        .from('scanned_products')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('barcode', product.barcode)
+        .single();
+
+      if (existing) {
+        // Update existing record
+        const { error } = await supabase
+          .from('scanned_products')
+          .update({
+            scan_count: existing.scan_count + 1,
+            last_scanned_at: new Date().toISOString(),
+            price: product.price || existing.price,
+          })
+          .eq('id', existing.id);
+
+        if (error) {
+          console.error('Error updating scanned product:', error);
+          throw error;
+        }
+      } else {
+        // Insert new record
+        const { error } = await supabase.from('scanned_products').insert({
+          user_id: userId,
+          barcode: product.barcode,
+          product_name: product.name,
+          brand: product.brand,
+          category: product.category,
+          price: product.price,
+          nutrition_info: product.nutritionInfo,
+          scan_count: 1,
+          last_scanned_at: new Date().toISOString(),
+        });
+
+        if (error) {
+          console.error('Error saving scanned product:', error);
+          throw error;
+        }
+      }
     } catch (error) {
-      console.error('Failed to save scanned product:', error);
+      console.error('Failed to save scanned product to Supabase:', error);
+      
+      // Fallback to localStorage
+      try {
+        const history = await this.getScannedProducts();
+        const updated = [product, ...history.filter(p => p.barcode !== product.barcode)].slice(0, 50);
+        localStorage.setItem('scannedProducts', JSON.stringify(updated));
+      } catch (localError) {
+        console.error('Failed to save scanned product:', localError);
+      }
+    }
+  }
+
+  // Get scanning statistics for a user
+  async getScanningStats(userId: string): Promise<{
+    totalScans: number;
+    uniqueProducts: number;
+    topCategories: Record<string, number>;
+    recentScans: ProductInfo[];
+  }> {
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data: products, error } = await supabase
+        .from('scanned_products')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      const totalScans = products.reduce((sum: number, p: any) => sum + p.scan_count, 0);
+      const uniqueProducts = products.length;
+      
+      const topCategories: Record<string, number> = {};
+      products.forEach((product: any) => {
+        const category = product.category || 'other';
+        topCategories[category] = (topCategories[category] || 0) + product.scan_count;
+      });
+
+      const recentScans = products
+        .sort((a: any, b: any) => new Date(b.last_scanned_at).getTime() - new Date(a.last_scanned_at).getTime())
+        .slice(0, 10)
+        .map((product: any) => ({
+          id: product.id,
+          barcode: product.barcode,
+          name: product.product_name,
+          brand: product.brand,
+          category: product.category as IngredientCategory,
+          price: product.price ? parseFloat(product.price) : undefined,
+          nutritionInfo: product.nutrition_info,
+          isVegetarian: true,
+          isVegan: true,
+          confidence: 0.9,
+        }));
+
+      return {
+        totalScans,
+        uniqueProducts,
+        topCategories,
+        recentScans,
+      };
+    } catch (error) {
+      console.error('Failed to get scanning stats:', error);
+      return {
+        totalScans: 0,
+        uniqueProducts: 0,
+        topCategories: {},
+        recentScans: [],
+      };
     }
   }
 

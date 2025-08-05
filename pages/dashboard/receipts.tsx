@@ -124,7 +124,7 @@ export default function Receipts() {
   const handleProductScanned = async (product: ProductInfo) => {
     try {
       // Save scanned product to history
-      barcodeService.saveScannedProduct(product);
+      await barcodeService.saveScannedProduct(product, user?.id);
 
       // Create pantry item from scanned product
       const expirationDate = new Date();
