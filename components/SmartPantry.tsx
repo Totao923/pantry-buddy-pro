@@ -8,6 +8,7 @@ interface SmartPantryProps {
   onAddIngredient: (ingredient: Ingredient) => void;
   onRemoveIngredient: (id: string) => void;
   onUpdateIngredient: (ingredient: Ingredient) => void;
+  navigationButtons?: React.ReactNode;
 }
 
 const categoryData: Record<
@@ -71,6 +72,7 @@ export default function SmartPantry({
   onAddIngredient,
   onRemoveIngredient,
   onUpdateIngredient,
+  navigationButtons,
 }: SmartPantryProps) {
   const [inputValue, setInputValue] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<IngredientCategory>('other');
@@ -359,6 +361,9 @@ export default function SmartPantry({
           ))}
         </div>
       </div>
+
+      {/* Navigation Buttons */}
+      {navigationButtons && <div className="mb-6">{navigationButtons}</div>}
 
       {/* Filters */}
       <div className="mb-6 flex flex-wrap gap-4 items-center">

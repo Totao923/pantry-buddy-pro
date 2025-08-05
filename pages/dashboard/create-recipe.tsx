@@ -14,8 +14,23 @@ import { Ingredient, Recipe, CuisineType } from '../../types';
 
 export default function CreateRecipe() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, subscription } = useAuth();
   const [step, setStep] = useState(1);
+  const [creationMode, setCreationMode] = useState<'ai' | 'manual'>('ai'); // ai or manual recipe creation
+  const [modeSelected, setModeSelected] = useState(subscription?.tier !== 'premium'); // track if user has made their choice
+  const [manualRecipe, setManualRecipe] = useState<Partial<Recipe>>({
+    title: '',
+    description: '',
+    ingredients: [],
+    instructions: [],
+    totalTime: 30,
+    prepTime: 15,
+    cookTime: 15,
+    servings: 4,
+    difficulty: 'Easy',
+    cuisine: 'american',
+    tags: [],
+  });
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('any');
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
@@ -186,19 +201,330 @@ export default function CreateRecipe() {
   };
 
   const canProceedToStep = (targetStep: number) => {
-    switch (targetStep) {
-      case 2:
-        return ingredients.length > 0;
-      case 3:
-        return ingredients.length > 0 && selectedCuisine;
-      case 4:
-        return generatedRecipe !== null;
-      default:
-        return true;
+    // For premium users on step 1, they can always proceed to make their choice
+    if (subscription?.tier === 'premium' && targetStep === 1) {
+      return true;
+    }
+
+    if (creationMode === 'manual') {
+      switch (targetStep) {
+        case 2:
+          return manualRecipe.title?.trim() !== '';
+        case 3:
+          return (manualRecipe.ingredients?.length || 0) > 0;
+        case 4:
+          return (manualRecipe.instructions?.length || 0) > 0;
+        default:
+          return true;
+      }
+    } else {
+      switch (targetStep) {
+        case 2:
+          return ingredients.length > 0;
+        case 3:
+          return ingredients.length > 0 && selectedCuisine;
+        case 4:
+          return generatedRecipe !== null;
+        default:
+          return true;
+      }
     }
   };
 
+  const handleSaveManualRecipe = () => {
+    if (
+      !manualRecipe.title?.trim() ||
+      !manualRecipe.ingredients?.length ||
+      !manualRecipe.instructions?.length
+    ) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    const recipeId = `recipe_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const completeRecipe: Recipe = {
+      id: recipeId,
+      title: manualRecipe.title.trim(),
+      description: manualRecipe.description || '',
+      ingredients: manualRecipe.ingredients.map((ing, index) => ({
+        ...ing,
+        id: ing.id || `ing_${index}`,
+      })),
+      instructions: manualRecipe.instructions.map((inst, index) => ({
+        id: `step_${index}`,
+        step: index + 1,
+        instruction: inst.instruction,
+        duration: inst.duration || 0,
+      })),
+      totalTime: manualRecipe.totalTime || 30,
+      prepTime: manualRecipe.prepTime || 15,
+      cookTime: manualRecipe.cookTime || 15,
+      servings: manualRecipe.servings || 4,
+      difficulty: manualRecipe.difficulty || 'Easy',
+      cuisine: manualRecipe.cuisine || 'american',
+      tags: manualRecipe.tags || [],
+      nutritionInfo: {
+        calories: 350,
+        protein: 25,
+        carbs: 30,
+        fat: 15,
+        fiber: 5,
+      },
+      createdAt: new Date(),
+    };
+
+    // Save to user recipes
+    const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
+    userRecipes.push(completeRecipe);
+    localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
+
+    // Also save to recent recipes
+    const recentRecipes = JSON.parse(localStorage.getItem('recentRecipes') || '[]');
+    const updatedRecent = [completeRecipe, ...recentRecipes.slice(0, 9)];
+    localStorage.setItem('recentRecipes', JSON.stringify(updatedRecent));
+
+    router.push('/dashboard/recipes');
+  };
+
   const renderStepContent = () => {
+    // Premium users get to choose creation mode on step 1, non-premium users skip to AI mode
+    if (step === 1 && subscription?.tier === 'premium' && !modeSelected) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Creation Mode</h2>
+            <p className="text-gray-600">How would you like to create your recipe today?</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* AI Recipe Generation */}
+            <div
+              className={`border-2 rounded-2xl p-6 cursor-pointer transition-all ${
+                creationMode === 'ai'
+                  ? 'border-pantry-500 bg-pantry-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => {
+                setCreationMode('ai');
+                setModeSelected(true);
+              }}
+            >
+              <div className="text-center">
+                <div className="text-4xl mb-4">🤖</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Recipe Generation</h3>
+                <p className="text-gray-600 mb-4">
+                  Add your ingredients and let AI create a personalized recipe for you
+                </p>
+                <div className="text-sm text-pantry-600 font-medium">
+                  ✨ Smart • Fast • Personalized
+                </div>
+              </div>
+            </div>
+
+            {/* Manual Recipe Creation */}
+            <div
+              className={`border-2 rounded-2xl p-6 cursor-pointer transition-all ${
+                creationMode === 'manual'
+                  ? 'border-pantry-500 bg-pantry-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+              onClick={() => {
+                setCreationMode('manual');
+                setModeSelected(true);
+              }}
+            >
+              <div className="text-center">
+                <div className="text-4xl mb-4">👨‍🍳</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Create Your Own</h3>
+                <p className="text-gray-600 mb-4">
+                  Write your own recipe from scratch with full creative control
+                </p>
+                <div className="text-sm text-pantry-600 font-medium">
+                  🎨 Creative • Custom • Premium Only
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Manual recipe creation steps
+    if (creationMode === 'manual') {
+      switch (step) {
+        case 1:
+          return (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Recipe Details</h2>
+                <p className="text-gray-600">Start by giving your recipe a name and description</p>
+              </div>
+
+              <div className="max-w-2xl mx-auto space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Recipe Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={manualRecipe.title || ''}
+                    onChange={e => setManualRecipe(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter recipe name..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={manualRecipe.description || ''}
+                    onChange={e =>
+                      setManualRecipe(prev => ({ ...prev, description: e.target.value }))
+                    }
+                    placeholder="Describe your recipe..."
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Servings</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={manualRecipe.servings || 4}
+                      onChange={e =>
+                        setManualRecipe(prev => ({
+                          ...prev,
+                          servings: parseInt(e.target.value) || 4,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prep Time (min)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={manualRecipe.prepTime || 15}
+                      onChange={e =>
+                        setManualRecipe(prev => ({
+                          ...prev,
+                          prepTime: parseInt(e.target.value) || 15,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Cook Time (min)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={manualRecipe.cookTime || 15}
+                      onChange={e => {
+                        const cookTime = parseInt(e.target.value) || 15;
+                        setManualRecipe(prev => ({
+                          ...prev,
+                          cookTime,
+                          totalTime: (prev.prepTime || 15) + cookTime,
+                        }));
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Difficulty
+                    </label>
+                    <select
+                      value={manualRecipe.difficulty || 'Easy'}
+                      onChange={e =>
+                        setManualRecipe(prev => ({ ...prev, difficulty: e.target.value as any }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
+                    >
+                      <option value="Easy">Easy</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Hard">Hard</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+
+        case 2:
+          return (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Add Ingredients</h2>
+                <p className="text-gray-600">List all ingredients needed for your recipe</p>
+              </div>
+
+              {/* Manual ingredient addition form would go here */
+              <div className="max-w-2xl mx-auto">
+                <p className="text-gray-500 text-center py-8">
+                  Manual ingredient editor coming soon...
+                </p>
+              </div>
+            </div>
+          );
+
+        case 3:
+          return (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Cooking Instructions</h2>
+                <p className="text-gray-600">Write step-by-step cooking instructions</p>
+              </div>
+
+              {/* Manual instructions editor would go here */
+              <div className="max-w-2xl mx-auto">
+                <p className="text-gray-500 text-center py-8">
+                  Manual instructions editor coming soon...
+                </p>
+              </div>
+            </div>
+          );
+
+        case 4:
+          return (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Review & Save</h2>
+                <p className="text-gray-600">Review your recipe and save it to your collection</p>
+              </div>
+
+              <div className="max-w-2xl mx-auto text-center">
+                <button
+                  onClick={handleSaveManualRecipe}
+                  className="px-8 py-4 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-all font-medium text-lg"
+                >
+                  Save Recipe
+                </button>
+              </div>
+            </div>
+          );
+        
+        default:
+          return null;
+      }
+    }
+
+    // AI recipe creation steps (existing logic)
     switch (step) {
       case 1:
         return (
@@ -214,6 +540,26 @@ export default function CreateRecipe() {
               onAddIngredient={handleAddIngredient}
               onRemoveIngredient={handleRemoveIngredient}
               onUpdateIngredient={handleUpdateIngredient}
+              navigationButtons={
+                <div className="flex justify-between">
+                  <button
+                    onClick={() => setStep(Math.max(1, step - 1))}
+                    disabled={step === 1}
+                    className="px-6 py-3 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ← Previous
+                  </button>
+                  {step < 3 && (
+                    <button
+                      onClick={() => setStep(Math.min(4, step + 1))}
+                      disabled={!canProceedToStep(step + 1)}
+                      className="px-6 py-3 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next →
+                    </button>
+                  )}
+                </div>
+              }
             />
           </div>
         );
@@ -266,7 +612,7 @@ export default function CreateRecipe() {
               <button
                 onClick={generateRecipe}
                 disabled={loading}
-                className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-medium text-lg flex items-center gap-3 mx-auto disabled:opacity-50"
+                className="px-8 py-4 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-all font-medium text-lg flex items-center gap-3 mx-auto disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -330,12 +676,24 @@ export default function CreateRecipe() {
           {/* Progress Steps */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
-              {[
-                { number: 1, title: 'Ingredients', icon: '🥗' },
-                { number: 2, title: 'Preferences', icon: '🎯' },
-                { number: 3, title: 'Generate', icon: '✨' },
-                { number: 4, title: 'Recipe', icon: '🍳' },
-              ].map((stepItem, index) => (
+              {(subscription?.tier === 'premium' && creationMode === 'manual'
+                ? [
+                    {
+                      number: 1,
+                      title: 'Details',
+                      icon: subscription?.tier === 'premium' && step === 1 ? '⚙️' : '📝',
+                    },
+                    { number: 2, title: 'Ingredients', icon: '🥗' },
+                    { number: 3, title: 'Instructions', icon: '📋' },
+                    { number: 4, title: 'Save', icon: '💾' },
+                  ]
+                : [
+                    { number: 1, title: 'Ingredients', icon: '🥗' },
+                    { number: 2, title: 'Preferences', icon: '🎯' },
+                    { number: 3, title: 'Generate', icon: '✨' },
+                    { number: 4, title: 'Recipe', icon: '🍳' },
+                  ]
+              ).map((stepItem, index) => (
                 <React.Fragment key={stepItem.number}>
                   <div className="flex flex-col items-center">
                     <button
@@ -343,11 +701,11 @@ export default function CreateRecipe() {
                       disabled={!canProceedToStep(stepItem.number)}
                       className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
                         step === stepItem.number
-                          ? 'bg-blue-500 text-white shadow-lg'
+                          ? 'bg-pantry-600 text-white shadow-lg'
                           : step > stepItem.number
                             ? 'bg-green-500 text-white'
                             : canProceedToStep(stepItem.number)
-                              ? 'bg-gray-200 text-gray-600 hover:bg-blue-100'
+                              ? 'bg-gray-200 text-gray-600 hover:bg-pantry-100'
                               : 'bg-gray-100 text-gray-400'
                       }`}
                     >
@@ -385,43 +743,23 @@ export default function CreateRecipe() {
             {renderStepContent()}
           </div>
 
-          {/* Navigation */}
-          <div className="flex justify-between">
-            <button
-              onClick={() => setStep(Math.max(1, step - 1))}
-              disabled={step === 1}
-              className="px-6 py-3 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ← Previous
-            </button>
-
-            {step < 3 && (
+          {/* Final Step Navigation */}
+          {step === 4 && (
+            <div className="flex justify-center gap-3">
               <button
-                onClick={() => setStep(Math.min(4, step + 1))}
-                disabled={!canProceedToStep(step + 1)}
-                className="px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setStep(1)}
+                className="px-6 py-3 text-pantry-600 bg-pantry-50 rounded-xl hover:bg-pantry-100 transition-colors font-medium"
               >
-                Next →
+                Create Another
               </button>
-            )}
-
-            {step === 4 && (
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(1)}
-                  className="px-6 py-3 text-blue-600 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors font-medium"
-                >
-                  Create Another
-                </button>
-                <button
-                  onClick={() => router.push('/dashboard/recipes')}
-                  className="px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors font-medium"
-                >
-                  View All Recipes
-                </button>
-              </div>
-            )}
-          </div>
+              <button
+                onClick={() => router.push('/dashboard/recipes')}
+                className="px-6 py-3 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-colors font-medium"
+              >
+                View All Recipes
+              </button>
+            </div>
+          )}
         </div>
       </DashboardLayout>
     </AuthGuard>
