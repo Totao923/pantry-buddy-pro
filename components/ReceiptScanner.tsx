@@ -92,7 +92,7 @@ export default function ReceiptScanner({
     } catch (error) {
       console.error('Error accessing camera:', error);
       let errorMessage = 'Unable to access camera. ';
-      
+
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
           errorMessage += 'Please allow camera permissions in your browser settings.';
@@ -106,7 +106,7 @@ export default function ReceiptScanner({
       } else {
         errorMessage += 'Please use file upload instead.';
       }
-      
+
       alert(errorMessage);
     }
   }, [canScanReceipts]);
