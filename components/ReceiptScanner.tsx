@@ -91,7 +91,23 @@ export default function ReceiptScanner({
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
-      alert('Unable to access camera. Please use file upload instead.');
+      let errorMessage = 'Unable to access camera. ';
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage += 'Please allow camera permissions in your browser settings.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage += 'No camera found on this device.';
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage += 'Camera not supported on this browser.';
+        } else {
+          errorMessage += 'Please use file upload instead.';
+        }
+      } else {
+        errorMessage += 'Please use file upload instead.';
+      }
+      
+      alert(errorMessage);
     }
   }, [canScanReceipts]);
 

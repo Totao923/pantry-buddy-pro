@@ -122,11 +122,12 @@ class ReceiptService {
   }
 
   private async mockOCRService(imageBase64: string): Promise<OCRResult> {
-    // Mock OCR service for development/demo
+    // Mock OCR service for development/demo - NOT processing your actual image
+    console.log('🧪 USING MOCK OCR DATA - Upload any image to test the flow');
     await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
 
     const mockReceiptText = `
-      WHOLE FOODS MARKET
+      🧪 MOCK DATA - WHOLE FOODS MARKET
       123 Main Street
       New York, NY 10001
       (212) 555-0123
