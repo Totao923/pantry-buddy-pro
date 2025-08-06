@@ -34,6 +34,15 @@ class ReceiptService {
   private readonly VISION_API_KEY = process.env.GOOGLE_VISION_API_KEY;
   private readonly FALLBACK_OCR_ENABLED = true;
 
+  constructor() {
+    console.log('🔑 Google Vision API Key Status:', {
+      hasKey: !!this.VISION_API_KEY,
+      keyLength: this.VISION_API_KEY?.length || 0,
+      isPlaceholder: this.VISION_API_KEY?.includes('YOUR_') || false,
+      isValidAPIKey: this.VISION_API_KEY?.startsWith('AIzaSy') || false,
+    });
+  }
+
   async processReceiptImage(imageFile: File): Promise<ExtractedReceiptData> {
     try {
       // Convert image to base64
