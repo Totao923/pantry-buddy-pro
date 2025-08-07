@@ -192,61 +192,132 @@ class ReceiptService {
 
   private extractItems(lines: string[]): ExtractedReceiptItem[] {
     const items: ExtractedReceiptItem[] = [];
+    
+    console.log('🔍 Parsing receipt lines for items:', lines.length, 'total lines');
 
-    // Pattern to match item lines: Name [quantity] [unit] $price
-    const itemPattern =
-      /^(.+?)\s*(?:(\d+(?:\.\d+)?)\s*(lbs?|oz|ct|gal|each|pk))?\s*\$(\d+\.\d{2})$/i;
+    // Multiple patterns to handle different receipt formats
+    const itemPatterns = [
+      // C-Town format: "ITEM NAME QUANTITY UNIT $PRICE"
+      /^(.+?)\s+(\d+(?:\.\d+)?)\s+(lbs?|oz|ct|gal|each|pk|lb)\s*\$(\d+\.\d{2})$/i,
+      // Standard format: "ITEM NAME $PRICE"
+      /^(.+?)\s+\$(\d+\.\d{2})$/i,
+      // With quantity before price: "ITEM NAME QUANTITY $PRICE"
+      /^(.+?)\s+(\d+(?:\.\d+)?)\s+\$(\d+\.\d{2})$/i,
+      // Price at end of line: "ANYTHING $X.XX"
+      /^(.+)\s+\$(\d+\.\d{2})$/i
+    ];
 
     for (const line of lines) {
-      const match = line.match(itemPattern);
-      if (match) {
-        const [, name, quantityStr, unit, priceStr] = match;
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines or very short lines
+      if (trimmedLine.length < 3) continue;
+      
+      // Skip lines that look like totals, headers, or store info
+      if (this.isSkippableLine(trimmedLine.toLowerCase())) {
+        continue;
+      }
+      
+      let matched = false;
+      
+      // Try each pattern
+      for (let i = 0; i < itemPatterns.length; i++) {
+        const match = trimmedLine.match(itemPatterns[i]);
+        
+        if (match) {
+          let name, quantity, unit, price;
+          
+          // Parse based on which pattern matched
+          if (i === 0) {
+            // C-Town format: name, quantity, unit, price
+            [, name, quantity, unit, price] = match;
+          } else if (i === 1) {
+            // Simple format: name, price
+            [, name, price] = match;
+            quantity = '1';
+            unit = 'each';
+          } else if (i === 2) {
+            // With quantity: name, quantity, price
+            [, name, quantity, price] = match;
+            unit = 'each';
+          } else {
+            // Fallback: name, price
+            [, name, price] = match;
+            quantity = '1';
+            unit = 'each';
+          }
 
-        // Skip lines that look like totals or headers
-        if (this.isSkippableLine(name.toLowerCase())) {
-          continue;
+          // Additional validation
+          const cleanName = this.cleanItemName(name);
+          const priceNum = parseFloat(price);
+          const quantityNum = parseFloat(quantity || '1');
+          
+          // Skip if name is too short or price is invalid
+          if (cleanName.length < 2 || priceNum <= 0 || priceNum > 999) {
+            continue;
+          }
+          
+          console.log(`✅ Found item: "${cleanName}" qty:${quantityNum} unit:${unit} price:$${priceNum}`);
+
+          const category = this.categorizeItem(cleanName);
+
+          items.push({
+            id: uuidv4(),
+            name: cleanName,
+            quantity: quantityNum,
+            unit: unit || 'each',
+            price: priceNum,
+            category,
+            confidence: 0.8,
+          });
+          
+          matched = true;
+          break;
         }
-
-        const quantity = quantityStr ? parseFloat(quantityStr) : 1;
-        const price = parseFloat(priceStr);
-        const cleanName = this.cleanItemName(name);
-        const category = this.categorizeItem(cleanName);
-
-        items.push({
-          id: uuidv4(),
-          name: cleanName,
-          quantity,
-          unit: unit || 'each',
-          price,
-          category,
-          confidence: 0.8,
-        });
+      }
+      
+      // Log unmatched lines that might contain items
+      if (!matched && trimmedLine.includes('$') && !this.isSkippableLine(trimmedLine.toLowerCase())) {
+        console.log(`❓ Unmatched line with price: "${trimmedLine}"`);
       }
     }
 
+    console.log(`🛒 Total items extracted: ${items.length}`);
     return items;
   }
 
   private isSkippableLine(line: string): boolean {
     const skipPatterns = [
-      'subtotal',
-      'total',
-      'tax',
-      'payment',
-      'thank',
-      'visa',
-      'mastercard',
-      'cash',
-      'change',
-      'receipt',
-      'store',
-      'address',
-      'phone',
-      'date',
-      'time',
+      // Store info
+      'c-town', 'supermarket', 'market', 'grocery',
+      'street', 'broadway', 'avenue', 'phone', 'tel:',
+      
+      // Transaction info  
+      'subtotal', 'total', 'tax', 'balance',
+      'payment', 'cash', 'change', 'visa', 'mastercard',
+      'debit', 'credit', 'card',
+      
+      // Receipt footer
+      'thank', 'welcome', 'receipt', 'copy',
+      'return', 'exchange', 'policy',
+      
+      // Dates and times
+      'date:', 'time:', '/', ':', 'am', 'pm',
+      
+      // Other
+      'duplicate', 'customer', 'cashier'
     ];
 
-    return skipPatterns.some(pattern => line.includes(pattern));
+    // Check if line starts with common non-item prefixes
+    const nonItemPrefixes = ['date', 'time', 'tel', 'phone', 'store', 'receipt'];
+    const lowerLine = line.toLowerCase();
+    
+    if (nonItemPrefixes.some(prefix => lowerLine.startsWith(prefix))) {
+      return true;
+    }
+    
+    // Check if line contains skip patterns
+    return skipPatterns.some(pattern => lowerLine.includes(pattern));
   }
 
   private cleanItemName(name: string): string {
