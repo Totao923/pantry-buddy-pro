@@ -194,27 +194,35 @@ class ReceiptService {
     const items: ExtractedReceiptItem[] = [];
 
     console.log('🔍 Parsing receipt lines for items:', lines.length, 'total lines');
+    
+    // Log first 20 lines to see what we're working with
+    console.log('📋 First 20 receipt lines:');
+    lines.slice(0, 20).forEach((line, i) => {
+      console.log(`  ${i + 1}: "${line.trim()}"`);
+    });
 
-    // Multiple patterns to handle different receipt formats
+    // Very flexible patterns - start broad and get more specific
     const itemPatterns = [
-      // C-Town format: "ITEM NAME QUANTITY UNIT $PRICE"
-      /^(.+?)\s+(\d+(?:\.\d+)?)\s+(lbs?|oz|ct|gal|each|pk|lb)\s*\$(\d+\.\d{2})$/i,
-      // Standard format: "ITEM NAME $PRICE"
-      /^(.+?)\s+\$(\d+\.\d{2})$/i,
-      // With quantity before price: "ITEM NAME QUANTITY $PRICE"
-      /^(.+?)\s+(\d+(?:\.\d+)?)\s+\$(\d+\.\d{2})$/i,
-      // Price at end of line: "ANYTHING $X.XX"
-      /^(.+)\s+\$(\d+\.\d{2})$/i,
+      // Any line with a price at the end
+      /^(.+?)\s+\$(\d+\.\d{2})$/,
+      // Any line with price and possibly quantity
+      /^(.+?)\s+(\d+(?:\.\d+)?)\s+\$(\d+\.\d{2})$/,
+      // Any line ending with just a price (very broad)
+      /(.+)\$(\d+\.\d{2})/,
     ];
 
     for (const line of lines) {
       const trimmedLine = line.trim();
 
-      // Skip empty lines or very short lines
-      if (trimmedLine.length < 3) continue;
+      // Skip very empty or very short lines
+      if (trimmedLine.length < 5) continue;
 
-      // Skip lines that look like totals, headers, or store info
+      // Log each line we're examining
+      console.log(`🔍 Examining line: "${trimmedLine}"`);
+
+      // Check if it should be skipped
       if (this.isSkippableLine(trimmedLine.toLowerCase())) {
+        console.log(`  ⏭️  Skipped (skip pattern matched)`);
         continue;
       }
 
@@ -225,66 +233,55 @@ class ReceiptService {
         const match = trimmedLine.match(itemPatterns[i]);
 
         if (match) {
-          let name, quantity, unit, price;
+          console.log(`  🎯 Pattern ${i} matched:`, match);
+
+          let name, quantity = '1', unit = 'each', price;
 
           // Parse based on which pattern matched
           if (i === 0) {
-            // C-Town format: name, quantity, unit, price
-            [, name, quantity, unit, price] = match;
+            // Name and price
+            [, name, price] = match;
           } else if (i === 1) {
-            // Simple format: name, price
-            [, name, price] = match;
-            quantity = '1';
-            unit = 'each';
-          } else if (i === 2) {
-            // With quantity: name, quantity, price
+            // Name, quantity, price
             [, name, quantity, price] = match;
-            unit = 'each';
           } else {
-            // Fallback: name, price
+            // Very broad match - name and price
             [, name, price] = match;
-            quantity = '1';
-            unit = 'each';
           }
 
-          // Additional validation
+          // Clean up the name
           const cleanName = this.cleanItemName(name);
           const priceNum = parseFloat(price);
           const quantityNum = parseFloat(quantity || '1');
 
-          // Skip if name is too short or price is invalid
-          if (cleanName.length < 2 || priceNum <= 0 || priceNum > 999) {
-            continue;
+          console.log(`  🧹 Cleaned: name="${cleanName}" price=$${priceNum}`);
+
+          // Very loose validation - just check basics
+          if (cleanName.length >= 2 && priceNum > 0 && priceNum < 1000) {
+            console.log(`  ✅ Adding item: "${cleanName}" $${priceNum}`);
+
+            const category = this.categorizeItem(cleanName);
+
+            items.push({
+              id: uuidv4(),
+              name: cleanName,
+              quantity: quantityNum,
+              unit: unit,
+              price: priceNum,
+              category,
+              confidence: 0.8,
+            });
+
+            matched = true;
+            break;
+          } else {
+            console.log(`  ❌ Failed validation: name too short or invalid price`);
           }
-
-          console.log(
-            `✅ Found item: "${cleanName}" qty:${quantityNum} unit:${unit} price:$${priceNum}`
-          );
-
-          const category = this.categorizeItem(cleanName);
-
-          items.push({
-            id: uuidv4(),
-            name: cleanName,
-            quantity: quantityNum,
-            unit: unit || 'each',
-            price: priceNum,
-            category,
-            confidence: 0.8,
-          });
-
-          matched = true;
-          break;
         }
       }
 
-      // Log unmatched lines that might contain items
-      if (
-        !matched &&
-        trimmedLine.includes('$') &&
-        !this.isSkippableLine(trimmedLine.toLowerCase())
-      ) {
-        console.log(`❓ Unmatched line with price: "${trimmedLine}"`);
+      if (!matched && trimmedLine.includes('$')) {
+        console.log(`  ❓ Has $ but no pattern matched: "${trimmedLine}"`);
       }
     }
 
@@ -293,65 +290,46 @@ class ReceiptService {
   }
 
   private isSkippableLine(line: string): boolean {
+    // Be much more conservative - only skip obvious non-items
     const skipPatterns = [
-      // Store info
-      'c-town',
+      // Exact matches for store headers
+      'c-town supermarket',
       'supermarket',
-      'market',
-      'grocery',
-      'street',
-      'broadway',
-      'avenue',
-      'phone',
-      'tel:',
-
-      // Transaction info
+      
+      // Transaction totals (exact matches)
       'subtotal',
       'total',
       'tax',
-      'balance',
+      'balance due',
+      
+      // Payment info
       'payment',
       'cash',
       'change',
       'visa',
-      'mastercard',
-      'debit',
       'credit',
-      'card',
-
-      // Receipt footer
-      'thank',
-      'welcome',
+      'debit',
+      
+      // Receipt metadata
+      'thank you',
       'receipt',
-      'copy',
-      'return',
-      'exchange',
-      'policy',
-
-      // Dates and times
-      'date:',
-      'time:',
-      '/',
-      ':',
-      'am',
-      'pm',
-
-      // Other
       'duplicate',
-      'customer',
-      'cashier',
     ];
 
-    // Check if line starts with common non-item prefixes
-    const nonItemPrefixes = ['date', 'time', 'tel', 'phone', 'store', 'receipt'];
     const lowerLine = line.toLowerCase();
-
-    if (nonItemPrefixes.some(prefix => lowerLine.startsWith(prefix))) {
+    
+    // Only skip if it's an exact match or very specific pattern
+    if (skipPatterns.some(pattern => lowerLine === pattern || lowerLine.includes(pattern))) {
+      return true;
+    }
+    
+    // Skip lines that are clearly addresses or phone numbers
+    if (lowerLine.match(/^\d{3}[-\s]?\d{3}[-\s]?\d{4}/) || // phone numbers
+        lowerLine.match(/^\d+\s+[a-z]+\s+(street|st|avenue|ave|road|rd)/i)) { // addresses
       return true;
     }
 
-    // Check if line contains skip patterns
-    return skipPatterns.some(pattern => lowerLine.includes(pattern));
+    return false;
   }
 
   private cleanItemName(name: string): string {
