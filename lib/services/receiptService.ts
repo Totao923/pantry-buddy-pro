@@ -67,7 +67,7 @@ class ReceiptService {
   private async extractTextFromImage(imageBase64: string): Promise<OCRResult> {
     try {
       console.log('🔍 Sending OCR request to server-side API...');
-      
+
       const response = await fetch('/api/ocr', {
         method: 'POST',
         headers: {
@@ -79,7 +79,7 @@ class ReceiptService {
       });
 
       const result = await response.json();
-      
+
       if (result.source) {
         console.log(`📡 OCR Result from: ${result.source}`);
       }
@@ -98,7 +98,6 @@ class ReceiptService {
       };
     }
   }
-
 
   private parseReceiptText(
     text: string
