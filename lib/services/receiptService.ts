@@ -194,7 +194,7 @@ class ReceiptService {
     const items: ExtractedReceiptItem[] = [];
 
     console.log('🔍 Parsing receipt lines for items:', lines.length, 'total lines');
-    
+
     // Log first 20 lines to see what we're working with
     console.log('📋 First 20 receipt lines:');
     lines.slice(0, 20).forEach((line, i) => {
@@ -235,7 +235,10 @@ class ReceiptService {
         if (match) {
           console.log(`  🎯 Pattern ${i} matched:`, match);
 
-          let name, quantity = '1', unit = 'each', price;
+          let name,
+            quantity = '1',
+            unit = 'each',
+            price;
 
           // Parse based on which pattern matched
           if (i === 0) {
@@ -295,13 +298,13 @@ class ReceiptService {
       // Exact matches for store headers
       'c-town supermarket',
       'supermarket',
-      
+
       // Transaction totals (exact matches)
       'subtotal',
       'total',
       'tax',
       'balance due',
-      
+
       // Payment info
       'payment',
       'cash',
@@ -309,7 +312,7 @@ class ReceiptService {
       'visa',
       'credit',
       'debit',
-      
+
       // Receipt metadata
       'thank you',
       'receipt',
@@ -317,15 +320,18 @@ class ReceiptService {
     ];
 
     const lowerLine = line.toLowerCase();
-    
+
     // Only skip if it's an exact match or very specific pattern
     if (skipPatterns.some(pattern => lowerLine === pattern || lowerLine.includes(pattern))) {
       return true;
     }
-    
+
     // Skip lines that are clearly addresses or phone numbers
-    if (lowerLine.match(/^\d{3}[-\s]?\d{3}[-\s]?\d{4}/) || // phone numbers
-        lowerLine.match(/^\d+\s+[a-z]+\s+(street|st|avenue|ave|road|rd)/i)) { // addresses
+    if (
+      lowerLine.match(/^\d{3}[-\s]?\d{3}[-\s]?\d{4}/) || // phone numbers
+      lowerLine.match(/^\d+\s+[a-z]+\s+(street|st|avenue|ave|road|rd)/i)
+    ) {
+      // addresses
       return true;
     }
 
