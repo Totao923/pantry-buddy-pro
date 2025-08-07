@@ -80,10 +80,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               },
               features: [
                 {
-                  type: 'TEXT_DETECTION',
+                  type: 'DOCUMENT_TEXT_DETECTION',
                   maxResults: 1,
                 },
               ],
+              imageContext: {
+                languageHints: ['en'],
+              },
             },
           ],
         }),
@@ -109,13 +112,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    if (result.responses?.[0]?.textAnnotations?.[0]) {
-      const extractedText = result.responses[0].textAnnotations[0].description;
-      console.log('✅ Text extracted, length:', extractedText.length);
+    const response0 = result.responses?.[0];
+    let extractedText = '';
+    let confidence = 0.8;
+
+    // Try DOCUMENT_TEXT_DETECTION result first (more complete)
+    if (response0?.fullTextAnnotation?.text) {
+      extractedText = response0.fullTextAnnotation.text;
+      confidence = 0.9;
+      console.log('✅ Document text extracted (full), length:', extractedText.length);
+    }
+    // Fallback to TEXT_DETECTION result
+    else if (response0?.textAnnotations?.[0]) {
+      extractedText = response0.textAnnotations[0].description;
+      confidence = response0.textAnnotations[0].confidence || 0.8;
+      console.log('✅ Text extracted (basic), length:', extractedText.length);
+    }
+
+    if (extractedText) {
+      console.log('📄 Sample extracted text (first 200 chars):', extractedText.substring(0, 200));
       return res.status(200).json({
         success: true,
         text: extractedText,
-        confidence: result.responses[0].textAnnotations[0].confidence || 0.8,
+        confidence,
         source: 'google-vision',
       });
     } else {

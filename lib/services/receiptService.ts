@@ -322,34 +322,79 @@ class ReceiptService {
     quality: number = 0.8
   ): Promise<string> {
     return new Promise((resolve, reject) => {
+      // Check if we need to compress at all
+      if (file.size < 500000) {
+        // File is already small, just convert to base64
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+        return;
+      }
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        console.warn('Canvas not supported, using original image');
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+        return;
+      }
+
       const img = new Image();
 
       img.onload = () => {
-        // Calculate new dimensions
-        let { width, height } = img;
+        try {
+          // Calculate new dimensions
+          let { width, height } = img;
 
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+
+          // Set canvas size
+          canvas.width = width;
+          canvas.height = height;
+
+          // Clear canvas for mobile compatibility
+          ctx.clearRect(0, 0, width, height);
+
+          // Draw and compress
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Try to create compressed image
+          try {
+            const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+            console.log(
+              `📐 Image compressed: ${file.size} bytes -> ${Math.round(compressedBase64.length * 0.75)} bytes`
+            );
+            resolve(compressedBase64);
+          } catch (canvasError) {
+            console.warn('Canvas compression failed, using original:', canvasError);
+            // Fallback to original image
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          }
+        } catch (error) {
+          console.error('Image processing error:', error);
+          reject(error);
         }
-
-        // Set canvas size
-        canvas.width = width;
-        canvas.height = height;
-
-        // Draw and compress
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-        console.log(
-          `📐 Image compressed: ${file.size} bytes -> ${compressedBase64.length * 0.75} bytes`
-        );
-        resolve(compressedBase64);
       };
 
-      img.onerror = reject;
+      img.onerror = error => {
+        console.error('Image load error:', error);
+        // Fallback to original image
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      };
 
       // Convert file to base64 to load into image
       const reader = new FileReader();
