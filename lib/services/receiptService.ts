@@ -195,96 +195,91 @@ class ReceiptService {
 
     console.log('🔍 Parsing receipt lines for items:', lines.length, 'total lines');
 
-    // Log first 20 lines to see what we're working with
-    console.log('📋 First 20 receipt lines:');
-    lines.slice(0, 20).forEach((line, i) => {
-      console.log(`  ${i + 1}: "${line.trim()}"`);
-    });
+    // C-Town format: item names and prices are often on separate lines
+    // We need to parse sequentially and match names with following prices
 
-    // Very flexible patterns - start broad and get more specific
-    const itemPatterns = [
-      // Any line with a price at the end
-      /^(.+?)\s+\$(\d+\.\d{2})$/,
-      // Any line with price and possibly quantity
-      /^(.+?)\s+(\d+(?:\.\d+)?)\s+\$(\d+\.\d{2})$/,
-      // Any line ending with just a price (very broad)
-      /(.+)\$(\d+\.\d{2})/,
-    ];
+    let inGrocerySection = false;
+    let pendingItemName = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.length < 2) continue;
 
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-
-      // Skip very empty or very short lines
-      if (trimmedLine.length < 5) continue;
-
-      // Log each line we're examining
-      console.log(`🔍 Examining line: "${trimmedLine}"`);
-
-      // Check if it should be skipped
-      if (this.isSkippableLine(trimmedLine.toLowerCase())) {
-        console.log(`  ⏭️  Skipped (skip pattern matched)`);
+      // Start collecting items after we see "GROCERY"
+      if (line === 'GROCERY' || line === 'PRODUCE' || line === 'DAIRY') {
+        inGrocerySection = true;
+        console.log(`📦 Entering ${line} section`);
         continue;
       }
 
-      let matched = false;
+      // Stop at totals section
+      if (line.includes('Subtotal') || line.includes('TOTAL') || line.includes('Balance')) {
+        inGrocerySection = false;
+        console.log('🛑 Reached totals section');
+        break;
+      }
 
-      // Try each pattern
-      for (let i = 0; i < itemPatterns.length; i++) {
-        const match = trimmedLine.match(itemPatterns[i]);
+      if (!inGrocerySection) continue;
 
-        if (match) {
-          console.log(`  🎯 Pattern ${i} matched:`, match);
+      // Skip obvious non-items
+      if (this.isSkippableLine(line.toLowerCase())) {
+        continue;
+      }
 
-          let name,
-            quantity = '1',
-            unit = 'each',
-            price;
-
-          // Parse based on which pattern matched
-          if (i === 0) {
-            // Name and price
-            [, name, price] = match;
-          } else if (i === 1) {
-            // Name, quantity, price
-            [, name, quantity, price] = match;
-          } else {
-            // Very broad match - name and price
-            [, name, price] = match;
-          }
-
-          // Clean up the name
+      // Check if this line is a price (starts with $ and has format like "$X.XX F")
+      const priceMatch = line.match(/^\$(\d+\.\d{2})\s*[A-Z]*$/);
+      
+      if (priceMatch && pendingItemName) {
+        // We found a price for the pending item name
+        const price = parseFloat(priceMatch[1]);
+        const cleanName = this.cleanItemName(pendingItemName);
+        
+        if (cleanName.length >= 2 && price > 0 && price < 1000) {
+          console.log(`✅ Matched: "${cleanName}" → $${price}`);
+          
+          const category = this.categorizeItem(cleanName);
+          items.push({
+            id: uuidv4(),
+            name: cleanName,
+            quantity: 1,
+            unit: 'each',
+            price: price,
+            category,
+            confidence: 0.9,
+          });
+        }
+        
+        pendingItemName = ''; // Clear pending item
+      } 
+      // Check if line has both name and price together
+      else if (line.match(/\$\d+\.\d{2}/)) {
+        const combinedMatch = line.match(/^(.+?)\s+\$(\d+\.\d{2})/);
+        if (combinedMatch) {
+          const [, name, priceStr] = combinedMatch;
+          const price = parseFloat(priceStr);
           const cleanName = this.cleanItemName(name);
-          const priceNum = parseFloat(price);
-          const quantityNum = parseFloat(quantity || '1');
-
-          console.log(`  🧹 Cleaned: name="${cleanName}" price=$${priceNum}`);
-
-          // Very loose validation - just check basics
-          if (cleanName.length >= 2 && priceNum > 0 && priceNum < 1000) {
-            console.log(`  ✅ Adding item: "${cleanName}" $${priceNum}`);
-
+          
+          if (cleanName.length >= 2 && price > 0 && price < 1000) {
+            console.log(`✅ Combined: "${cleanName}" → $${price}`);
+            
             const category = this.categorizeItem(cleanName);
-
             items.push({
               id: uuidv4(),
               name: cleanName,
-              quantity: quantityNum,
-              unit: unit,
-              price: priceNum,
+              quantity: 1,
+              unit: 'each',
+              price: price,
               category,
-              confidence: 0.8,
+              confidence: 0.9,
             });
-
-            matched = true;
-            break;
-          } else {
-            console.log(`  ❌ Failed validation: name too short or invalid price`);
           }
         }
+        pendingItemName = ''; // Clear any pending
       }
-
-      if (!matched && trimmedLine.includes('$')) {
-        console.log(`  ❓ Has $ but no pattern matched: "${trimmedLine}"`);
+      // This looks like an item name (no price), save it for next line
+      else if (line.length > 5 && !line.match(/^\d+/) && !line.includes('*') && !line.includes('@')) {
+        pendingItemName = line;
+        console.log(`🏷️  Pending item name: "${line}"`);
       }
     }
 
