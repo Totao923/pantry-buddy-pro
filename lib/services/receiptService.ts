@@ -200,7 +200,7 @@ class ReceiptService {
 
     let inGrocerySection = false;
     let pendingItemName = '';
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (line.length < 2) continue;
@@ -228,15 +228,15 @@ class ReceiptService {
 
       // Check if this line is a price (starts with $ and has format like "$X.XX F")
       const priceMatch = line.match(/^\$(\d+\.\d{2})\s*[A-Z]*$/);
-      
+
       if (priceMatch && pendingItemName) {
         // We found a price for the pending item name
         const price = parseFloat(priceMatch[1]);
         const cleanName = this.cleanItemName(pendingItemName);
-        
+
         if (cleanName.length >= 2 && price > 0 && price < 1000) {
           console.log(`✅ Matched: "${cleanName}" → $${price}`);
-          
+
           const category = this.categorizeItem(cleanName);
           items.push({
             id: uuidv4(),
@@ -248,9 +248,9 @@ class ReceiptService {
             confidence: 0.9,
           });
         }
-        
+
         pendingItemName = ''; // Clear pending item
-      } 
+      }
       // Check if line has both name and price together
       else if (line.match(/\$\d+\.\d{2}/)) {
         const combinedMatch = line.match(/^(.+?)\s+\$(\d+\.\d{2})/);
@@ -258,10 +258,10 @@ class ReceiptService {
           const [, name, priceStr] = combinedMatch;
           const price = parseFloat(priceStr);
           const cleanName = this.cleanItemName(name);
-          
+
           if (cleanName.length >= 2 && price > 0 && price < 1000) {
             console.log(`✅ Combined: "${cleanName}" → $${price}`);
-            
+
             const category = this.categorizeItem(cleanName);
             items.push({
               id: uuidv4(),
@@ -277,7 +277,12 @@ class ReceiptService {
         pendingItemName = ''; // Clear any pending
       }
       // This looks like an item name (no price), save it for next line
-      else if (line.length > 5 && !line.match(/^\d+/) && !line.includes('*') && !line.includes('@')) {
+      else if (
+        line.length > 5 &&
+        !line.match(/^\d+/) &&
+        !line.includes('*') &&
+        !line.includes('@')
+      ) {
         pendingItemName = line;
         console.log(`🏷️  Pending item name: "${line}"`);
       }
