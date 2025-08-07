@@ -49,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         success: true,
         text: mockReceiptText,
         confidence: 0.85,
-        source: 'mock'
+        source: 'mock',
       });
     }
 
@@ -88,13 +88,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         success: true,
         text: result.responses[0].textAnnotations[0].description,
         confidence: result.responses[0].textAnnotations[0].confidence || 0.8,
-        source: 'google-vision'
+        source: 'google-vision',
       });
     } else {
       return res.status(200).json({
         success: false,
         error: 'No text detected in image',
-        source: 'google-vision'
+        source: 'google-vision',
       });
     }
   } catch (error) {
@@ -102,7 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({
       success: false,
       error: 'OCR service unavailable',
-      source: 'api-error'
+      source: 'api-error',
     });
   }
 }
