@@ -16,11 +16,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('📷 Image data received, length:', imageBase64.length);
     const VISION_API_KEY = process.env.GOOGLE_VISION_API_KEY;
-    
+
     console.log('🔑 API Key check:', {
       hasKey: !!VISION_API_KEY,
       keyLength: VISION_API_KEY?.length || 0,
-      startsCorrect: VISION_API_KEY?.startsWith('AIzaSy') || false
+      startsCorrect: VISION_API_KEY?.startsWith('AIzaSy') || false,
     });
 
     if (!VISION_API_KEY || VISION_API_KEY.includes('YOUR_')) {
@@ -97,7 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       responseCount: result.responses?.length || 0,
       hasTextAnnotations: !!result.responses?.[0]?.textAnnotations,
       textAnnotationCount: result.responses?.[0]?.textAnnotations?.length || 0,
-      error: result.error
+      error: result.error,
     });
 
     if (result.error) {
