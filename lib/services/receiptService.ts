@@ -316,38 +316,44 @@ class ReceiptService {
     });
   }
 
-  private async compressImage(file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<string> {
+  private async compressImage(
+    file: File,
+    maxWidth: number = 1200,
+    quality: number = 0.8
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
-      
+
       img.onload = () => {
         // Calculate new dimensions
         let { width, height } = img;
-        
+
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;
         }
-        
+
         // Set canvas size
         canvas.width = width;
         canvas.height = height;
-        
+
         // Draw and compress
         ctx?.drawImage(img, 0, 0, width, height);
-        
+
         const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-        console.log(`📐 Image compressed: ${file.size} bytes -> ${compressedBase64.length * 0.75} bytes`);
+        console.log(
+          `📐 Image compressed: ${file.size} bytes -> ${compressedBase64.length * 0.75} bytes`
+        );
         resolve(compressedBase64);
       };
-      
+
       img.onerror = reject;
-      
+
       // Convert file to base64 to load into image
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = e => {
         img.src = e.target?.result as string;
       };
       reader.onerror = reject;
