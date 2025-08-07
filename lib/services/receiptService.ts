@@ -31,16 +31,10 @@ export interface OCRResult {
 }
 
 class ReceiptService {
-  private readonly VISION_API_KEY = process.env.GOOGLE_VISION_API_KEY;
   private readonly FALLBACK_OCR_ENABLED = true;
 
   constructor() {
-    console.log('🔑 Google Vision API Key Status:', {
-      hasKey: !!this.VISION_API_KEY,
-      keyLength: this.VISION_API_KEY?.length || 0,
-      isPlaceholder: this.VISION_API_KEY?.includes('YOUR_') || false,
-      isValidAPIKey: this.VISION_API_KEY?.startsWith('AIzaSy') || false,
-    });
+    console.log('🔑 Receipt OCR Service initialized - using server-side API route');
   }
 
   async processReceiptImage(imageFile: File): Promise<ExtractedReceiptData> {
@@ -71,115 +65,40 @@ class ReceiptService {
   }
 
   private async extractTextFromImage(imageBase64: string): Promise<OCRResult> {
-    console.log('🔍 OCR Decision:', {
-      hasAPIKey: !!this.VISION_API_KEY,
-      keyPreview: this.VISION_API_KEY ? this.VISION_API_KEY.substring(0, 10) + '...' : 'none',
-      willUseMock: !this.VISION_API_KEY || this.VISION_API_KEY.includes('YOUR_'),
-    });
-
-    // Check if we have a valid API key (not placeholder)
-    if (
-      this.VISION_API_KEY &&
-      !this.VISION_API_KEY.includes('YOUR_') &&
-      this.VISION_API_KEY.startsWith('AIzaSy')
-    ) {
-      console.log('🚀 Using Google Vision API for real OCR processing');
-      return this.googleVisionOCR(imageBase64);
-    } else {
-      console.log('🧪 Using mock OCR service - API key not configured');
-      return this.mockOCRService(imageBase64);
-    }
-  }
-
-  private async googleVisionOCR(imageBase64: string): Promise<OCRResult> {
     try {
-      const response = await fetch(
-        `https://vision.googleapis.com/v1/images:annotate?key=${this.VISION_API_KEY}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            requests: [
-              {
-                image: {
-                  content: imageBase64.split(',')[1], // Remove data:image/jpeg;base64, prefix
-                },
-                features: [
-                  {
-                    type: 'TEXT_DETECTION',
-                    maxResults: 1,
-                  },
-                ],
-              },
-            ],
-          }),
-        }
-      );
+      console.log('🔍 Sending OCR request to server-side API...');
+      
+      const response = await fetch('/api/ocr', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageBase64,
+        }),
+      });
 
       const result = await response.json();
-
-      if (result.responses?.[0]?.textAnnotations?.[0]) {
-        return {
-          success: true,
-          text: result.responses[0].textAnnotations[0].description,
-          confidence: result.responses[0].textAnnotations[0].confidence || 0.8,
-        };
-      } else {
-        return {
-          success: false,
-          error: 'No text detected in image',
-        };
+      
+      if (result.source) {
+        console.log(`📡 OCR Result from: ${result.source}`);
       }
+
+      return {
+        success: result.success,
+        text: result.text,
+        confidence: result.confidence,
+        error: result.error,
+      };
     } catch (error) {
-      console.error('Google Vision API error:', error);
+      console.error('OCR API call failed:', error);
       return {
         success: false,
-        error: 'OCR service unavailable',
+        error: 'Failed to process image',
       };
     }
   }
 
-  private async mockOCRService(imageBase64: string): Promise<OCRResult> {
-    // Mock OCR service for development/demo - NOT processing your actual image
-    console.log('🧪 USING MOCK OCR DATA - Upload any image to test the flow');
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
-
-    const mockReceiptText = `
-      🧪 MOCK DATA - WHOLE FOODS MARKET
-      123 Main Street
-      New York, NY 10001
-      (212) 555-0123
-      
-      Date: ${new Date().toLocaleDateString()}
-      Time: ${new Date().toLocaleTimeString()}
-      
-      Organic Bananas 2.5 lbs        $3.98
-      Avocados Large 4 ct            $5.96
-      Chicken Breast 1.2 lbs         $8.40
-      Whole Milk 1 gal               $4.49
-      Sourdough Bread                $3.99
-      Olive Oil Extra Virgin         $12.99
-      Spinach Organic 5 oz          $2.99
-      Roma Tomatoes 1.5 lbs         $2.85
-      Greek Yogurt Plain 32 oz      $5.99
-      Brown Rice 2 lbs              $3.49
-      
-      Subtotal:                     $54.13
-      Tax:                          $4.33
-      Total:                        $58.46
-      
-      Payment: VISA ****1234
-      Thank you for shopping!
-    `;
-
-    return {
-      success: true,
-      text: mockReceiptText,
-      confidence: 0.85,
-    };
-  }
 
   private parseReceiptText(
     text: string
