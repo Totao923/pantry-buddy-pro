@@ -71,11 +71,22 @@ class ReceiptService {
   }
 
   private async extractTextFromImage(imageBase64: string): Promise<OCRResult> {
-    // For demo/development, we'll use a mock OCR service
-    // In production, this would integrate with Google Vision API or similar
-    if (this.VISION_API_KEY) {
+    console.log('🔍 OCR Decision:', {
+      hasAPIKey: !!this.VISION_API_KEY,
+      keyPreview: this.VISION_API_KEY ? this.VISION_API_KEY.substring(0, 10) + '...' : 'none',
+      willUseMock: !this.VISION_API_KEY || this.VISION_API_KEY.includes('YOUR_'),
+    });
+
+    // Check if we have a valid API key (not placeholder)
+    if (
+      this.VISION_API_KEY &&
+      !this.VISION_API_KEY.includes('YOUR_') &&
+      this.VISION_API_KEY.startsWith('AIzaSy')
+    ) {
+      console.log('🚀 Using Google Vision API for real OCR processing');
       return this.googleVisionOCR(imageBase64);
     } else {
+      console.log('🧪 Using mock OCR service - API key not configured');
       return this.mockOCRService(imageBase64);
     }
   }
