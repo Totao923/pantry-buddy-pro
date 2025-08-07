@@ -6,13 +6,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    console.log('🔍 OCR API called');
     const { imageBase64 } = req.body;
 
     if (!imageBase64) {
+      console.log('❌ No image data provided');
       return res.status(400).json({ error: 'Image data is required' });
     }
 
+    console.log('📷 Image data received, length:', imageBase64.length);
     const VISION_API_KEY = process.env.GOOGLE_VISION_API_KEY;
+    
+    console.log('🔑 API Key check:', {
+      hasKey: !!VISION_API_KEY,
+      keyLength: VISION_API_KEY?.length || 0,
+      startsCorrect: VISION_API_KEY?.startsWith('AIzaSy') || false
+    });
 
     if (!VISION_API_KEY || VISION_API_KEY.includes('YOUR_')) {
       console.log('🧪 Using mock OCR service - API key not configured');
@@ -81,16 +90,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     );
 
+    console.log('📡 Google Vision API response status:', response.status);
     const result = await response.json();
+    console.log('📋 Google Vision API result structure:', {
+      hasResponses: !!result.responses,
+      responseCount: result.responses?.length || 0,
+      hasTextAnnotations: !!result.responses?.[0]?.textAnnotations,
+      textAnnotationCount: result.responses?.[0]?.textAnnotations?.length || 0,
+      error: result.error
+    });
+
+    if (result.error) {
+      console.error('❌ Google Vision API error:', result.error);
+      return res.status(400).json({
+        success: false,
+        error: `Google Vision API error: ${result.error.message}`,
+        source: 'google-vision-error',
+      });
+    }
 
     if (result.responses?.[0]?.textAnnotations?.[0]) {
+      const extractedText = result.responses[0].textAnnotations[0].description;
+      console.log('✅ Text extracted, length:', extractedText.length);
       return res.status(200).json({
         success: true,
-        text: result.responses[0].textAnnotations[0].description,
+        text: extractedText,
         confidence: result.responses[0].textAnnotations[0].confidence || 0.8,
         source: 'google-vision',
       });
     } else {
+      console.log('⚠️  No text detected in image');
       return res.status(200).json({
         success: false,
         error: 'No text detected in image',
