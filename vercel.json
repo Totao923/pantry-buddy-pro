@@ -13,6 +13,14 @@
     },
     "pages/api/recipes/enhance.ts": {
       "maxDuration": 45
+    },
+    "pages/api/ocr.ts": {
+      "maxDuration": 30
+    }
+  },
+  "api": {
+    "bodyParser": {
+      "sizeLimit": "10mb"
     }
   },
   "headers": [
