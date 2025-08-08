@@ -611,6 +611,8 @@ class ReceiptService {
       /^deposit\b/i,
       /^refund\b/i,
       /^return\b/i,
+      /^markdown/i,
+      /\bmarkdown\b/i,
     ];
 
     return (
@@ -624,6 +626,7 @@ class ReceiptService {
 
     const couponPatterns = [
       /coupon/i,
+      /\bcpn\b/i,
       /discount/i,
       /savings/i,
       /promo/i,
