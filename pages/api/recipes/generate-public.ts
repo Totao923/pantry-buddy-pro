@@ -53,7 +53,7 @@ async function generateRecipeHandler(
       ingredientCount: transformedIngredients.length,
       cuisine,
       servings,
-      preferences
+      preferences,
     });
 
     // Generate recipe using AI service
@@ -78,7 +78,7 @@ async function generateRecipeHandler(
         title: result.recipe.title,
         provider: result.metadata?.provider,
         model: result.metadata?.model,
-        responseTime
+        responseTime,
       });
 
       return res.status(200).json({
