@@ -274,7 +274,7 @@ class ReceiptService {
 
     // Enhanced parsing - try multiple strategies
 
-    // Strategy 1: Look for items after section headers (more lenient)
+    // Strategy 1: Look for items after section headers (strict)
     let inItemSection = false;
     let pendingItemName = '';
     const sectionHeaders = ['GROCERY', 'PRODUCE', 'DAIRY', 'MEAT', 'FROZEN', 'BAKERY', 'DELI'];
@@ -283,13 +283,16 @@ class ReceiptService {
       const line = lines[i].trim();
       if (line.length < 2) continue;
 
-      // Start collecting items after ANY section header or first store line
-      if (
-        sectionHeaders.some(header => line.includes(header)) ||
-        (i < 10 && line.match(/^[A-Z\s-]+$/) && line.length > 10)
-      ) {
+      // Start collecting items ONLY after explicit section headers
+      if (sectionHeaders.some(header => line === header || line.includes(header))) {
         inItemSection = true;
         console.log(`📦 Entering section: ${line}`);
+        continue;
+      }
+
+      // Skip processing if we haven't reached a section header yet
+      if (!inItemSection) {
+        console.log(`⏭️ Skipping header line: "${line}"`);
         continue;
       }
 
@@ -470,16 +473,42 @@ class ReceiptService {
   private fallbackItemExtraction(lines: string[]): ExtractedReceiptItem[] {
     console.log('🔄 Running fallback item extraction...');
     const fallbackItems: ExtractedReceiptItem[] = [];
+    const sectionHeaders = ['GROCERY', 'PRODUCE', 'DAIRY', 'MEAT', 'FROZEN', 'BAKERY', 'DELI'];
 
-    // Look for any line that could be an item (very permissive)
-    for (const line of lines) {
-      const trimmed = line.trim();
+    let foundSectionHeader = false;
+    let inItemSection = false;
+
+    // Look for any line that could be an item (but respect section boundaries)
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
 
       // Skip very short or long lines
       if (trimmed.length < 4 || trimmed.length > 80) continue;
 
+      // Check if we hit a section header
+      if (sectionHeaders.some(header => trimmed === header || trimmed.includes(header))) {
+        foundSectionHeader = true;
+        inItemSection = true;
+        console.log(`🔄 Fallback found section: ${trimmed}`);
+        continue;
+      }
+
+      // Only process items after we've found a section header
+      if (!foundSectionHeader || !inItemSection) {
+        continue;
+      }
+
+      // Stop at totals/end section
+      if (this.isEndOfItems(trimmed)) {
+        console.log(`🔄 Fallback reached end: ${trimmed}`);
+        break;
+      }
+
       // Skip if it's obviously not an item
-      if (this.isSkippableLine(trimmed.toLowerCase()) || this.isEndOfItems(trimmed)) continue;
+      if (this.isSkippableLine(trimmed.toLowerCase())) continue;
+
+      // Skip obvious header patterns (store names, addresses, etc.)
+      if (this.isHeaderLine(trimmed, i)) continue;
 
       // Skip dates, phone numbers, addresses
       if (
@@ -508,7 +537,37 @@ class ReceiptService {
     }
 
     console.log(`🔄 Fallback found ${fallbackItems.length} additional items`);
-    return fallbackItems.slice(0, 20); // Limit to avoid too many false positives
+    return fallbackItems.slice(0, 15); // Reduced limit to avoid false positives
+  }
+
+  private isHeaderLine(line: string, lineIndex: number): boolean {
+    // Skip lines that look like store headers (first 15 lines of receipt)
+    if (lineIndex < 15) {
+      // Store names are usually all caps and don't contain prices
+      if (line.match(/^[A-Z\s&'-]+$/) && !line.match(/\$\d+\.\d{2}/)) {
+        return true;
+      }
+
+      // Skip lines with common header patterns
+      const headerPatterns = [
+        /supermarket/i,
+        /market/i,
+        /store/i,
+        /phone/i,
+        /address/i,
+        /hours/i,
+        /welcome/i,
+        /thank you/i,
+        /cashier/i,
+        /register/i,
+      ];
+
+      if (headerPatterns.some(pattern => pattern.test(line))) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private deduplicateItems(items: ExtractedReceiptItem[]): ExtractedReceiptItem[] {
