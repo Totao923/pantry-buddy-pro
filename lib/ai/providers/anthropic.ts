@@ -4,7 +4,7 @@ import { AIProvider, AIGenerationOptions, AIRecipeResponse } from '../types';
 export class AnthropicProvider implements AIProvider {
   public readonly name = 'anthropic';
   private client: Anthropic;
-  private defaultModel = 'claude-3-sonnet-20240229';
+  private defaultModel = 'claude-3-5-sonnet-20241022';
 
   constructor(apiKey: string) {
     if (!apiKey) {
@@ -207,7 +207,7 @@ Guidelines:
 
   // Helper method to get model information
   public getAvailableModels(): string[] {
-    return ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'];
+    return ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'];
   }
 
   // Method to get pricing information

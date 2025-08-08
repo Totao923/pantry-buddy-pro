@@ -79,7 +79,7 @@ class EnvironmentConfig {
           (provider === 'openai'
             ? 'gpt-4'
             : provider === 'anthropic'
-              ? 'claude-3-sonnet-20240229'
+              ? 'claude-3-5-sonnet-20241022'
               : 'gemini-pro'),
         temperature: parseFloat(process.env.AI_TEMPERATURE || '0.7'),
         maxTokens: parseInt(process.env.MAX_TOKENS || '2000'),
