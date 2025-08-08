@@ -307,6 +307,19 @@ class ReceiptService {
         continue;
       }
 
+      // Skip tare items and handle coupons
+      if (this.isTareOrSpecialItem(line)) {
+        console.log(`⏭️ Skipping tare/special item: "${line}"`);
+        continue;
+      }
+
+      // Handle coupons as deductions (don't add as items but log for totals)
+      if (this.isCoupon(line)) {
+        console.log(`💰 Coupon detected: "${line}"`);
+        // Don't add coupons as items, they're deductions
+        continue;
+      }
+
       // Pattern 1: Price line following item name
       const priceOnlyMatch = line.match(/^\$(\d+\.\d{2})\s*([A-Z]*)?$/);
       if (priceOnlyMatch && pendingItemName) {
@@ -510,6 +523,17 @@ class ReceiptService {
       // Skip obvious header patterns (store names, addresses, etc.)
       if (this.isHeaderLine(trimmed, i)) continue;
 
+      // Skip tare items and coupons in fallback too
+      if (this.isTareOrSpecialItem(trimmed)) {
+        console.log(`🔄 Fallback skipping tare: "${trimmed}"`);
+        continue;
+      }
+
+      if (this.isCoupon(trimmed)) {
+        console.log(`🔄 Fallback skipping coupon: "${trimmed}"`);
+        continue;
+      }
+
       // Skip dates, phone numbers, addresses
       if (
         trimmed.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/) ||
@@ -570,6 +594,54 @@ class ReceiptService {
     return false;
   }
 
+  private isTareOrSpecialItem(line: string): boolean {
+    const lowerLine = line.toLowerCase();
+
+    // Tare patterns
+    const tarePatterns = [/^tare\b/i, /\btare\b/i, /^bag\s*tare/i, /container\s*tare/i];
+
+    // Other non-product items to skip
+    const skipPatterns = [
+      /^bottle\s*deposit/i,
+      /^bag\s*fee/i,
+      /^env\s*fee/i,
+      /environmental\s*fee/i,
+      /^deposit\b/i,
+      /^refund\b/i,
+      /^return\b/i,
+    ];
+
+    return (
+      tarePatterns.some(pattern => pattern.test(lowerLine)) ||
+      skipPatterns.some(pattern => pattern.test(lowerLine))
+    );
+  }
+
+  private isCoupon(line: string): boolean {
+    const lowerLine = line.toLowerCase();
+
+    const couponPatterns = [
+      /coupon/i,
+      /discount/i,
+      /savings/i,
+      /promo/i,
+      /sale/i,
+      /off\s*\$/i,
+      /\$\s*off/i,
+      /manufacturer/i,
+      /store\s*coupon/i,
+      /digital\s*coupon/i,
+      /loyalty/i,
+      /member\s*price/i,
+      /special\s*offer/i,
+    ];
+
+    // Also check if the line contains a negative price (deduction)
+    const hasNegativePrice = line.match(/-\$\d+\.\d{2}/) || line.match(/\$-\d+\.\d{2}/);
+
+    return couponPatterns.some(pattern => pattern.test(lowerLine)) || !!hasNegativePrice;
+  }
+
   private deduplicateItems(items: ExtractedReceiptItem[]): ExtractedReceiptItem[] {
     const seen = new Set<string>();
     return items.filter(item => {
@@ -607,6 +679,12 @@ class ReceiptService {
       'thank you',
       'receipt',
       'duplicate',
+
+      // Non-product items
+      'tare',
+      'bag fee',
+      'bottle deposit',
+      'environmental fee',
     ];
 
     const lowerLine = line.toLowerCase();
