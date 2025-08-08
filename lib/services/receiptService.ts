@@ -603,6 +603,8 @@ class ReceiptService {
     // Other non-product items to skip
     const skipPatterns = [
       /^bottle\s*deposit/i,
+      /^bottle\s*sale/i,
+      /bottle\s*dep/i,
       /^bag\s*fee/i,
       /^env\s*fee/i,
       /environmental\s*fee/i,
