@@ -39,29 +39,105 @@ class ReceiptService {
 
   async processReceiptImage(imageFile: File): Promise<ExtractedReceiptData> {
     try {
+      console.log(
+        `🔍 Processing receipt: ${imageFile.name}, size: ${imageFile.size} bytes, type: ${imageFile.type}`
+      );
+
+      // Validate file type
+      if (!imageFile.type.startsWith('image/')) {
+        throw new Error('Please upload a valid image file (JPG, PNG, etc.)');
+      }
+
+      // Check file size limits - be more generous for mobile
+      const maxSize = 15 * 1024 * 1024; // 15MB limit
+      if (imageFile.size > maxSize) {
+        throw new Error('Image file is too large. Please use a smaller image (max 15MB)');
+      }
+
+      if (imageFile.size === 0) {
+        throw new Error('Invalid image file. Please try selecting the image again.');
+      }
+
       // Compress image to reduce payload size
-      console.log(`📷 Original image size: ${imageFile.size} bytes`);
+      console.log(`📱 Starting image compression...`);
       const imageBase64 = await this.compressImage(imageFile);
 
+      if (!imageBase64 || imageBase64.length < 100) {
+        throw new Error('Failed to process image. Please try a different image.');
+      }
+
       // Extract text using OCR
+      console.log(`🔍 Sending image to OCR service...`);
       const ocrResult = await this.extractTextFromImage(imageBase64);
 
-      if (!ocrResult.success || !ocrResult.text) {
-        throw new Error(ocrResult.error || 'Failed to extract text from receipt');
+      if (!ocrResult.success) {
+        // Provide more specific error messages
+        if (ocrResult.error?.includes('timeout')) {
+          throw new Error(
+            'Processing timed out. Please try again with a smaller or clearer image.'
+          );
+        } else if (ocrResult.error?.includes('quota') || ocrResult.error?.includes('limit')) {
+          throw new Error('Service temporarily unavailable. Please try again in a few minutes.');
+        } else if (ocrResult.error?.includes('invalid') || ocrResult.error?.includes('format')) {
+          throw new Error('Invalid image format. Please try a different image.');
+        } else {
+          throw new Error(
+            ocrResult.error ||
+              'Failed to read text from receipt. Please ensure the image is clear and well-lit.'
+          );
+        }
+      }
+
+      if (!ocrResult.text || ocrResult.text.trim().length < 10) {
+        throw new Error(
+          'No text found in the image. Please ensure your receipt is clearly visible and try again.'
+        );
       }
 
       // Parse the extracted text
+      console.log(`📝 Parsing extracted text (${ocrResult.text.length} characters)...`);
       const receiptData = this.parseReceiptText(ocrResult.text);
 
-      return {
+      if (receiptData.items.length === 0) {
+        console.warn('⚠️ No items found in receipt');
+        // Don't throw error, let user review the empty result
+      }
+
+      const result = {
         ...receiptData,
         id: uuidv4(),
         rawText: ocrResult.text,
         confidence: ocrResult.confidence || 0.7,
       };
+
+      console.log(`✅ Receipt processed successfully: ${result.items.length} items found`);
+      return result;
     } catch (error) {
       console.error('Receipt processing failed:', error);
-      throw new Error('Failed to process receipt. Please try again with a clearer image.');
+
+      // Provide user-friendly error messages based on error type
+      if (error instanceof Error) {
+        // Pass through custom error messages
+        if (error.message.includes('Please') || error.message.includes('try')) {
+          throw error;
+        }
+
+        // Handle specific error types
+        if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
+
+        if (error.message.includes('quota') || error.message.includes('rate limit')) {
+          throw new Error('Service temporarily busy. Please wait a minute and try again.');
+        }
+
+        // Generic fallback
+        throw new Error(
+          'Failed to process receipt. Please ensure the image is clear and try again.'
+        );
+      }
+
+      throw new Error('An unexpected error occurred. Please try again.');
     }
   }
 
@@ -411,87 +487,162 @@ class ReceiptService {
     quality: number = 0.8
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      // Check if we need to compress at all
-      if (file.size < 500000) {
-        // File is already small, just convert to base64
+      console.log(`📱 Processing image: ${file.size} bytes, type: ${file.type}`);
+
+      // For very large files on mobile, be more aggressive with compression
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+      const adjustedMaxWidth = isMobile ? Math.min(maxWidth, 800) : maxWidth;
+      const adjustedQuality = isMobile && file.size > 2000000 ? 0.6 : quality;
+
+      // Check if we need to compress at all - be more conservative on mobile
+      const sizeLimit = isMobile ? 300000 : 500000;
+      if (file.size < sizeLimit) {
+        console.log('📸 File size acceptable, using original');
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
+        reader.onerror = error => {
+          console.error('FileReader error:', error);
+          reject(new Error('Failed to read image file'));
+        };
         reader.readAsDataURL(file);
         return;
       }
 
+      console.log('🔄 Compressing image for mobile optimization');
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: false });
 
       if (!ctx) {
         console.warn('Canvas not supported, using original image');
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
+        reader.onerror = error => {
+          console.error('FileReader error:', error);
+          reject(new Error('Failed to read image file'));
+        };
         reader.readAsDataURL(file);
         return;
       }
 
       const img = new Image();
 
+      // Set crossOrigin to handle CORS issues on some mobile browsers
+      img.crossOrigin = 'anonymous';
+
       img.onload = () => {
         try {
-          // Calculate new dimensions
+          console.log(`🖼️ Original dimensions: ${img.width}x${img.height}`);
+
+          // Calculate new dimensions with mobile optimization
           let { width, height } = img;
 
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
+          // For mobile, ensure we don't exceed reasonable dimensions
+          if (width > adjustedMaxWidth || height > adjustedMaxWidth) {
+            const ratio = Math.min(adjustedMaxWidth / width, adjustedMaxWidth / height);
+            width = Math.floor(width * ratio);
+            height = Math.floor(height * ratio);
           }
+
+          console.log(`📐 Target dimensions: ${width}x${height}`);
 
           // Set canvas size
           canvas.width = width;
           canvas.height = height;
 
-          // Clear canvas for mobile compatibility
+          // Clear canvas and set better rendering options for mobile
           ctx.clearRect(0, 0, width, height);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
 
-          // Draw and compress
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Try to create compressed image
+          // Draw image with better mobile compatibility
           try {
-            const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-            console.log(
-              `📐 Image compressed: ${file.size} bytes -> ${Math.round(compressedBase64.length * 0.75)} bytes`
-            );
+            ctx.drawImage(img, 0, 0, width, height);
+          } catch (drawError) {
+            console.error('Canvas draw error:', drawError);
+            throw drawError;
+          }
+
+          // Try to create compressed image with error handling
+          try {
+            const compressedBase64 = canvas.toDataURL('image/jpeg', adjustedQuality);
+            const estimatedSize = Math.round(compressedBase64.length * 0.75);
+
+            console.log(`✅ Image compressed: ${file.size} bytes -> ${estimatedSize} bytes`);
+
+            // Validate the base64 string
+            if (!compressedBase64 || compressedBase64.length < 100) {
+              throw new Error('Invalid compressed image data');
+            }
+
             resolve(compressedBase64);
           } catch (canvasError) {
-            console.warn('Canvas compression failed, using original:', canvasError);
+            console.error('Canvas compression failed:', canvasError);
             // Fallback to original image
+            console.log('📷 Falling back to original image');
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
+            reader.onerror = error => {
+              console.error('FileReader fallback error:', error);
+              reject(new Error('Failed to process image'));
+            };
             reader.readAsDataURL(file);
           }
         } catch (error) {
           console.error('Image processing error:', error);
-          reject(error);
+          // Final fallback to original image
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to process image'));
+          reader.readAsDataURL(file);
         }
       };
 
       img.onerror = error => {
         console.error('Image load error:', error);
+        console.log('📷 Image load failed, using original file');
         // Fallback to original image
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
+        reader.onerror = readerError => {
+          console.error('FileReader fallback error:', readerError);
+          reject(new Error('Failed to read image file'));
+        };
         reader.readAsDataURL(file);
       };
 
-      // Convert file to base64 to load into image
+      // Convert file to base64 to load into image with timeout
       const reader = new FileReader();
       reader.onload = e => {
-        img.src = e.target?.result as string;
+        try {
+          const result = e.target?.result as string;
+          if (!result) {
+            reject(new Error('Failed to read image data'));
+            return;
+          }
+          img.src = result;
+        } catch (error) {
+          console.error('Error setting image src:', error);
+          reject(new Error('Failed to load image'));
+        }
       };
-      reader.onerror = reject;
+      reader.onerror = error => {
+        console.error('FileReader error:', error);
+        reject(new Error('Failed to read image file'));
+      };
       reader.readAsDataURL(file);
+
+      // Add timeout for mobile devices
+      setTimeout(() => {
+        if (img.complete === false) {
+          console.warn('Image loading timeout, trying fallback');
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Image processing timeout'));
+          reader.readAsDataURL(file);
+        }
+      }, 10000);
     });
   }
 

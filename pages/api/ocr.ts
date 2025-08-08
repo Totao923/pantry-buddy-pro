@@ -1,20 +1,61 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  // Set timeout for mobile requests
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.log('⏰ OCR API timeout');
+      res.status(408).json({
+        success: false,
+        error: 'Request timeout. Please try again with a smaller image.',
+        source: 'timeout',
+      });
+    }
+  }, 30000); // 30 second timeout
 
   try {
-    console.log('🔍 OCR API called');
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const userAgent = req.headers['user-agent'] || '';
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+
+    console.log(`🔍 OCR API called from ${isMobile ? 'mobile' : 'desktop'}`);
     const { imageBase64 } = req.body;
 
     if (!imageBase64) {
       console.log('❌ No image data provided');
-      return res.status(400).json({ error: 'Image data is required' });
+      clearTimeout(timeout);
+      return res.status(400).json({
+        success: false,
+        error: 'Image data is required',
+      });
     }
 
-    console.log('📷 Image data received, length:', imageBase64.length);
+    // Validate base64 format
+    if (!imageBase64.startsWith('data:image/')) {
+      console.log('❌ Invalid image format');
+      clearTimeout(timeout);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid image format',
+      });
+    }
+
+    console.log(`📷 Image data received, length: ${imageBase64.length}, mobile: ${isMobile}`);
+
+    // Check image size limits
+    const maxSize = isMobile ? 8 * 1024 * 1024 : 10 * 1024 * 1024; // 8MB mobile, 10MB desktop
+    if (imageBase64.length > maxSize) {
+      console.log(`❌ Image too large: ${imageBase64.length} bytes`);
+      clearTimeout(timeout);
+      return res.status(413).json({
+        success: false,
+        error: 'Image too large. Please use a smaller image.',
+      });
+    }
+
     const VISION_API_KEY = process.env.GOOGLE_VISION_API_KEY;
 
     console.log('🔑 API Key check:', {
@@ -25,6 +66,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!VISION_API_KEY || VISION_API_KEY.includes('YOUR_')) {
       console.log('🧪 Using mock OCR service - API key not configured');
+      clearTimeout(timeout);
+
       // Return mock data
       const mockReceiptText = `
         🧪 MOCK DATA - WHOLE FOODS MARKET
@@ -64,92 +107,133 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('🚀 Using Google Vision API for real OCR processing');
 
-    // Call Google Vision API
-    const response = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          requests: [
-            {
-              image: {
-                content: imageBase64.split(',')[1], // Remove data:image/jpeg;base64, prefix
-              },
-              features: [
-                {
-                  type: 'DOCUMENT_TEXT_DETECTION',
-                  maxResults: 1,
+    // Call Google Vision API with mobile-friendly timeout
+    const fetchTimeout = isMobile ? 20000 : 15000; // 20s mobile, 15s desktop
+    const controller = new AbortController();
+    const fetchTimeoutId = setTimeout(() => controller.abort(), fetchTimeout);
+
+    try {
+      const response = await fetch(
+        `https://vision.googleapis.com/v1/images:annotate?key=${VISION_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            requests: [
+              {
+                image: {
+                  content: imageBase64.split(',')[1], // Remove data:image/jpeg;base64, prefix
                 },
-              ],
-              imageContext: {
-                languageHints: ['en'],
+                features: [
+                  {
+                    type: 'DOCUMENT_TEXT_DETECTION',
+                    maxResults: 1,
+                  },
+                ],
+                imageContext: {
+                  languageHints: ['en'],
+                },
               },
-            },
-          ],
-        }),
+            ],
+          }),
+        }
+      );
+
+      clearTimeout(fetchTimeoutId);
+      console.log('📡 Google Vision API response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`Google Vision API returned ${response.status}: ${response.statusText}`);
       }
-    );
 
-    console.log('📡 Google Vision API response status:', response.status);
-    const result = await response.json();
-    console.log('📋 Google Vision API result structure:', {
-      hasResponses: !!result.responses,
-      responseCount: result.responses?.length || 0,
-      hasTextAnnotations: !!result.responses?.[0]?.textAnnotations,
-      textAnnotationCount: result.responses?.[0]?.textAnnotations?.length || 0,
-      error: result.error,
-    });
-
-    if (result.error) {
-      console.error('❌ Google Vision API error:', result.error);
-      return res.status(400).json({
-        success: false,
-        error: `Google Vision API error: ${result.error.message}`,
-        source: 'google-vision-error',
+      const result = await response.json();
+      console.log('📋 Google Vision API result structure:', {
+        hasResponses: !!result.responses,
+        responseCount: result.responses?.length || 0,
+        hasTextAnnotations: !!result.responses?.[0]?.textAnnotations,
+        textAnnotationCount: result.responses?.[0]?.textAnnotations?.length || 0,
+        error: result.error,
       });
-    }
 
-    const response0 = result.responses?.[0];
-    let extractedText = '';
-    let confidence = 0.8;
+      if (result.error) {
+        console.error('❌ Google Vision API error:', result.error);
+        clearTimeout(timeout);
+        return res.status(400).json({
+          success: false,
+          error: `Vision API error: ${result.error.message}`,
+          source: 'google-vision-error',
+        });
+      }
 
-    // Try DOCUMENT_TEXT_DETECTION result first (more complete)
-    if (response0?.fullTextAnnotation?.text) {
-      extractedText = response0.fullTextAnnotation.text;
-      confidence = 0.9;
-      console.log('✅ Document text extracted (full), length:', extractedText.length);
-    }
-    // Fallback to TEXT_DETECTION result
-    else if (response0?.textAnnotations?.[0]) {
-      extractedText = response0.textAnnotations[0].description;
-      confidence = response0.textAnnotations[0].confidence || 0.8;
-      console.log('✅ Text extracted (basic), length:', extractedText.length);
-    }
+      const response0 = result.responses?.[0];
+      let extractedText = '';
+      let confidence = 0.8;
 
-    if (extractedText) {
-      console.log('📄 Sample extracted text (first 200 chars):', extractedText.substring(0, 200));
-      return res.status(200).json({
-        success: true,
-        text: extractedText,
-        confidence,
-        source: 'google-vision',
-      });
-    } else {
-      console.log('⚠️  No text detected in image');
-      return res.status(200).json({
-        success: false,
-        error: 'No text detected in image',
-        source: 'google-vision',
-      });
+      // Try DOCUMENT_TEXT_DETECTION result first (more complete)
+      if (response0?.fullTextAnnotation?.text) {
+        extractedText = response0.fullTextAnnotation.text;
+        confidence = 0.9;
+        console.log('✅ Document text extracted (full), length:', extractedText.length);
+      }
+      // Fallback to TEXT_DETECTION result
+      else if (response0?.textAnnotations?.[0]) {
+        extractedText = response0.textAnnotations[0].description;
+        confidence = response0.textAnnotations[0].confidence || 0.8;
+        console.log('✅ Text extracted (basic), length:', extractedText.length);
+      }
+
+      clearTimeout(timeout);
+
+      if (extractedText && extractedText.trim().length > 5) {
+        console.log('📄 Sample extracted text (first 200 chars):', extractedText.substring(0, 200));
+        return res.status(200).json({
+          success: true,
+          text: extractedText,
+          confidence,
+          source: 'google-vision',
+        });
+      } else {
+        console.log('⚠️  No meaningful text detected in image');
+        return res.status(200).json({
+          success: false,
+          error: 'No readable text found. Please ensure receipt is clear and well-lit.',
+          source: 'google-vision',
+        });
+      }
+    } catch (fetchError: any) {
+      clearTimeout(fetchTimeoutId);
+      console.error('Google Vision API fetch error:', fetchError);
+
+      if (fetchError.name === 'AbortError') {
+        console.log('⏰ Google Vision API timeout');
+        clearTimeout(timeout);
+        return res.status(408).json({
+          success: false,
+          error: 'Processing timed out. Please try again with a clearer or smaller image.',
+          source: 'google-vision-timeout',
+        });
+      }
+
+      throw fetchError;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('OCR API error:', error);
+    clearTimeout(timeout);
+
+    if (error.name === 'AbortError') {
+      return res.status(408).json({
+        success: false,
+        error: 'Request timed out. Please try again.',
+        source: 'timeout',
+      });
+    }
+
     return res.status(500).json({
       success: false,
-      error: 'OCR service unavailable',
+      error: 'OCR service temporarily unavailable. Please try again.',
       source: 'api-error',
     });
   }
