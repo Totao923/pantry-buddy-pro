@@ -110,7 +110,10 @@ export default function CreateRecipe() {
         console.log('🚀 Generating recipe with AI via API (authenticated user)...');
         try {
           const apiResponse = await RecipeService.generateRecipe({
-            ingredients: ingredients,
+            ingredients: ingredients.map(ing => ({
+              ...ing,
+              quantity: ing.quantity?.toString() || '1',
+            })),
             cuisine: selectedCuisine,
             servings: 4,
             preferences: {
@@ -138,50 +141,67 @@ export default function CreateRecipe() {
             throw new Error(apiResponse.error || 'API failed');
           }
         } catch (apiError) {
-          console.log('❌ API failed, trying direct AI service:', apiError);
+          console.log('❌ Authenticated API failed, trying public AI endpoint:', apiError);
 
-          // Import aiService dynamically
-          const { aiService } = await import('../../lib/ai/aiService');
-
-          const aiResponse = await aiService.generateRecipe(
-            {
-              ingredients: ingredients,
-              cuisine: selectedCuisine,
-              servings: 4,
-              preferences: {
-                maxTime: cookingPreferences.maxTime,
-                difficulty:
-                  cookingPreferences.difficulty !== 'any'
-                    ? (cookingPreferences.difficulty as any)
-                    : undefined,
-                spiceLevel: cookingPreferences.spiceLevel,
-                experienceLevel: cookingPreferences.experienceLevel,
-                dietary: [],
+          // Try public AI endpoint as fallback
+          try {
+            const publicResponse = await fetch('/api/recipes/generate-public', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
               },
-            },
-            user.id
-          );
-
-          if (aiResponse.success && aiResponse.recipe) {
-            recipe = aiResponse.recipe;
-            console.log('✅ AI Recipe generated via direct service:', {
-              title: recipe.title,
-              provider: aiResponse.metadata?.provider,
-              model: aiResponse.metadata?.model,
+              body: JSON.stringify({
+                ingredients: ingredients.map(ing => ({
+                  ...ing,
+                  quantity: ing.quantity?.toString() || '1',
+                })),
+                cuisine: selectedCuisine,
+                servings: 4,
+                preferences: {
+                  maxTime: cookingPreferences.maxTime,
+                  difficulty:
+                    cookingPreferences.difficulty !== 'any'
+                      ? (cookingPreferences.difficulty as any)
+                      : undefined,
+                  spiceLevel: cookingPreferences.spiceLevel,
+                  experienceLevel: cookingPreferences.experienceLevel,
+                  dietary: [],
+                },
+              }),
             });
-          } else {
-            throw new Error(aiResponse.error || 'Direct AI failed');
+
+            const publicResult = await publicResponse.json();
+
+            if (publicResult.success && publicResult.recipe) {
+              recipe = publicResult.recipe;
+              console.log('✅ AI Recipe generated via public API:', {
+                title: recipe.title,
+                provider: publicResult.metadata?.provider,
+                model: publicResult.metadata?.model,
+                responseTime: publicResult.metadata?.responseTime,
+              });
+            } else {
+              throw new Error(publicResult.error || 'Public API failed');
+            }
+          } catch (publicError) {
+            console.log('❌ Public API also failed:', publicError);
+            throw new Error('All AI methods failed');
           }
         }
       } else {
-        // For unauthenticated users, use direct AI service
-        console.log('🚀 Generating recipe with direct AI service (no auth)...');
+        // For unauthenticated users, use public AI endpoint
+        console.log('🚀 Generating recipe via public AI endpoint (no auth)...');
 
-        const { aiService } = await import('../../lib/ai/aiService');
-
-        const aiResponse = await aiService.generateRecipe(
-          {
-            ingredients: ingredients,
+        const publicResponse = await fetch('/api/recipes/generate-public', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ingredients: ingredients.map(ing => ({
+              ...ing,
+              quantity: ing.quantity?.toString() || '1',
+            })),
             cuisine: selectedCuisine,
             servings: 4,
             preferences: {
@@ -194,19 +214,21 @@ export default function CreateRecipe() {
               experienceLevel: cookingPreferences.experienceLevel,
               dietary: [],
             },
-          },
-          'anonymous-user'
-        );
+          }),
+        });
 
-        if (aiResponse.success && aiResponse.recipe) {
-          recipe = aiResponse.recipe;
-          console.log('✅ AI Recipe generated for anonymous user:', {
+        const publicResult = await publicResponse.json();
+
+        if (publicResult.success && publicResult.recipe) {
+          recipe = publicResult.recipe;
+          console.log('✅ AI Recipe generated via public endpoint:', {
             title: recipe.title,
-            provider: aiResponse.metadata?.provider,
-            model: aiResponse.metadata?.model,
+            provider: publicResult.metadata?.provider,
+            model: publicResult.metadata?.model,
+            responseTime: publicResult.metadata?.responseTime,
           });
         } else {
-          throw new Error(aiResponse.error || 'AI generation failed');
+          throw new Error(publicResult.error || 'Public AI generation failed');
         }
       }
 
