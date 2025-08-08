@@ -405,8 +405,8 @@ class ReceiptService {
     const lowerLine = line.toLowerCase();
     return (
       endMarkers.some(marker => lowerLine.includes(marker)) ||
-      line.match(/total.*\$\d+\.\d{2}/i) ||
-      line.match(/tax.*\$\d+\.\d{2}/i)
+      !!line.match(/total.*\$\d+\.\d{2}/i) ||
+      !!line.match(/tax.*\$\d+\.\d{2}/i)
     );
   }
 
@@ -436,7 +436,7 @@ class ReceiptService {
       name.length >= 2 &&
       price > 0 &&
       price < 500 && // More reasonable max price
-      name.match(/[A-Za-z]/)
+      !!name.match(/[A-Za-z]/)
     );
   }
 
