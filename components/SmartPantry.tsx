@@ -279,15 +279,15 @@ export default function SmartPantry({
 
       {/* Add Ingredient Section */}
       <div className="mb-8">
-        <div className="flex gap-4 mb-4">
-          <div className="flex-1 relative">
+        <div className="space-y-4 mb-6">
+          <div className="relative">
             <input
               type="text"
               value={inputValue}
               onChange={e => handleInputChange(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && addIngredient(inputValue)}
               placeholder="Add ingredient (e.g., chicken breast, organic tomatoes...)"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-base"
             />
 
             {suggestions.length > 0 && (
@@ -315,40 +315,43 @@ export default function SmartPantry({
             )}
           </div>
 
-          <select
-            value={selectedCategory}
-            onChange={e => setSelectedCategory(e.target.value as IngredientCategory)}
-            className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          >
-            {Object.entries(categoryData).map(([key, data]) => (
-              <option key={key} value={key}>
-                {data.icon} {key.charAt(0).toUpperCase() + key.slice(1)}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={selectedCategory}
+              onChange={e => setSelectedCategory(e.target.value as IngredientCategory)}
+              className="flex-1 px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent text-base"
+            >
+              {Object.entries(categoryData).map(([key, data]) => (
+                <option key={key} value={key}>
+                  {data.icon} {key.charAt(0).toUpperCase() + key.slice(1)}
+                </option>
+              ))}
+            </select>
 
-          <button
-            onClick={() => addIngredient(inputValue, selectedCategory)}
-            className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all font-semibold shadow-lg"
-          >
-            Add
-          </button>
+            <button
+              onClick={() => addIngredient(inputValue, selectedCategory)}
+              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all font-semibold shadow-lg text-base sm:flex-shrink-0"
+            >
+              Add
+            </button>
+          </div>
         </div>
 
         {/* Quick Add Categories */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {Object.entries(categoryData).map(([category, data]) => (
-            <div key={category} className="bg-gray-50 rounded-xl p-3">
-              <div className="text-center mb-2">
-                <span className="text-2xl">{data.icon}</span>
-                <h4 className="text-sm font-medium text-gray-700 capitalize">{category}</h4>
+            <div key={category} className="bg-gray-50 rounded-xl p-4 min-h-[140px]">
+              <div className="text-center mb-3">
+                <span className="text-3xl block mb-2">{data.icon}</span>
+                <h4 className="text-sm font-semibold text-gray-800 capitalize">{category}</h4>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {data.examples.slice(0, 2).map(example => (
                   <button
                     key={example}
                     onClick={() => addIngredient(example)}
-                    className="w-full px-2 py-2 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700 touch-manipulation min-h-[32px]"
+                    className="w-full px-3 py-2 text-xs bg-white rounded-lg hover:bg-gray-100 transition-colors text-gray-700 font-medium shadow-sm border border-gray-200"
+                    style={{ minHeight: '36px', touchAction: 'manipulation' }}
                     disabled={ingredients.some(
                       ing => ing.name.toLowerCase() === example.toLowerCase()
                     )}
@@ -366,13 +369,13 @@ export default function SmartPantry({
       {navigationButtons && <div className="mb-6">{navigationButtons}</div>}
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-4 items-center">
+      <div className="mb-6 space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-4 sm:items-center">
         <input
           type="text"
           value={searchFilter}
           onChange={e => setSearchFilter(e.target.value)}
           placeholder="Search ingredients..."
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full sm:w-auto px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         />
 
         <select
@@ -385,7 +388,7 @@ export default function SmartPantry({
               filterByCategory(newCategory as IngredientCategory);
             }
           }}
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full sm:w-auto px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
         >
           <option value="all">All Categories</option>
           {Object.entries(categoryData).map(([key, data]) => (
@@ -441,70 +444,97 @@ export default function SmartPantry({
                     <span className="text-sm text-gray-500">({categoryIngredients.length})</span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {categoryIngredients.map(ingredient => (
-                      <div
-                        key={ingredient.id}
-                        className="bg-gradient-to-r from-white to-gray-50 rounded-xl p-4 border border-gray-200 hover:shadow-lg transition-all"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-800 capitalize">
-                              {ingredient.name}
-                            </h4>
-                            <div className="text-sm text-gray-600">
-                              {ingredient.quantity && (
-                                <span>
-                                  {ingredient.quantity} {ingredient.unit}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => onRemoveIngredient(ingredient.id)}
-                            className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 transition-colors"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${categoryData[ingredient.category].color}`}
-                          >
-                            {ingredient.category}
-                          </span>
-                          {ingredient.isVegan && (
-                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                              Vegan
-                            </span>
-                          )}
-                          {ingredient.isProtein && (
-                            <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
-                              Protein
-                            </span>
-                          )}
-                        </div>
-
-                        {ingredient.expiryDate && (
-                          <div className="text-xs text-gray-500">
-                            Expires: {new Date(ingredient.expiryDate).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Name
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Quantity
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Tags
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Expires
+                            </th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {categoryIngredients.map(ingredient => (
+                            <tr key={ingredient.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="font-medium text-gray-900 capitalize">
+                                  {ingredient.name}
+                                </div>
+                                <div className="text-sm text-gray-500 capitalize">
+                                  {ingredient.category}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                {ingredient.quantity ? (
+                                  <span>
+                                    {ingredient.quantity} {ingredient.unit}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="flex flex-wrap gap-1">
+                                  {ingredient.isVegan && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      Vegan
+                                    </span>
+                                  )}
+                                  {ingredient.isProtein && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                      Protein
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                {ingredient.expiryDate ? (
+                                  <span>
+                                    {new Date(ingredient.expiryDate).toLocaleDateString()}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center">
+                                <button
+                                  onClick={() => onRemoveIngredient(ingredient.id)}
+                                  className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                                  title="Remove ingredient"
+                                >
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )
