@@ -122,7 +122,6 @@ export default function CreateRecipe() {
               spiceLevel: cookingPreferences.spiceLevel,
               experienceLevel: cookingPreferences.experienceLevel,
               dietary: [],
-              allergens: [],
             },
             userId: user.id,
           });
@@ -158,7 +157,6 @@ export default function CreateRecipe() {
                 spiceLevel: cookingPreferences.spiceLevel,
                 experienceLevel: cookingPreferences.experienceLevel,
                 dietary: [],
-                allergens: [],
               },
             },
             user.id
@@ -195,7 +193,6 @@ export default function CreateRecipe() {
               spiceLevel: cookingPreferences.spiceLevel,
               experienceLevel: cookingPreferences.experienceLevel,
               dietary: [],
-              allergens: [],
             },
           },
           'anonymous-user'
