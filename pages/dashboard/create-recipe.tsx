@@ -7,7 +7,7 @@ import SmartPantry from '../../components/SmartPantry';
 import AdvancedCuisineSelector from '../../components/AdvancedCuisineSelector';
 import EnhancedRecipeCard from '../../components/EnhancedRecipeCard';
 import { useAuth } from '../../lib/auth/AuthProvider';
-import { aiService } from '../../lib/ai/aiService';
+import { RecipeService } from '../../lib/services/recipeService';
 import { AdvancedRecipeEngine } from '../../lib/advancedRecipeEngine';
 import { ingredientService } from '../../lib/services/ingredientService';
 import { Ingredient, Recipe, CuisineType } from '../../types';
@@ -103,9 +103,82 @@ export default function CreateRecipe() {
     setError(null);
 
     try {
-      // First try AI service
-      const aiResponse = await aiService.generateRecipe(
-        {
+      let recipe: Recipe;
+      
+      // Try API first if user is authenticated, otherwise use direct AI service
+      if (user?.id) {
+        console.log('🚀 Generating recipe with AI via API (authenticated user)...');
+        try {
+          const apiResponse = await RecipeService.generateRecipe({
+            ingredients: ingredients,
+            cuisine: selectedCuisine,
+            servings: 4,
+            preferences: {
+              maxTime: cookingPreferences.maxTime,
+              difficulty:
+                cookingPreferences.difficulty !== 'any'
+                  ? (cookingPreferences.difficulty as any)
+                  : undefined,
+              spiceLevel: cookingPreferences.spiceLevel,
+              experienceLevel: cookingPreferences.experienceLevel,
+              dietary: [],
+              allergens: [],
+            },
+            userId: user.id
+          });
+
+          if (apiResponse.success && apiResponse.data) {
+            recipe = apiResponse.data;
+            console.log('✅ AI Recipe generated via API:', {
+              title: recipe.title,
+              provider: apiResponse.metadata?.provider,
+              model: apiResponse.metadata?.model,
+              responseTime: apiResponse.metadata?.responseTime
+            });
+          } else {
+            throw new Error(apiResponse.error || 'API failed');
+          }
+        } catch (apiError) {
+          console.log('❌ API failed, trying direct AI service:', apiError);
+          
+          // Import aiService dynamically
+          const { aiService } = await import('../../lib/ai/aiService');
+          
+          const aiResponse = await aiService.generateRecipe({
+            ingredients: ingredients,
+            cuisine: selectedCuisine,
+            servings: 4,
+            preferences: {
+              maxTime: cookingPreferences.maxTime,
+              difficulty:
+                cookingPreferences.difficulty !== 'any'
+                  ? (cookingPreferences.difficulty as any)
+                  : undefined,
+              spiceLevel: cookingPreferences.spiceLevel,
+              experienceLevel: cookingPreferences.experienceLevel,
+              dietary: [],
+              allergens: [],
+            }
+          }, user.id);
+
+          if (aiResponse.success && aiResponse.recipe) {
+            recipe = aiResponse.recipe;
+            console.log('✅ AI Recipe generated via direct service:', {
+              title: recipe.title,
+              provider: aiResponse.metadata?.provider,
+              model: aiResponse.metadata?.model
+            });
+          } else {
+            throw new Error(aiResponse.error || 'Direct AI failed');
+          }
+        }
+      } else {
+        // For unauthenticated users, use direct AI service
+        console.log('🚀 Generating recipe with direct AI service (no auth)...');
+        
+        const { aiService } = await import('../../lib/ai/aiService');
+        
+        const aiResponse = await aiService.generateRecipe({
           ingredients: ingredients,
           cuisine: selectedCuisine,
           servings: 4,
@@ -119,22 +192,24 @@ export default function CreateRecipe() {
             experienceLevel: cookingPreferences.experienceLevel,
             dietary: [],
             allergens: [],
-          },
-          userHistory: {
-            favoriteRecipes: [],
-            cookingFrequency: 'weekly',
-          },
-        },
-        user?.id || 'demo-user'
-      );
+          }
+        }, 'anonymous-user');
 
-      let recipe: Recipe;
+        if (aiResponse.success && aiResponse.recipe) {
+          recipe = aiResponse.recipe;
+          console.log('✅ AI Recipe generated for anonymous user:', {
+            title: recipe.title,
+            provider: aiResponse.metadata?.provider,
+            model: aiResponse.metadata?.model
+          });
+        } else {
+          throw new Error(aiResponse.error || 'AI generation failed');
+        }
+      }
 
-      if (aiResponse.success && aiResponse.recipe) {
-        recipe = aiResponse.recipe;
-      } else {
-        // Fallback to original engine if AI fails
-        console.log('AI generation failed, using fallback engine:', aiResponse.error);
+      // If all AI methods fail, fall back to the advanced recipe engine
+      if (!recipe) {
+        console.log('❌ All AI methods failed, using fallback engine');
         recipe = await AdvancedRecipeEngine.generateAdvancedRecipe(
           ingredients,
           selectedCuisine,
