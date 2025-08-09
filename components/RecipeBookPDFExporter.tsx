@@ -48,22 +48,22 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
 
   const generatePDF = async () => {
     setIsGenerating(true);
-    
+
     try {
       const pdf = new jsPDF('p', 'mm', pageSize === 'A4' ? 'a4' : 'letter');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
       const contentWidth = pageWidth - 2 * margin;
-      
+
       let currentY = margin;
-      
+
       // Cover page
       pdf.setFontSize(24);
       pdf.setFont(undefined, 'bold');
       pdf.text(recipeBook.name, pageWidth / 2, currentY, { align: 'center' });
       currentY += 15;
-      
+
       if (recipeBook.description) {
         pdf.setFontSize(12);
         pdf.setFont(undefined, 'normal');
@@ -71,23 +71,28 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
         pdf.text(descLines, pageWidth / 2, currentY, { align: 'center' });
         currentY += descLines.length * 7 + 10;
       }
-      
+
       pdf.setFontSize(10);
       pdf.text(`Generated with Pantry Buddy Pro`, pageWidth / 2, currentY, { align: 'center' });
       currentY += 7;
-      pdf.text(`Template: ${PDF_TEMPLATES.find(t => t.id === selectedTemplate)?.name}`, pageWidth / 2, currentY, { align: 'center' });
+      pdf.text(
+        `Template: ${PDF_TEMPLATES.find(t => t.id === selectedTemplate)?.name}`,
+        pageWidth / 2,
+        currentY,
+        { align: 'center' }
+      );
       currentY += 7;
       pdf.text(`${new Date().toLocaleDateString()}`, pageWidth / 2, currentY, { align: 'center' });
-      
+
       // Table of Contents
       pdf.addPage();
       currentY = margin;
-      
+
       pdf.setFontSize(18);
       pdf.setFont(undefined, 'bold');
       pdf.text('Table of Contents', margin, currentY);
       currentY += 15;
-      
+
       pdf.setFontSize(11);
       pdf.setFont(undefined, 'normal');
       recipeBook.recipes.forEach((recipe, index) => {
@@ -98,18 +103,18 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
           currentY = margin;
         }
       });
-      
+
       // Recipes
       recipeBook.recipes.forEach((recipe, recipeIndex) => {
         pdf.addPage();
         currentY = margin;
-        
+
         // Recipe title
         pdf.setFontSize(16);
         pdf.setFont(undefined, 'bold');
         pdf.text(`${recipeIndex + 1}. ${recipe.title}`, margin, currentY);
         currentY += 10;
-        
+
         // Recipe description
         if (recipe.description) {
           pdf.setFontSize(10);
@@ -118,7 +123,7 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
           pdf.text(descLines, margin, currentY);
           currentY += descLines.length * 5 + 8;
         }
-        
+
         // Recipe info
         pdf.setFontSize(10);
         pdf.setFont(undefined, 'normal');
@@ -127,13 +132,13 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
         pdf.text(`Cook: ${recipe.cookTime} min`, margin + 100, currentY);
         pdf.text(`Total: ${recipe.totalTime} min`, margin + 150, currentY);
         currentY += 12;
-        
+
         // Ingredients
         pdf.setFontSize(12);
         pdf.setFont(undefined, 'bold');
         pdf.text('Ingredients', margin, currentY);
         currentY += 8;
-        
+
         pdf.setFontSize(10);
         pdf.setFont(undefined, 'normal');
         recipe.ingredients.forEach(ingredient => {
@@ -141,21 +146,21 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
           const ingLines = pdf.splitTextToSize(ingText, contentWidth);
           pdf.text(ingLines, margin + 5, currentY);
           currentY += ingLines.length * 5 + 2;
-          
+
           if (currentY > pageHeight - 30) {
             pdf.addPage();
             currentY = margin;
           }
         });
-        
+
         currentY += 8;
-        
+
         // Instructions
         pdf.setFontSize(12);
         pdf.setFont(undefined, 'bold');
         pdf.text('Instructions', margin, currentY);
         currentY += 8;
-        
+
         pdf.setFontSize(10);
         pdf.setFont(undefined, 'normal');
         recipe.instructions.forEach(instruction => {
@@ -163,13 +168,13 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
           const instLines = pdf.splitTextToSize(instText, contentWidth);
           pdf.text(instLines, margin, currentY);
           currentY += instLines.length * 5 + 5;
-          
+
           if (currentY > pageHeight - 30) {
             pdf.addPage();
             currentY = margin;
           }
         });
-        
+
         // Personal notes
         if (includeNotes && recipe.bookItem.personalNotes) {
           currentY += 8;
@@ -177,14 +182,14 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
           pdf.setFont(undefined, 'bold');
           pdf.text('Personal Notes', margin, currentY);
           currentY += 6;
-          
+
           pdf.setFontSize(9);
           pdf.setFont(undefined, 'italic');
           const notesLines = pdf.splitTextToSize(recipe.bookItem.personalNotes, contentWidth);
           pdf.text(notesLines, margin, currentY);
           currentY += notesLines.length * 4 + 5;
         }
-        
+
         // Nutrition info
         if (includeNutrition && recipe.nutritionInfo) {
           currentY += 8;
@@ -192,7 +197,7 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
           pdf.setFont(undefined, 'bold');
           pdf.text('Nutrition (per serving)', margin, currentY);
           currentY += 6;
-          
+
           pdf.setFontSize(9);
           pdf.setFont(undefined, 'normal');
           const nutrition = recipe.nutritionInfo;
@@ -204,7 +209,7 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
           if (nutrition.fiber) pdf.text(`Fiber: ${nutrition.fiber}g`, margin + 60, currentY);
           if (nutrition.sodium) pdf.text(`Sodium: ${nutrition.sodium}mg`, margin + 120, currentY);
         }
-        
+
         // Tips
         if (includeTips && recipe.tips && recipe.tips.length > 0) {
           currentY += 8;
@@ -212,7 +217,7 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
           pdf.setFont(undefined, 'bold');
           pdf.text('Tips', margin, currentY);
           currentY += 6;
-          
+
           pdf.setFontSize(9);
           pdf.setFont(undefined, 'normal');
           recipe.tips.forEach(tip => {
@@ -222,11 +227,11 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
           });
         }
       });
-      
+
       // Save the PDF
       const fileName = `${recipeBook.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-recipe-book.pdf`;
       pdf.save(fileName);
-      
+
       onClose();
     } catch (error) {
       console.error('Failed to generate PDF:', error);
@@ -236,17 +241,13 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
     }
   };
 
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900">Export Recipe Book</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl"
-            >
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">
               ×
             </button>
           </div>
@@ -256,7 +257,7 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">PDF Template</h3>
               <div className="grid grid-cols-2 gap-4">
-                {PDF_TEMPLATES.map((template) => (
+                {PDF_TEMPLATES.map(template => (
                   <button
                     key={template.id}
                     onClick={() => setSelectedTemplate(template.id as any)}
@@ -265,11 +266,7 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
                       selectedTemplate === template.id
                         ? 'border-pantry-500 bg-pantry-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    } ${
-                      template.isPremium
-                        ? 'opacity-50 cursor-not-allowed'
-                        : ''
-                    }`}
+                    } ${template.isPremium ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="font-medium">{template.name}</div>
                     <div className="text-sm text-gray-600 mt-1">{template.description}</div>
@@ -289,27 +286,27 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
                   <input
                     type="checkbox"
                     checked={includeNotes}
-                    onChange={(e) => setIncludeNotes(e.target.checked)}
+                    onChange={e => setIncludeNotes(e.target.checked)}
                     className="rounded border-gray-300 text-pantry-600 focus:ring-pantry-500"
                   />
                   <span className="ml-2 text-gray-700">Personal notes</span>
                 </label>
-                
+
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={includeNutrition}
-                    onChange={(e) => setIncludeNutrition(e.target.checked)}
+                    onChange={e => setIncludeNutrition(e.target.checked)}
                     className="rounded border-gray-300 text-pantry-600 focus:ring-pantry-500"
                   />
                   <span className="ml-2 text-gray-700">Nutrition information</span>
                 </label>
-                
+
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={includeTips}
-                    onChange={(e) => setIncludeTips(e.target.checked)}
+                    onChange={e => setIncludeTips(e.target.checked)}
                     className="rounded border-gray-300 text-pantry-600 focus:ring-pantry-500"
                   />
                   <span className="ml-2 text-gray-700">Cooking tips</span>
@@ -327,19 +324,19 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
                     name="pageSize"
                     value="A4"
                     checked={pageSize === 'A4'}
-                    onChange={(e) => setPageSize(e.target.value as 'A4')}
+                    onChange={e => setPageSize(e.target.value as 'A4')}
                     className="text-pantry-600 focus:ring-pantry-500"
                   />
                   <span className="ml-2 text-gray-700">A4</span>
                 </label>
-                
+
                 <label className="flex items-center">
                   <input
                     type="radio"
                     name="pageSize"
                     value="Letter"
                     checked={pageSize === 'Letter'}
-                    onChange={(e) => setPageSize(e.target.value as 'Letter')}
+                    onChange={e => setPageSize(e.target.value as 'Letter')}
                     className="text-pantry-600 focus:ring-pantry-500"
                   />
                   <span className="ml-2 text-gray-700">Letter</span>
@@ -379,9 +376,7 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
                   Generating PDF...
                 </>
               ) : (
-                <>
-                  📄 Generate PDF
-                </>
+                <>📄 Generate PDF</>
               )}
             </button>
           </div>

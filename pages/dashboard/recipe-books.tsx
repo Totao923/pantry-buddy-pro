@@ -25,13 +25,13 @@ export default function RecipeBooksPage() {
       // Load recipes from localStorage for now - replace with actual API call
       const recentRecipes = JSON.parse(localStorage.getItem('recentRecipes') || '[]');
       const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
-      
+
       // Combine and deduplicate recipes
       const allRecipes = [...recentRecipes, ...userRecipes];
-      const uniqueRecipes = allRecipes.filter((recipe, index, self) => 
-        index === self.findIndex(r => r.id === recipe.id)
+      const uniqueRecipes = allRecipes.filter(
+        (recipe, index, self) => index === self.findIndex(r => r.id === recipe.id)
       );
-      
+
       setSavedRecipes(uniqueRecipes);
     } catch (error) {
       console.error('Failed to load saved recipes:', error);
@@ -57,7 +57,7 @@ export default function RecipeBooksPage() {
               <p className="text-amber-800 mb-6">
                 Create beautiful recipe collections and export them as professional PDFs
               </p>
-              
+
               <div className="bg-white rounded-lg p-6 mb-6 text-left max-w-md mx-auto">
                 <h3 className="font-semibold text-gray-900 mb-3">Premium Features:</h3>
                 <ul className="space-y-2 text-sm text-gray-700">
@@ -102,7 +102,7 @@ export default function RecipeBooksPage() {
                   Back to Dashboard
                 </button>
               </div>
-              
+
               <div className="mt-4 text-xs text-amber-700">
                 Free tier includes 1 recipe book with basic template
               </div>

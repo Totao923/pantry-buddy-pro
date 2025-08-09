@@ -55,7 +55,7 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
 
   const loadRecipeBooks = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       // Mock data for now - replace with actual API call
@@ -145,22 +145,22 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
   const CreateBookModal = () => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [template, setTemplate] = useState<'minimalist' | 'elegant' | 'family' | 'professional'>('minimalist');
+    const [template, setTemplate] = useState<'minimalist' | 'elegant' | 'family' | 'professional'>(
+      'minimalist'
+    );
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
           <h2 className="text-xl font-bold mb-4">Create New Recipe Book</h2>
-          
+
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Book Name
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Book Name</label>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={e => setName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
                 placeholder="Family Favorites, Holiday Recipes, etc."
               />
@@ -172,7 +172,7 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
               </label>
               <textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={e => setDescription(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
                 rows={3}
                 placeholder="A brief description of your recipe book..."
@@ -180,11 +180,9 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                PDF Template
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">PDF Template</label>
               <div className="grid grid-cols-2 gap-2">
-                {PDF_TEMPLATES.map((tmpl) => (
+                {PDF_TEMPLATES.map(tmpl => (
                   <button
                     key={tmpl.id}
                     type="button"
@@ -194,11 +192,7 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
                       template === tmpl.id
                         ? 'border-pantry-500 bg-pantry-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    } ${
-                      tmpl.isPremium && !isPremium
-                        ? 'opacity-50 cursor-not-allowed'
-                        : ''
-                    }`}
+                    } ${tmpl.isPremium && !isPremium ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="font-medium text-sm">{tmpl.name}</div>
                     <div className="text-xs text-gray-500 mt-1">{tmpl.description}</div>
@@ -273,12 +267,18 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
 
         {/* Recipe Sections */}
         <div className="space-y-6">
-          {selectedBook.sections.map((section) => (
-            <div key={section.name} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          {selectedBook.sections.map(section => (
+            <div
+              key={section.name}
+              className="bg-white rounded-xl p-6 shadow-sm border border-gray-200"
+            >
               <h2 className="text-lg font-semibold text-gray-900 mb-4">{section.name}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {section.recipes.map((recipe) => (
-                  <div key={recipe.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                {section.recipes.map(recipe => (
+                  <div
+                    key={recipe.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
                     <h3 className="font-medium text-gray-900">{recipe.title}</h3>
                     <p className="text-sm text-gray-600 mt-1">{recipe.description}</p>
                     <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
@@ -293,7 +293,7 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
                   </div>
                 ))}
               </div>
-              
+
               {section.recipes.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <div className="text-4xl mb-2">📝</div>
@@ -355,8 +355,11 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
         </div>
       ) : recipeBooks.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recipeBooks.map((book) => (
-            <div key={book.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          {recipeBooks.map(book => (
+            <div
+              key={book.id}
+              className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+            >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900">{book.name}</h3>
@@ -369,7 +372,7 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
                   <div className="mt-1">{book.template}</div>
                 </div>
               </div>
-              
+
               <div className="flex justify-between items-center">
                 <div className="text-xs text-gray-500">
                   Created {book.createdAt.toLocaleDateString()}
