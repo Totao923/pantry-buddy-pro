@@ -144,15 +144,22 @@ export class AIService {
    * Initialize the AI service with the configured provider
    */
   async initialize(): Promise<void> {
+    const config = getAIConfig();
+    console.log('🔍 AI Service Initialization:', {
+      aiEnabled: isAIEnabled(),
+      provider: config.provider,
+      hasApiKey: !!config.apiKey,
+      keyLength: config.apiKey?.length || 0,
+      environment: process.env.NODE_ENV,
+    });
+
     if (!isAIEnabled()) {
-      console.log('AI features disabled - using mock recipe engine only');
+      console.log('❌ AI features disabled - using mock recipe engine only');
       this.isInitialized = true;
       return;
     }
 
     try {
-      const config = getAIConfig();
-
       if (config.provider === 'anthropic') {
         this.provider = new AnthropicProvider(config.apiKey);
       } else {
@@ -162,11 +169,13 @@ export class AIService {
       // Test provider health
       const isHealthy = await this.provider.isHealthy();
       if (!isHealthy) {
-        console.warn('AI provider health check failed - may fallback to mock engine');
+        console.warn('⚠️ AI provider health check failed - may fallback to mock engine');
+      } else {
+        console.log('✅ AI provider health check passed');
       }
 
       this.isInitialized = true;
-      console.log(`AI service initialized with provider: ${config.provider}`);
+      console.log(`✅ AI service initialized with provider: ${config.provider}`);
     } catch (error) {
       console.error('Failed to initialize AI service:', error);
       if (!shouldFallbackToMock()) {

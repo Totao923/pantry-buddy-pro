@@ -55,7 +55,7 @@ class EnvironmentConfig {
   }
 
   private loadConfig(): AppConfig {
-    const provider = (process.env.AI_PROVIDER as any) || 'openai';
+    const provider = (process.env.AI_PROVIDER as any) || 'anthropic';
 
     // Get API key based on provider
     let apiKey = '';
@@ -240,7 +240,13 @@ export const isDatabaseEnabled = () => env.getConfig().features.enableDatabase;
 export const shouldFallbackToMock = () => env.shouldFallbackToMock();
 export const isCacheEnabled = () => env.isCacheEnabled();
 
-// Development logging
-if (typeof window === 'undefined' && process.env.NODE_ENV === 'development') {
+// Server-side logging for debugging
+if (typeof window === 'undefined') {
+  console.log('🔧 Environment Configuration Check:', {
+    nodeEnv: process.env.NODE_ENV,
+    hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
+    aiProvider: process.env.AI_PROVIDER,
+    enableAI: process.env.ENABLE_AI_RECIPES,
+  });
   env.logConfig();
 }
