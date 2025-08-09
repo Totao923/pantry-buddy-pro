@@ -97,7 +97,8 @@ class EnvironmentConfig {
           process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
       },
       features: {
-        enableAIRecipes: process.env.ENABLE_AI_RECIPES === 'true',
+        enableAIRecipes:
+          process.env.ENABLE_AI_RECIPES === 'true' || (this.isProduction() && !!apiKey),
         aiFallbackToMock: process.env.AI_FALLBACK_TO_MOCK !== 'false',
         aiCacheEnabled: process.env.AI_CACHE_ENABLED !== 'false',
         enableAuth:
@@ -115,11 +116,15 @@ class EnvironmentConfig {
     };
   }
 
+  private isProduction(): boolean {
+    return process.env.NODE_ENV === 'production';
+  }
+
   private validateConfig(): void {
-    // Skip all validation in production to prevent deployment issues
-    if (this.config.environment === 'production') {
-      console.log('⚠️ Skipping environment validation in production');
-      return;
+    // Skip validation errors in production but still log warnings
+    const isProduction = this.config.environment === 'production';
+    if (isProduction) {
+      console.log('⚠️ Production environment - logging configuration warnings only');
     }
 
     const errors: string[] = [];
@@ -176,7 +181,11 @@ class EnvironmentConfig {
     }
 
     if (errors.length > 0) {
-      console.warn('Environment configuration warnings:', errors);
+      if (isProduction) {
+        console.warn('Production environment configuration warnings:', errors);
+      } else {
+        console.warn('Environment configuration warnings:', errors);
+      }
     }
   }
 

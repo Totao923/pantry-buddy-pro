@@ -1,5 +1,17 @@
 # Pantry Buddy Pro - Production Deployment Guide
 
+## 🚨 URGENT: Production AI Issues Fixed
+
+**Current Problem**: Production is using mock recipes instead of real Claude AI
+**Root Cause**: Missing `ANTHROPIC_API_KEY` environment variable in Vercel
+**Status**: AI falls back to mock engine (`"provider": "fallback"`)
+
+### Quick Fix Required:
+
+1. Add environment variables below to Vercel
+2. Redeploy application
+3. AI will work with real Claude recipes
+
 ## 🚀 Deployment Overview
 
 This guide covers deploying Pantry Buddy Pro to production with proper security, monitoring, and performance configurations.
