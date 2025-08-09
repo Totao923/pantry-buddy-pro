@@ -60,13 +60,13 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
 
       // Cover page
       pdf.setFontSize(24);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.text(recipeBook.name, pageWidth / 2, currentY, { align: 'center' });
       currentY += 15;
 
       if (recipeBook.description) {
         pdf.setFontSize(12);
-        pdf.setFont(undefined, 'normal');
+        pdf.setFont('helvetica', 'normal');
         const descLines = pdf.splitTextToSize(recipeBook.description, contentWidth);
         pdf.text(descLines, pageWidth / 2, currentY, { align: 'center' });
         currentY += descLines.length * 7 + 10;
@@ -89,12 +89,12 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
       currentY = margin;
 
       pdf.setFontSize(18);
-      pdf.setFont(undefined, 'bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.text('Table of Contents', margin, currentY);
       currentY += 15;
 
       pdf.setFontSize(11);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFont('helvetica', 'normal');
       recipeBook.recipes.forEach((recipe, index) => {
         pdf.text(`${index + 1}. ${recipe.title}`, margin + 5, currentY);
         currentY += 7;
@@ -111,14 +111,14 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
 
         // Recipe title
         pdf.setFontSize(16);
-        pdf.setFont(undefined, 'bold');
+        pdf.setFont('helvetica', 'bold');
         pdf.text(`${recipeIndex + 1}. ${recipe.title}`, margin, currentY);
         currentY += 10;
 
         // Recipe description
         if (recipe.description) {
           pdf.setFontSize(10);
-          pdf.setFont(undefined, 'italic');
+          pdf.setFont('helvetica', 'italic');
           const descLines = pdf.splitTextToSize(recipe.description, contentWidth);
           pdf.text(descLines, margin, currentY);
           currentY += descLines.length * 5 + 8;
@@ -126,7 +126,7 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
 
         // Recipe info
         pdf.setFontSize(10);
-        pdf.setFont(undefined, 'normal');
+        pdf.setFont('helvetica', 'normal');
         pdf.text(`Servings: ${recipe.servings}`, margin, currentY);
         pdf.text(`Prep: ${recipe.prepTime} min`, margin + 50, currentY);
         pdf.text(`Cook: ${recipe.cookTime} min`, margin + 100, currentY);
@@ -135,12 +135,12 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
 
         // Ingredients
         pdf.setFontSize(12);
-        pdf.setFont(undefined, 'bold');
+        pdf.setFont('helvetica', 'bold');
         pdf.text('Ingredients', margin, currentY);
         currentY += 8;
 
         pdf.setFontSize(10);
-        pdf.setFont(undefined, 'normal');
+        pdf.setFont('helvetica', 'normal');
         recipe.ingredients.forEach(ingredient => {
           const ingText = `• ${ingredient.amount} ${ingredient.unit} ${ingredient.name}`;
           const ingLines = pdf.splitTextToSize(ingText, contentWidth);
@@ -157,12 +157,12 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
 
         // Instructions
         pdf.setFontSize(12);
-        pdf.setFont(undefined, 'bold');
+        pdf.setFont('helvetica', 'bold');
         pdf.text('Instructions', margin, currentY);
         currentY += 8;
 
         pdf.setFontSize(10);
-        pdf.setFont(undefined, 'normal');
+        pdf.setFont('helvetica', 'normal');
         recipe.instructions.forEach(instruction => {
           const instText = `${instruction.step}. ${instruction.instruction}`;
           const instLines = pdf.splitTextToSize(instText, contentWidth);
@@ -179,12 +179,12 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
         if (includeNotes && recipe.bookItem.personalNotes) {
           currentY += 8;
           pdf.setFontSize(11);
-          pdf.setFont(undefined, 'bold');
+          pdf.setFont('helvetica', 'bold');
           pdf.text('Personal Notes', margin, currentY);
           currentY += 6;
 
           pdf.setFontSize(9);
-          pdf.setFont(undefined, 'italic');
+          pdf.setFont('helvetica', 'italic');
           const notesLines = pdf.splitTextToSize(recipe.bookItem.personalNotes, contentWidth);
           pdf.text(notesLines, margin, currentY);
           currentY += notesLines.length * 4 + 5;
@@ -194,12 +194,12 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
         if (includeNutrition && recipe.nutritionInfo) {
           currentY += 8;
           pdf.setFontSize(11);
-          pdf.setFont(undefined, 'bold');
+          pdf.setFont('helvetica', 'bold');
           pdf.text('Nutrition (per serving)', margin, currentY);
           currentY += 6;
 
           pdf.setFontSize(9);
-          pdf.setFont(undefined, 'normal');
+          pdf.setFont('helvetica', 'normal');
           const nutrition = recipe.nutritionInfo;
           pdf.text(`Calories: ${nutrition.calories}`, margin, currentY);
           pdf.text(`Protein: ${nutrition.protein}g`, margin + 60, currentY);
@@ -214,12 +214,12 @@ export function RecipeBookPDFExporter({ recipeBook, onClose }: RecipeBookPDFExpo
         if (includeTips && recipe.tips && recipe.tips.length > 0) {
           currentY += 8;
           pdf.setFontSize(11);
-          pdf.setFont(undefined, 'bold');
+          pdf.setFont('helvetica', 'bold');
           pdf.text('Tips', margin, currentY);
           currentY += 6;
 
           pdf.setFontSize(9);
-          pdf.setFont(undefined, 'normal');
+          pdf.setFont('helvetica', 'normal');
           recipe.tips.forEach(tip => {
             const tipLines = pdf.splitTextToSize(`• ${tip}`, contentWidth);
             pdf.text(tipLines, margin, currentY);
