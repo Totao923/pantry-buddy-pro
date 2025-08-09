@@ -32,6 +32,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       ],
     },
     {
+      name: 'Recipe Books',
+      href: '/dashboard/recipe-books',
+      icon: '📖',
+      description: 'Create & export recipe collections',
+      isPremium: true,
+    },
+    {
       name: 'Pantry',
       href: '/dashboard/pantry',
       icon: '🥗',

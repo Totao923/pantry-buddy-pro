@@ -197,6 +197,49 @@ export interface SmartSuggestion {
   reason: string;
 }
 
+// Recipe Book Types
+export interface RecipeBook {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  coverImage?: string;
+  template: 'minimalist' | 'elegant' | 'family' | 'professional';
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  recipeCount: number;
+}
+
+export interface RecipeBookItem {
+  id: string;
+  bookId: string;
+  recipeId: string;
+  order: number;
+  section?: string;
+  personalNotes?: string;
+  personalRating?: number;
+  addedAt: Date;
+}
+
+export interface RecipeBookSection {
+  name: string;
+  recipes: (Recipe & { bookItem: RecipeBookItem })[];
+}
+
+export interface RecipeBookWithRecipes extends RecipeBook {
+  sections: RecipeBookSection[];
+  recipes: (Recipe & { bookItem: RecipeBookItem })[];
+}
+
+export type PDFTemplate = {
+  id: string;
+  name: string;
+  description: string;
+  isPremium: boolean;
+  thumbnail: string;
+}
+
 export interface AppState {
   ingredients: Ingredient[];
   selectedCuisine: CuisineType;
