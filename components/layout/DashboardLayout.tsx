@@ -45,6 +45,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       description: 'Manage your pantry',
     },
     {
+      name: 'Nutrition',
+      href: '/dashboard/nutrition',
+      icon: '🤖',
+      description: 'AI Nutrition Analysis',
+      isPremium: true,
+    },
+    {
       name: 'Meal Plans',
       href: '/dashboard/meal-plans',
       icon: '📅',

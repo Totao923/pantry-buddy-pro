@@ -4,6 +4,7 @@ import { Recipe, Ingredient, CuisineType, DifficultyLevel } from '../../types';
 export interface AIProvider {
   name: string;
   generateRecipe(prompt: string, options?: AIGenerationOptions): Promise<AIRecipeResponse>;
+  generateContent(prompt: string): Promise<string>;
   isHealthy(): Promise<boolean>;
   getCostEstimate(prompt: string): number; // Estimated cost in cents
 }

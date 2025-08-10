@@ -141,6 +141,21 @@ export class AIService {
   }
 
   /**
+   * Generate content using the AI provider
+   */
+  async generateContent(prompt: string): Promise<string> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    if (!this.provider) {
+      throw new Error('No AI provider available');
+    }
+
+    return await this.provider.generateContent(prompt);
+  }
+
+  /**
    * Initialize the AI service with the configured provider
    */
   async initialize(): Promise<void> {

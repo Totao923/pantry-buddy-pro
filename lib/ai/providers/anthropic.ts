@@ -16,6 +16,27 @@ export class AnthropicProvider implements AIProvider {
     });
   }
 
+  async generateContent(prompt: string): Promise<string> {
+    try {
+      const message = await this.client.messages.create({
+        model: this.defaultModel,
+        max_tokens: 2000,
+        temperature: 0.7,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      });
+
+      return message.content[0]?.type === 'text' ? message.content[0].text : '';
+    } catch (error) {
+      console.error('Error generating content with Anthropic:', error);
+      throw error;
+    }
+  }
+
   async generateRecipe(
     prompt: string,
     options: AIGenerationOptions = {}

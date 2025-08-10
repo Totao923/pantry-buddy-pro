@@ -6,6 +6,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import AuthGuard from '../components/auth/AuthGuard';
 import { useAuth } from '../lib/auth/AuthProvider';
 import { ingredientService } from '../lib/services/ingredientService';
+import { AInutritionist } from '../components/AInutritionist';
 import { Ingredient, Recipe } from '../types';
 
 export default function Dashboard() {
@@ -195,6 +196,13 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+
+          {/* AI Nutritionist Section */}
+          <AInutritionist 
+            ingredients={ingredients}
+            recentRecipes={recentRecipes}
+            className="mb-8"
+          />
 
           {/* Recent Recipes */}
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
