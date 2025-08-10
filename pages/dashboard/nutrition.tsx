@@ -72,10 +72,7 @@ export default function NutritionDashboard() {
           </div>
 
           {/* AI Nutritionist - Full Width */}
-          <AInutritionist 
-            ingredients={ingredients}
-            recentRecipes={recentRecipes}
-          />
+          <AInutritionist ingredients={ingredients} recentRecipes={recentRecipes} />
 
           {/* Additional Nutrition Information */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -112,14 +109,20 @@ export default function NutritionDashboard() {
                       <div className="space-y-1">
                         {['protein', 'vegetables', 'fruits', 'grains', 'dairy'].map(category => {
                           const count = ingredients.filter(ing => ing.category === category).length;
-                          const percentage = ingredients.length > 0 ? Math.round((count / ingredients.length) * 100) : 0;
+                          const percentage =
+                            ingredients.length > 0
+                              ? Math.round((count / ingredients.length) * 100)
+                              : 0;
                           return (
-                            <div key={category} className="flex items-center justify-between text-sm">
+                            <div
+                              key={category}
+                              className="flex items-center justify-between text-sm"
+                            >
                               <span className="capitalize text-gray-600">{category}</span>
                               <div className="flex items-center gap-2">
                                 <div className="w-20 bg-gray-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full" 
+                                  <div
+                                    className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full"
                                     style={{ width: `${percentage}%` }}
                                   ></div>
                                 </div>
@@ -147,7 +150,8 @@ export default function NutritionDashboard() {
                 {recentRecipes.filter(recipe => recipe.nutritionInfo).length > 0 ? (
                   <>
                     <div className="text-sm text-gray-600 mb-3">
-                      Showing nutrition data from {recentRecipes.filter(recipe => recipe.nutritionInfo).length} recipes
+                      Showing nutrition data from{' '}
+                      {recentRecipes.filter(recipe => recipe.nutritionInfo).length} recipes
                     </div>
                     {recentRecipes
                       .filter(recipe => recipe.nutritionInfo)
@@ -162,8 +166,7 @@ export default function NutritionDashboard() {
                             <div>Fat: {recipe.nutritionInfo?.fat || 0}g</div>
                           </div>
                         </div>
-                      ))
-                    }
+                      ))}
                   </>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
@@ -182,17 +185,23 @@ export default function NutritionDashboard() {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="text-2xl mb-2">🥛</div>
                 <h4 className="font-medium">Stay Hydrated</h4>
-                <p className="text-sm text-gray-600">Aim for 8 glasses of water daily to support your cooking and nutrition goals.</p>
+                <p className="text-sm text-gray-600">
+                  Aim for 8 glasses of water daily to support your cooking and nutrition goals.
+                </p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
                 <div className="text-2xl mb-2">🌈</div>
                 <h4 className="font-medium">Eat the Rainbow</h4>
-                <p className="text-sm text-gray-600">Include colorful fruits and vegetables to maximize nutrient variety.</p>
+                <p className="text-sm text-gray-600">
+                  Include colorful fruits and vegetables to maximize nutrient variety.
+                </p>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg">
                 <div className="text-2xl mb-2">⚖️</div>
                 <h4 className="font-medium">Balance Macros</h4>
-                <p className="text-sm text-gray-600">Aim for a balanced ratio of proteins, carbs, and healthy fats in each meal.</p>
+                <p className="text-sm text-gray-600">
+                  Aim for a balanced ratio of proteins, carbs, and healthy fats in each meal.
+                </p>
               </div>
             </div>
           </Card>
