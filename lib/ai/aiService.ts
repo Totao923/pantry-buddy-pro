@@ -244,6 +244,8 @@ export class AIService {
       if (this.provider) {
         try {
           const prompt = PromptEngine.generateRecipePrompt(params);
+          console.log('🍳 Generating AI recipe for cuisine:', params.cuisine, 'with', params.ingredients.length, 'ingredients');
+          
           const response = await this.provider.generateRecipe(prompt, {
             temperature: 0.7,
             maxTokens: 2000,
@@ -253,6 +255,7 @@ export class AIService {
           if (response.success && response.recipe) {
             // Validate recipe quality
             const quality = this.assessRecipeQuality(response.recipe, params);
+            console.log('✅ AI recipe generated successfully - Quality score:', quality.score);
 
             if (quality.score >= 0.6) {
               // Minimum quality threshold
@@ -265,13 +268,22 @@ export class AIService {
 
               return response;
             } else {
-              console.warn('AI recipe quality below threshold, falling back to mock engine');
+              console.warn('⚠️ AI recipe quality below threshold, falling back to mock engine');
               console.warn('Quality issues:', quality.issues);
             }
+          } else {
+            console.warn('⚠️ AI provider returned unsuccessful response:', response.error);
           }
         } catch (error) {
-          console.error('AI generation failed:', error);
+          console.error('❌ AI generation failed:', error);
+          console.error('Error details:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            cuisine: params.cuisine,
+            ingredientCount: params.ingredients.length
+          });
         }
+      } else {
+        console.warn('⚠️ No AI provider available, falling back to mock engine');
       }
 
       // Fallback to mock engine
