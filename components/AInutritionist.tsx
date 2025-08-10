@@ -113,7 +113,6 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
     }
   }, [ingredients, selectedGoal, analyzeNutrition]);
 
-
   const generateWeeklyReport = async () => {
     try {
       const response = await fetch('/api/nutrition/weekly-report', {

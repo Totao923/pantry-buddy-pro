@@ -198,7 +198,7 @@ export default function Dashboard() {
           </div>
 
           {/* AI Nutritionist Section */}
-          <AInutritionist 
+          <AInutritionist
             ingredients={ingredients}
             recentRecipes={recentRecipes}
             className="mb-8"

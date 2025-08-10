@@ -238,7 +238,7 @@ export type PDFTemplate = {
   description: string;
   isPremium: boolean;
   thumbnail: string;
-}
+};
 
 export interface AppState {
   ingredients: Ingredient[];
