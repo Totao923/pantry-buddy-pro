@@ -90,7 +90,7 @@ export default function RecipeBooksPage() {
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
-                  onClick={() => router.push('/dashboard/settings?tab=subscription')}
+                  onClick={() => router.push('/dashboard/subscription')}
                   className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg hover:from-amber-600 hover:to-yellow-600 transition-colors font-medium"
                 >
                   💎 Upgrade to Premium
