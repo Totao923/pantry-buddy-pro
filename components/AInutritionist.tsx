@@ -166,9 +166,9 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
               Premium feature: Upgrade to access AI-powered nutrition insights
             </p>
           </div>
-          <Button 
+          <Button
             variant="primary"
-            onClick={() => window.location.href = '/dashboard/subscription'}
+            onClick={() => (window.location.href = '/dashboard/subscription')}
           >
             Upgrade to Premium
           </Button>

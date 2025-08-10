@@ -34,11 +34,11 @@ export default function Subscription() {
       icon: '🆓',
       features: [
         '5 AI recipes per day',
-        'Basic pantry management', 
+        'Basic pantry management',
         'Simple recipe suggestions',
         'Community recipes access',
-        'Basic meal planning'
-      ]
+        'Basic meal planning',
+      ],
     },
     {
       id: 'premium',
@@ -55,8 +55,8 @@ export default function Subscription() {
         'Recipe books with PDF export',
         'Nutrition analysis & reports',
         'Priority AI processing',
-        'Advanced pantry analytics'
-      ]
+        'Advanced pantry analytics',
+      ],
     },
     {
       id: 'family',
@@ -72,8 +72,8 @@ export default function Subscription() {
         'Family recipe collections',
         'Bulk shopping lists',
         'Child-friendly recipe filters',
-        'Family nutrition tracking'
-      ]
+        'Family nutrition tracking',
+      ],
     },
     {
       id: 'chef',
@@ -89,9 +89,9 @@ export default function Subscription() {
         'Inventory cost tracking',
         'Recipe scaling for events',
         'Cooking video tutorials',
-        'Priority customer support'
-      ]
-    }
+        'Priority customer support',
+      ],
+    },
   ];
 
   const currentTier = subscriptionTiers.find(tier => tier.id === (subscription?.tier || 'free'));
@@ -101,16 +101,17 @@ export default function Subscription() {
     try {
       // TODO: Integrate with actual payment processor (Stripe, etc.)
       console.log('Upgrading to:', tierId);
-      
+
       // For now, show a message that this is coming soon
-      alert('Subscription upgrade coming soon! This will integrate with Stripe for secure payments.');
-      
+      alert(
+        'Subscription upgrade coming soon! This will integrate with Stripe for secure payments.'
+      );
+
       // In production, you would:
       // 1. Create Stripe checkout session
       // 2. Redirect to Stripe
       // 3. Handle webhook to update user subscription
       // 4. Redirect back with success/failure
-      
     } catch (error) {
       console.error('Upgrade error:', error);
       alert('Something went wrong. Please try again.');
@@ -137,7 +138,8 @@ export default function Subscription() {
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Choose Your Plan</h1>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Unlock the full potential of AI-powered cooking with features designed for every level of home chef.
+              Unlock the full potential of AI-powered cooking with features designed for every level
+              of home chef.
             </p>
           </div>
 
@@ -148,17 +150,12 @@ export default function Subscription() {
                 <div className="flex items-center gap-4">
                   <div className="text-3xl">{currentTier.icon}</div>
                   <div>
-                    <h3 className="text-xl font-semibold">
-                      Current Plan: {currentTier.name}
-                    </h3>
+                    <h3 className="text-xl font-semibold">Current Plan: {currentTier.name}</h3>
                     <p className="text-gray-600">{currentTier.description}</p>
                   </div>
                 </div>
                 {currentTier.id !== 'free' && (
-                  <Button
-                    onClick={handleManageSubscription}
-                    variant="secondary"
-                  >
+                  <Button onClick={handleManageSubscription} variant="secondary">
                     Manage Subscription
                   </Button>
                 )}
@@ -168,18 +165,12 @@ export default function Subscription() {
 
           {/* Subscription Tiers */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {subscriptionTiers.map((tier) => (
-              <Card 
-                key={tier.id} 
+            {subscriptionTiers.map(tier => (
+              <Card
+                key={tier.id}
                 className={`p-6 relative ${
-                  tier.popular 
-                    ? 'border-2 border-purple-500 shadow-lg' 
-                    : 'border border-gray-200'
-                } ${
-                  currentTier?.id === tier.id
-                    ? 'bg-green-50 border-green-500'
-                    : ''
-                }`}
+                  tier.popular ? 'border-2 border-purple-500 shadow-lg' : 'border border-gray-200'
+                } ${currentTier?.id === tier.id ? 'bg-green-50 border-green-500' : ''}`}
               >
                 {tier.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -188,7 +179,7 @@ export default function Subscription() {
                     </span>
                   </div>
                 )}
-                
+
                 {currentTier?.id === tier.id && (
                   <div className="absolute -top-3 right-4">
                     <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -218,11 +209,7 @@ export default function Subscription() {
 
                 <div className="mt-auto">
                   {currentTier?.id === tier.id ? (
-                    <Button
-                      fullWidth
-                      variant="secondary"
-                      disabled
-                    >
+                    <Button fullWidth variant="secondary" disabled>
                       Current Plan
                     </Button>
                   ) : (
@@ -242,7 +229,7 @@ export default function Subscription() {
 
           {/* Premium Features Detail */}
           <div className="mt-12">
-            <PremiumFeatures 
+            <PremiumFeatures
               userSubscription={subscription?.tier === 'free' ? 'free' : 'premium'}
               onUpgrade={() => handleUpgrade('premium')}
             />
@@ -255,25 +242,29 @@ export default function Subscription() {
               <div>
                 <h4 className="font-medium text-gray-900">Can I cancel anytime?</h4>
                 <p className="text-gray-600 text-sm mt-1">
-                  Yes, you can cancel your subscription at any time. You'll continue to have access to premium features until the end of your current billing period.
+                  Yes, you can cancel your subscription at any time. You'll continue to have access
+                  to premium features until the end of your current billing period.
                 </p>
               </div>
               <div>
                 <h4 className="font-medium text-gray-900">What payment methods do you accept?</h4>
                 <p className="text-gray-600 text-sm mt-1">
-                  We accept all major credit cards through our secure Stripe integration. Your payment information is never stored on our servers.
+                  We accept all major credit cards through our secure Stripe integration. Your
+                  payment information is never stored on our servers.
                 </p>
               </div>
               <div>
                 <h4 className="font-medium text-gray-900">Is there a free trial?</h4>
                 <p className="text-gray-600 text-sm mt-1">
-                  Yes! Premium plans come with a 7-day free trial. You won't be charged until the trial period ends.
+                  Yes! Premium plans come with a 7-day free trial. You won't be charged until the
+                  trial period ends.
                 </p>
               </div>
               <div>
                 <h4 className="font-medium text-gray-900">Can I change plans later?</h4>
                 <p className="text-gray-600 text-sm mt-1">
-                  Absolutely! You can upgrade or downgrade your plan at any time from this page. Changes take effect immediately.
+                  Absolutely! You can upgrade or downgrade your plan at any time from this page.
+                  Changes take effect immediately.
                 </p>
               </div>
             </div>
@@ -282,8 +273,8 @@ export default function Subscription() {
           {/* Contact Support */}
           <div className="text-center">
             <p className="text-gray-600">
-              Need help choosing a plan? {' '}
-              <button 
+              Need help choosing a plan?{' '}
+              <button
                 onClick={() => router.push('/contact')}
                 className="text-purple-600 hover:text-purple-700 font-medium"
               >

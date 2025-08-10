@@ -244,8 +244,14 @@ export class AIService {
       if (this.provider) {
         try {
           const prompt = PromptEngine.generateRecipePrompt(params);
-          console.log('🍳 Generating AI recipe for cuisine:', params.cuisine, 'with', params.ingredients.length, 'ingredients');
-          
+          console.log(
+            '🍳 Generating AI recipe for cuisine:',
+            params.cuisine,
+            'with',
+            params.ingredients.length,
+            'ingredients'
+          );
+
           const response = await this.provider.generateRecipe(prompt, {
             temperature: 0.7,
             maxTokens: 2000,
@@ -279,7 +285,7 @@ export class AIService {
           console.error('Error details:', {
             message: error instanceof Error ? error.message : 'Unknown error',
             cuisine: params.cuisine,
-            ingredientCount: params.ingredients.length
+            ingredientCount: params.ingredients.length,
           });
         }
       } else {
