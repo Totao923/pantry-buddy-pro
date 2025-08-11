@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { v4 as uuidv4 } from 'uuid';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
+import MealPlanner from '../../components/MealPlanner';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { aiService } from '../../lib/ai/aiService';
 import { ingredientService } from '../../lib/services/ingredientService';
-import { Recipe, MealPlan, Ingredient } from '../../types';
+import { MealPlanService } from '../../lib/services/mealPlanService';
+import { Recipe, MealPlan, Ingredient, PlannedMeal } from '../../types';
 import {
   BarChart,
   Bar,
@@ -51,6 +53,8 @@ export default function MealPlans() {
     dayIndex: number;
     mealType: string;
   } | null>(null);
+  const [currentMealPlan, setCurrentMealPlan] = useState<MealPlan | null>(null);
+  const [showMealPlanner, setShowMealPlanner] = useState(false);
 
   const generateWeekStructure = useCallback(() => {
     const today = new Date();
@@ -81,21 +85,18 @@ export default function MealPlans() {
 
   useEffect(() => {
     const loadMealPlans = async () => {
+      if (!user) return;
+
       try {
-        // Load meal plans from localStorage
-        const savedPlans = localStorage.getItem('userMealPlans');
-        if (savedPlans) {
-          const parsedPlans = JSON.parse(savedPlans);
-          if (Array.isArray(parsedPlans)) {
-            setMealPlans(parsedPlans);
-          }
-        }
+        // Load meal plans from database
+        const plans = await MealPlanService.getMealPlans(user.id);
+        setMealPlans(plans);
 
         // Load available ingredients
         const ingredients = await ingredientService.getAllIngredients();
         setAvailableIngredients(ingredients);
 
-        // Load available recipes from localStorage
+        // Load available recipes from localStorage (will be replaced with API call later)
         const savedRecipes = localStorage.getItem('recentRecipes');
         if (savedRecipes) {
           const recipes = JSON.parse(savedRecipes);
@@ -115,7 +116,134 @@ export default function MealPlans() {
     };
 
     loadMealPlans();
-  }, [selectedWeek, generateWeekStructure]);
+  }, [user, selectedWeek, generateWeekStructure]);
+
+  // CRUD handlers for MealPlanner component
+  const handleCreateMealPlanFromPlanner = async (
+    mealPlan: Omit<MealPlan, 'id' | 'createdAt' | 'updatedAt'>
+  ) => {
+    if (!user) return;
+
+    try {
+      const createdPlan = await MealPlanService.createMealPlan(mealPlan);
+      setMealPlans([...mealPlans, createdPlan]);
+    } catch (error) {
+      console.error('Error creating meal plan:', error);
+      alert('Failed to create meal plan. Please try again.');
+    }
+  };
+
+  const handleUpdateMealPlan = async (id: string, updates: Partial<MealPlan>) => {
+    try {
+      const updatedPlan = await MealPlanService.updateMealPlan(id, updates);
+      setMealPlans(mealPlans.map(plan => (plan.id === id ? updatedPlan : plan)));
+
+      // Update current meal plan if it's the one being updated
+      if (currentMealPlan?.id === id) {
+        setCurrentMealPlan(updatedPlan);
+      }
+    } catch (error) {
+      console.error('Error updating meal plan:', error);
+      alert('Failed to update meal plan. Please try again.');
+    }
+  };
+
+  const handleDeleteMealPlan = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this meal plan?')) return;
+
+    try {
+      await MealPlanService.deleteMealPlan(id);
+      setMealPlans(mealPlans.filter(plan => plan.id !== id));
+
+      // Clear current meal plan if it's the one being deleted
+      if (currentMealPlan?.id === id) {
+        setCurrentMealPlan(null);
+      }
+    } catch (error) {
+      console.error('Error deleting meal plan:', error);
+      alert('Failed to delete meal plan. Please try again.');
+    }
+  };
+
+  const handleAddMealToPlan = async (mealPlanId: string, meal: Omit<PlannedMeal, 'id'>) => {
+    try {
+      const newMeal = await MealPlanService.addMealToPlan(mealPlanId, meal);
+
+      // Update the meal plan in our state
+      setMealPlans(
+        mealPlans.map(plan =>
+          plan.id === mealPlanId ? { ...plan, meals: [...plan.meals, newMeal] } : plan
+        )
+      );
+
+      // Update current meal plan if needed
+      if (currentMealPlan?.id === mealPlanId) {
+        setCurrentMealPlan({
+          ...currentMealPlan,
+          meals: [...currentMealPlan.meals, newMeal],
+        });
+      }
+    } catch (error) {
+      console.error('Error adding meal to plan:', error);
+      alert('Failed to add meal to plan. Please try again.');
+    }
+  };
+
+  const handleUpdateMeal = async (
+    mealPlanId: string,
+    mealId: string,
+    updates: Partial<PlannedMeal>
+  ) => {
+    try {
+      const updatedMeal = await MealPlanService.updateMeal(mealPlanId, mealId, updates);
+
+      // Update the meal plan in our state
+      setMealPlans(
+        mealPlans.map(plan =>
+          plan.id === mealPlanId
+            ? { ...plan, meals: plan.meals.map(meal => (meal.id === mealId ? updatedMeal : meal)) }
+            : plan
+        )
+      );
+
+      // Update current meal plan if needed
+      if (currentMealPlan?.id === mealPlanId) {
+        setCurrentMealPlan({
+          ...currentMealPlan,
+          meals: currentMealPlan.meals.map(meal => (meal.id === mealId ? updatedMeal : meal)),
+        });
+      }
+    } catch (error) {
+      console.error('Error updating meal:', error);
+      alert('Failed to update meal. Please try again.');
+    }
+  };
+
+  const handleRemoveMealFromPlan = async (mealPlanId: string, mealId: string) => {
+    try {
+      await MealPlanService.removeMealFromPlan(mealPlanId, mealId);
+
+      // Update the meal plan in our state
+      setMealPlans(
+        mealPlans.map(plan =>
+          plan.id === mealPlanId
+            ? { ...plan, meals: plan.meals.filter(meal => meal.id !== mealId) }
+            : plan
+        )
+      );
+
+      // Update current meal plan if needed
+      if (currentMealPlan?.id === mealPlanId) {
+        setCurrentMealPlan({
+          ...currentMealPlan,
+          meals: currentMealPlan.meals.filter(meal => meal.id !== mealId),
+        });
+      }
+    } catch (error) {
+      console.error('Error removing meal from plan:', error);
+      alert('Failed to remove meal from plan. Please try again.');
+    }
+  };
 
   const handleCreateMealPlan = () => {
     // Initialize new plan with empty week structure
@@ -167,59 +295,66 @@ export default function MealPlans() {
     setSelectedMealSlot(null);
   };
 
-  const handleSaveManualPlan = () => {
+  const handleSaveManualPlan = async () => {
     if (!user || !newPlanName.trim()) return;
 
-    // Convert to proper MealPlan format
-    const plannedMeals: any[] = [];
-    const startDate = new Date();
+    try {
+      // Convert to proper MealPlan format
+      const plannedMeals: Omit<PlannedMeal, 'id'>[] = [];
+      const startDate = new Date();
 
-    newPlanWeek.forEach((day, dayIndex) => {
-      const mealDate = new Date(startDate);
-      mealDate.setDate(startDate.getDate() + dayIndex);
+      newPlanWeek.forEach((day, dayIndex) => {
+        const mealDate = new Date(startDate);
+        mealDate.setDate(startDate.getDate() + dayIndex);
 
-      ['breakfast', 'lunch', 'dinner'].forEach(mealType => {
-        const recipe = (day.meals as any)[mealType];
-        if (recipe) {
-          plannedMeals.push({
-            id: uuidv4(),
-            recipeId: recipe.id,
-            date: mealDate,
-            mealType,
-            servings: recipe.servings || 2,
-          });
-        }
+        ['breakfast', 'lunch', 'dinner'].forEach(mealType => {
+          const recipe = (day.meals as any)[mealType];
+          if (recipe) {
+            plannedMeals.push({
+              recipeId: recipe.id,
+              date: mealDate,
+              mealType: mealType as any,
+              servings: recipe.servings || 2,
+              prepStatus: 'planned',
+              notes: '',
+              ingredients: recipe.ingredients || [],
+            });
+          }
+        });
       });
-    });
 
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
 
-    const newMealPlan: MealPlan = {
-      id: uuidv4(),
-      name: newPlanName.trim(),
-      userId: user.id,
-      startDate,
-      endDate,
-      meals: plannedMeals,
-      shoppingList: [],
-      totalCalories: 0,
-      status: 'active' as any,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isTemplate: false,
-    };
+      const newMealPlan: Omit<MealPlan, 'id' | 'createdAt' | 'updatedAt'> = {
+        name: newPlanName.trim(),
+        userId: user.id,
+        startDate,
+        endDate,
+        meals: plannedMeals as PlannedMeal[],
+        shoppingList: [],
+        totalCalories: 0,
+        status: 'active',
+        isTemplate: false,
+        sharedWith: [],
+      };
 
-    const updatedPlans = [...mealPlans, newMealPlan];
-    setMealPlans(updatedPlans);
-    localStorage.setItem('userMealPlans', JSON.stringify(updatedPlans));
+      // Create meal plan using API
+      const createdPlan = await MealPlanService.createMealPlan(newMealPlan);
 
-    // Reset form and close modal
-    setNewPlanName('');
-    setNewPlanWeek([]);
-    setShowCreateModal(false);
+      // Update local state
+      setMealPlans([...mealPlans, createdPlan]);
 
-    alert('Meal plan created successfully!');
+      // Reset form and close modal
+      setNewPlanName('');
+      setNewPlanWeek([]);
+      setShowCreateModal(false);
+
+      alert('Meal plan created successfully!');
+    } catch (error) {
+      console.error('Error creating meal plan:', error);
+      alert('Failed to create meal plan. Please try again.');
+    }
   };
 
   const handleAddMeal = (dayIndex: number, mealType: 'breakfast' | 'lunch' | 'dinner') => {
@@ -511,18 +646,32 @@ export default function MealPlans() {
               <p className="text-gray-600 mt-1">Plan your meals for the week ahead</p>
             </div>
             <div className="flex items-center gap-3">
+              {!showMealPlanner && (
+                <>
+                  <button
+                    onClick={() => setSelectedWeek(Math.max(0, selectedWeek - 1))}
+                    disabled={selectedWeek === 0}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ← Previous Week
+                  </button>
+                  <button
+                    onClick={() => setSelectedWeek(selectedWeek + 1)}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                  >
+                    Next Week →
+                  </button>
+                </>
+              )}
               <button
-                onClick={() => setSelectedWeek(Math.max(0, selectedWeek - 1))}
-                disabled={selectedWeek === 0}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setShowMealPlanner(!showMealPlanner)}
+                className={`px-6 py-2 rounded-xl font-medium transition-all ${
+                  showMealPlanner
+                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
               >
-                ← Previous Week
-              </button>
-              <button
-                onClick={() => setSelectedWeek(selectedWeek + 1)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900"
-              >
-                Next Week →
+                {showMealPlanner ? 'Quick View' : '📋 Full Planner'}
               </button>
               <button
                 onClick={handleCreateMealPlan}
@@ -533,144 +682,164 @@ export default function MealPlans() {
             </div>
           </div>
 
+          {/* MealPlanner Component */}
+          {showMealPlanner && user && (
+            <MealPlanner
+              mealPlans={mealPlans}
+              recipes={availableRecipes}
+              currentMealPlan={currentMealPlan || undefined}
+              onCreateMealPlan={handleCreateMealPlanFromPlanner}
+              onUpdateMealPlan={handleUpdateMealPlan}
+              onDeleteMealPlan={handleDeleteMealPlan}
+              onAddMealToPlan={handleAddMealToPlan}
+              onUpdateMeal={handleUpdateMeal}
+              onRemoveMealFromPlan={handleRemoveMealFromPlan}
+              userId={user.id}
+            />
+          )}
+
           {/* Week View */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {selectedWeek === 0
-                  ? 'This Week'
-                  : selectedWeek === 1
-                    ? 'Next Week'
-                    : `Week ${selectedWeek + 1}`}
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-gray-200">
-              {currentWeek.map((day, index) => (
-                <div key={day.day} className="p-4 min-h-[300px]">
-                  <div className="text-center mb-4">
-                    <h3 className="font-semibold text-gray-900">{day.day}</h3>
-                    <p className="text-sm text-gray-500">{day.date}</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {/* Breakfast */}
-                    <div className="bg-yellow-50 rounded-lg p-3">
-                      <h4 className="text-xs font-medium text-yellow-800 mb-2">BREAKFAST</h4>
-                      {day.meals.breakfast ? (
-                        <p className="text-sm text-gray-900">{day.meals.breakfast.title}</p>
-                      ) : (
-                        <button
-                          onClick={() => handleAddMeal(index, 'breakfast')}
-                          className="text-xs text-yellow-600 hover:text-yellow-700 font-medium"
-                        >
-                          + Add meal
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Lunch */}
-                    <div className="bg-green-50 rounded-lg p-3">
-                      <h4 className="text-xs font-medium text-green-800 mb-2">LUNCH</h4>
-                      {day.meals.lunch ? (
-                        <p className="text-sm text-gray-900">{day.meals.lunch.title}</p>
-                      ) : (
-                        <button
-                          onClick={() => handleAddMeal(index, 'lunch')}
-                          className="text-xs text-green-600 hover:text-green-700 font-medium"
-                        >
-                          + Add meal
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Dinner */}
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <h4 className="text-xs font-medium text-blue-800 mb-2">DINNER</h4>
-                      {day.meals.dinner ? (
-                        <p className="text-sm text-gray-900">{day.meals.dinner.title}</p>
-                      ) : (
-                        <button
-                          onClick={() => handleAddMeal(index, 'dinner')}
-                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                        >
-                          + Add meal
-                        </button>
-                      )}
-                    </div>
-                  </div>
+          {!showMealPlanner && (
+            <>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {selectedWeek === 0
+                      ? 'This Week'
+                      : selectedWeek === 1
+                        ? 'Next Week'
+                        : `Week ${selectedWeek + 1}`}
+                  </h2>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-pantry-50 to-pantry-100 rounded-2xl p-6 border border-pantry-200">
-              <div className="text-2xl mb-3">🤖</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Meal Planning</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                Let AI create a balanced meal plan based on your preferences and pantry items.
-              </p>
-              <button
-                onClick={generateAIMealPlan}
-                disabled={generatingPlan || availableIngredients.length === 0}
-                className="w-full px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {generatingPlan ? 'Generating...' : 'Generate AI Plan'}
-              </button>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+                  {currentWeek.map((day, index) => (
+                    <div key={day.day} className="p-4 min-h-[300px]">
+                      <div className="text-center mb-4">
+                        <h3 className="font-semibold text-gray-900">{day.day}</h3>
+                        <p className="text-sm text-gray-500">{day.date}</p>
+                      </div>
 
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-6 border border-orange-200">
-              <div className="text-2xl mb-3">📝</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Shopping List</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                Generate a shopping list based on your planned meals and current pantry.
-              </p>
-              <button
-                onClick={generateShoppingList}
-                disabled={currentWeek.every(
-                  day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner
-                )}
-                className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Create List
-              </button>
-            </div>
+                      <div className="space-y-3">
+                        {/* Breakfast */}
+                        <div className="bg-yellow-50 rounded-lg p-3">
+                          <h4 className="text-xs font-medium text-yellow-800 mb-2">BREAKFAST</h4>
+                          {day.meals.breakfast ? (
+                            <p className="text-sm text-gray-900">{day.meals.breakfast.title}</p>
+                          ) : (
+                            <button
+                              onClick={() => handleAddMeal(index, 'breakfast')}
+                              className="text-xs text-yellow-600 hover:text-yellow-700 font-medium"
+                            >
+                              + Add meal
+                            </button>
+                          )}
+                        </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border border-green-200">
-              <div className="text-2xl mb-3">📊</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Nutrition Analysis</h3>
-              <p className="text-gray-600 text-sm mb-4">
-                View nutritional breakdown and balance of your weekly meal plan.
-              </p>
-              <button
-                onClick={() => setShowNutritionModal(true)}
-                disabled={currentWeek.every(
-                  day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner
-                )}
-                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                View Analysis
-              </button>
-            </div>
-          </div>
+                        {/* Lunch */}
+                        <div className="bg-green-50 rounded-lg p-3">
+                          <h4 className="text-xs font-medium text-green-800 mb-2">LUNCH</h4>
+                          {day.meals.lunch ? (
+                            <p className="text-sm text-gray-900">{day.meals.lunch.title}</p>
+                          ) : (
+                            <button
+                              onClick={() => handleAddMeal(index, 'lunch')}
+                              className="text-xs text-green-600 hover:text-green-700 font-medium"
+                            >
+                              + Add meal
+                            </button>
+                          )}
+                        </div>
 
-          {/* Empty State */}
-          {mealPlans.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🍽️</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No meal plans yet</h3>
-              <p className="text-gray-600 mb-6">
-                Start planning your meals to eat better and save time during the week.
-              </p>
-              <button
-                onClick={handleCreateMealPlan}
-                className="px-8 py-3 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-all font-medium"
-              >
-                Create Your First Meal Plan
-              </button>
-            </div>
+                        {/* Dinner */}
+                        <div className="bg-blue-50 rounded-lg p-3">
+                          <h4 className="text-xs font-medium text-blue-800 mb-2">DINNER</h4>
+                          {day.meals.dinner ? (
+                            <p className="text-sm text-gray-900">{day.meals.dinner.title}</p>
+                          ) : (
+                            <button
+                              onClick={() => handleAddMeal(index, 'dinner')}
+                              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                              + Add meal
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-br from-pantry-50 to-pantry-100 rounded-2xl p-6 border border-pantry-200">
+                  <div className="text-2xl mb-3">🤖</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Meal Planning</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Let AI create a balanced meal plan based on your preferences and pantry items.
+                  </p>
+                  <button
+                    onClick={generateAIMealPlan}
+                    disabled={generatingPlan || availableIngredients.length === 0}
+                    className="w-full px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {generatingPlan ? 'Generating...' : 'Generate AI Plan'}
+                  </button>
+                </div>
+
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-6 border border-orange-200">
+                  <div className="text-2xl mb-3">📝</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Shopping List</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Generate a shopping list based on your planned meals and current pantry.
+                  </p>
+                  <button
+                    onClick={generateShoppingList}
+                    disabled={currentWeek.every(
+                      day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner
+                    )}
+                    className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Create List
+                  </button>
+                </div>
+
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border border-green-200">
+                  <div className="text-2xl mb-3">📊</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Nutrition Analysis</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    View nutritional breakdown and balance of your weekly meal plan.
+                  </p>
+                  <button
+                    onClick={() => setShowNutritionModal(true)}
+                    disabled={currentWeek.every(
+                      day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner
+                    )}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    View Analysis
+                  </button>
+                </div>
+              </div>
+
+              {/* Empty State */}
+              {!showMealPlanner && mealPlans.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🍽️</div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No meal plans yet</h3>
+                  <p className="text-gray-600 mb-6">
+                    Start planning your meals to eat better and save time during the week.
+                  </p>
+                  <button
+                    onClick={handleCreateMealPlan}
+                    className="px-8 py-3 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-all font-medium"
+                  >
+                    Create Your First Meal Plan
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
