@@ -249,25 +249,16 @@ FORMAT (JSON array):
 Focus on practical, delicious recipes that maximize use of available ingredients.`;
 
     try {
-      // Create RecipeGenerationParams object instead of using string prompt
-      const recipeParams = {
-        ingredients: prioritizedItems.slice(0, 8), // Use full Ingredient objects
-        cuisine: 'any' as any,
-        servings: 4,
-        cookTime: maxCookTime,
-        difficulty: difficultyLevel === 'Both' ? 'easy' : difficultyLevel.toLowerCase(),
-        dietaryRestrictions: dietaryPreferences,
-        customInstructions: `Generate ${maxSuggestions} quick recipes. Prioritize expiring ingredients: ${expiringItems.join(', ')}`,
-      };
-
-      const response = await aiService.generateRecipe(recipeParams, 'anonymous');
+      // Use generateContent for multiple recipe suggestions since generateRecipe only returns one recipe
+      const response = await aiService.generateContent(prompt);
 
       // Parse AI response - if it fails, create fallback recipes
       let recipes;
       try {
-        recipes = this.parseAIResponse(response.recipe || response);
+        recipes = this.parseAIResponse(response);
+        console.log(`✅ Successfully parsed ${recipes.length} recipe suggestions from AI`);
       } catch (parseError) {
-        console.warn('Failed to parse AI response, creating fallback recipes');
+        console.warn('Failed to parse AI response, creating fallback recipes:', parseError);
         recipes = this.createFallbackRecipesFromIngredients(
           prioritizedItems.slice(0, 8),
           maxSuggestions
