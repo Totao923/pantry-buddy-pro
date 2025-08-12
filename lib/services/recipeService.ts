@@ -215,8 +215,27 @@ export class RecipeService {
     console.log('Saving recipe to local storage as placeholder');
 
     try {
+      // Save to multiple storage locations to ensure the recipe can be found
+      const recipeWithMetadata = { ...recipe, savedAt: new Date().toISOString(), userId };
+
+      // Save to userRecipes (used by recipe detail page)
+      const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
+      const existingIndex = userRecipes.findIndex((r: Recipe) => r.id === recipe.id);
+      if (existingIndex >= 0) {
+        userRecipes[existingIndex] = recipeWithMetadata;
+      } else {
+        userRecipes.push(recipeWithMetadata);
+      }
+      localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
+
+      // Also save to savedRecipes for consistency
       const savedRecipes = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-      savedRecipes.push({ ...recipe, savedAt: new Date().toISOString(), userId });
+      const savedExistingIndex = savedRecipes.findIndex((r: Recipe) => r.id === recipe.id);
+      if (savedExistingIndex >= 0) {
+        savedRecipes[savedExistingIndex] = recipeWithMetadata;
+      } else {
+        savedRecipes.push(recipeWithMetadata);
+      }
       localStorage.setItem('savedRecipes', JSON.stringify(savedRecipes));
 
       return {

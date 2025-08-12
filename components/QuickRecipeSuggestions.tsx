@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth/AuthProvider';
 import {
   quickSuggestionsService,
@@ -18,9 +19,10 @@ interface RecipeCardProps {
   recipe: QuickRecipeSuggestion;
   onCookThis: () => void;
   onSaveRecipe: () => void;
+  isLoading?: boolean;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onCookThis, onSaveRecipe }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onCookThis, onSaveRecipe, isLoading = false }) => {
   const matchPercentage = Math.round(
     (recipe.matchingIngredients.length / recipe.ingredients.length) * 100
   );
@@ -123,10 +125,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onCookThis, onSaveRecip
       <div className="flex gap-3">
         <button
           onClick={onCookThis}
-          className="flex-1 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white px-4 py-3 rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-colors font-medium flex items-center justify-center gap-2"
+          disabled={isLoading}
+          className="flex-1 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white px-4 py-3 rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span>👨‍🍳</span>
-          Cook This
+          {isLoading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Preparing Recipe...
+            </>
+          ) : (
+            <>
+              <span>👨‍🍳</span>
+              Start Cooking
+            </>
+          )}
         </button>
         <button
           onClick={onSaveRecipe}
@@ -146,10 +158,12 @@ export default function QuickRecipeSuggestions({
   maxSuggestions = 4,
   showAsModal = false,
 }: QuickRecipeSuggestionsProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const [suggestions, setSuggestions] = useState<QuickRecipeSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cookingRecipeId, setCookingRecipeId] = useState<string | null>(null);
   const [options, setOptions] = useState<SuggestionRequest>({
     maxSuggestions,
     maxCookTime: 45,
@@ -184,6 +198,8 @@ export default function QuickRecipeSuggestions({
 
   const handleCookThis = async (recipe: QuickRecipeSuggestion) => {
     try {
+      setCookingRecipeId(recipe.id);
+
       // Track suggestion usage for analytics
       if (user?.id) {
         quickSuggestionsService.trackSuggestionUsed(user.id, recipe);
@@ -228,11 +244,18 @@ export default function QuickRecipeSuggestions({
         onRecipeSelected(recipe);
       }
 
+      // Show success feedback and navigate to recipe detail page
+      setCookingRecipeId(null);
+
+      // Navigate to the recipe detail page to show cooking instructions
+      router.push(`/dashboard/recipe/${recipe.id}`);
+
       if (showAsModal && onClose) {
         onClose();
       }
     } catch (error) {
       console.error('Failed to save recipe:', error);
+      setCookingRecipeId(null);
       alert('Failed to save recipe. Please try again.');
     }
   };
@@ -488,6 +511,7 @@ export default function QuickRecipeSuggestions({
             recipe={recipe}
             onCookThis={() => handleCookThis(recipe)}
             onSaveRecipe={() => handleSaveRecipe(recipe)}
+            isLoading={cookingRecipeId === recipe.id}
           />
         ))}
       </div>
