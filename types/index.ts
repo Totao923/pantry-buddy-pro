@@ -5,7 +5,9 @@ export interface Ingredient {
   quantity?: string;
   unit?: string;
   expiryDate?: Date;
+  purchaseDate?: Date;
   nutritionalValue?: number;
+  usageFrequency?: number;
   isProtein?: boolean;
   isVegetarian?: boolean;
   isVegan?: boolean;

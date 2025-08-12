@@ -3,6 +3,7 @@ import Head from 'next/head';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
 import SmartPantry from '../../components/SmartPantry';
+import QuickSuggestionsCard from '../../components/QuickSuggestionsCard';
 import { ingredientService } from '../../lib/services/ingredientService';
 import { Ingredient, IngredientCategory } from '../../types';
 
@@ -261,6 +262,9 @@ export default function PantryManagement() {
               </div>
             </div>
           )}
+
+          {/* Recipe Suggestions based on pantry */}
+          {ingredients.length >= 3 && <QuickSuggestionsCard />}
 
           {/* Smart Pantry Component */}
           <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-200">
