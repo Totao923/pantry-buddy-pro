@@ -28,20 +28,33 @@ export default function RecipeDetail() {
 
   const loadRecipe = async (recipeId: string) => {
     try {
-      // Load from localStorage (placeholder for future database integration)
-      const sources = ['userRecipes', 'recentRecipes'];
       let foundRecipe: Recipe | null = null;
 
-      for (const source of sources) {
-        const recipes = JSON.parse(localStorage.getItem(source) || '[]');
-        foundRecipe = recipes.find((r: Recipe) => r.id === recipeId);
-        if (foundRecipe) break;
+      // Try to load from database first if available
+      if (await databaseRecipeService.isAvailable()) {
+        console.log('Loading recipe from Supabase database');
+        const result = await databaseRecipeService.getRecipeById(recipeId);
+        if (result.success && result.data) {
+          foundRecipe = result.data;
+        }
+      }
+
+      // Fallback to localStorage if database not available or recipe not found
+      if (!foundRecipe) {
+        console.log('Loading recipe from localStorage fallback');
+        const sources = ['userRecipes', 'recentRecipes'];
+        
+        for (const source of sources) {
+          const recipes = JSON.parse(localStorage.getItem(source) || '[]');
+          foundRecipe = recipes.find((r: Recipe) => r.id === recipeId);
+          if (foundRecipe) break;
+        }
       }
 
       if (foundRecipe) {
         setRecipe(foundRecipe);
 
-        // Load rating and review
+        // Load rating and review (still using localStorage for now)
         const ratings = JSON.parse(localStorage.getItem('recipeRatings') || '{}');
         const reviews = JSON.parse(localStorage.getItem('recipeReviews') || '{}');
 

@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth/AuthProvider';
 import { ingredientService } from '../lib/services/ingredientService';
 import { AInutritionist } from '../components/AInutritionist';
 import QuickSuggestionsAnalytics from '../components/QuickSuggestionsAnalytics';
+import { RecipeService } from '../lib/services/recipeService';
 import { Ingredient, Recipe } from '../types';
 
 export default function Dashboard() {
@@ -24,11 +25,31 @@ export default function Dashboard() {
         const userIngredients = await ingredientService.getAllIngredients();
         setIngredients(userIngredients);
 
-        // Load recent recipes from localStorage
-        const savedRecipes = localStorage.getItem('recentRecipes');
-        if (savedRecipes) {
-          const recipes = JSON.parse(savedRecipes);
-          setRecentRecipes(recipes.slice(0, 6)); // Show last 6 recipes
+        // Load recent recipes from database or localStorage fallback
+        if (user?.id) {
+          try {
+            const result = await RecipeService.getSavedRecipes(user.id);
+            if (result.success && result.data) {
+              setRecentRecipes(result.data.slice(0, 6)); // Show last 6 recipes
+              console.log('Loaded recent recipes from database');
+            } else {
+              throw new Error('Database load failed');
+            }
+          } catch (error) {
+            console.log('Falling back to localStorage for recent recipes');
+            const savedRecipes = localStorage.getItem('recentRecipes');
+            if (savedRecipes) {
+              const recipes = JSON.parse(savedRecipes);
+              setRecentRecipes(recipes.slice(0, 6)); // Show last 6 recipes
+            }
+          }
+        } else {
+          // Not authenticated, use localStorage
+          const savedRecipes = localStorage.getItem('recentRecipes');
+          if (savedRecipes) {
+            const recipes = JSON.parse(savedRecipes);
+            setRecentRecipes(recipes.slice(0, 6)); // Show last 6 recipes
+          }
         }
       } catch (error) {
         console.error('Error loading dashboard data:', error);
