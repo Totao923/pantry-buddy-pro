@@ -7,7 +7,6 @@ import AuthGuard from '../components/auth/AuthGuard';
 import { useAuth } from '../lib/auth/AuthProvider';
 import { ingredientService } from '../lib/services/ingredientService';
 import { AInutritionist } from '../components/AInutritionist';
-import QuickSuggestionsCard from '../components/QuickSuggestionsCard';
 import QuickSuggestionsAnalytics from '../components/QuickSuggestionsAnalytics';
 import { Ingredient, Recipe } from '../types';
 
@@ -126,14 +125,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Quick Recipe Suggestions with Analytics */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            <div className="lg:col-span-2">
-              <QuickSuggestionsCard />
-            </div>
-            <div className="lg:col-span-1">
-              <QuickSuggestionsAnalytics />
-            </div>
+          {/* Quick Recipe Suggestions Analytics */}
+          <div className="max-w-2xl mx-auto">
+            <QuickSuggestionsAnalytics />
           </div>
 
           {/* Stats Grid */}

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth/AuthProvider';
+import QuickRecipeSuggestions from '../QuickRecipeSuggestions';
+import { ingredientService } from '../../lib/services/ingredientService';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -9,8 +11,24 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [pantryItemCount, setPantryItemCount] = useState<number>(0);
   const { user, signOut } = useAuth();
   const router = useRouter();
+
+  // Load pantry count for What Should I Cook button
+  useEffect(() => {
+    const loadPantryCount = async () => {
+      try {
+        const pantryItems = await ingredientService.getAllIngredients();
+        setPantryItemCount(pantryItems.length);
+      } catch (error) {
+        console.error('Failed to load pantry count:', error);
+      }
+    };
+
+    loadPantryCount();
+  }, []);
 
   const navigationItems = [
     {
@@ -163,6 +181,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   Add Ingredients
                 </button>
               </Link>
+              <button
+                onClick={() => setShowSuggestions(true)}
+                disabled={pantryItemCount < 3}
+                className={`w-full px-4 py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 min-h-[44px] transition-colors ${
+                  pantryItemCount < 3
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                }`}
+              >
+                <span>🤔</span>
+                What Should I Cook?
+              </button>
             </div>
           </div>
 
@@ -247,6 +277,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Page content */}
         <main className="min-h-screen p-6 bg-gray-50">{children}</main>
       </div>
+
+      {/* Quick Suggestions Modal */}
+      {showSuggestions && (
+        <QuickRecipeSuggestions
+          showAsModal={true}
+          onClose={() => setShowSuggestions(false)}
+          onRecipeSelected={() => {
+            setShowSuggestions(false);
+          }}
+        />
+      )}
     </div>
   );
 }
