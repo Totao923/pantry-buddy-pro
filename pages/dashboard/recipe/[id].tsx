@@ -8,6 +8,7 @@ import EnhancedRecipeCard from '../../../components/EnhancedRecipeCard';
 import RecipeRatingSystem from '../../../components/RecipeRatingSystem';
 import { useAuth } from '../../../lib/auth/AuthProvider';
 import { Recipe, RecipeRating, RecipeReview } from '../../../types';
+import { databaseRecipeService } from '../../../lib/services/databaseRecipeService';
 
 export default function RecipeDetail() {
   const router = useRouter();

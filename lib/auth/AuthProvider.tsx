@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { createSupabaseClient } from '../supabase/client';
 import { dataMigrationService } from '../migration/dataMigration';
 import { ingredientService } from '../services/ingredientService';
+import { ingredientServiceFactory } from '../services/ingredientServiceFactory';
 import type { Database } from '../supabase/types';
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
@@ -121,6 +122,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN' && session?.user) {
+        // Switch to database services when user signs in
+        try {
+          const switched = await ingredientServiceFactory.switchToDatabaseService();
+          console.log('Service switch result:', switched ? 'database' : 'mock');
+        } catch (error) {
+          console.error('Error switching to database service:', error);
+        }
+
         // Reset ingredients every time user signs in
         try {
           await ingredientService.clearAllIngredients();
@@ -142,6 +151,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           router.push('/dashboard');
         }
       } else if (event === 'SIGNED_OUT') {
+        // Switch back to mock service when user signs out
+        ingredientServiceFactory.switchToMockService();
+        console.log('Switched back to mock service after sign-out');
+        
         setProfile(null);
         setPreferences(null);
         setSubscription(null);

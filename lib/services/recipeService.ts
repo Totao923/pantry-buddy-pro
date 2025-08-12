@@ -1,4 +1,5 @@
 import { Recipe, Ingredient, CuisineType } from '../../types';
+import { databaseRecipeService } from './databaseRecipeService';
 
 interface RecipeGenerationOptions {
   ingredients: Ingredient[];
@@ -205,15 +206,34 @@ export class RecipeService {
   }
 
   /**
-   * Save recipe to user's collection (placeholder for future implementation)
+   * Save recipe to user's collection
    */
   static async saveRecipe(
     recipe: Recipe,
     userId: string
   ): Promise<RecipeServiceResponse<{ saved: boolean }>> {
-    // TODO: Implement when user authentication and database are set up
-    console.log('Saving recipe to local storage as placeholder');
+    try {
+      // Try to use database service first
+      if (await databaseRecipeService.isAvailable()) {
+        console.log('Saving recipe to Supabase database');
+        return await databaseRecipeService.saveRecipe(recipe, userId);
+      } else {
+        console.log('Database not available, falling back to localStorage');
+        return await this.saveRecipeToLocalStorage(recipe, userId);
+      }
+    } catch (error) {
+      console.warn('Database save failed, falling back to localStorage:', error);
+      return await this.saveRecipeToLocalStorage(recipe, userId);
+    }
+  }
 
+  /**
+   * Fallback method to save recipe to localStorage
+   */
+  private static async saveRecipeToLocalStorage(
+    recipe: Recipe,
+    userId: string
+  ): Promise<RecipeServiceResponse<{ saved: boolean }>> {
     try {
       // Save to multiple storage locations to ensure the recipe can be found
       const recipeWithMetadata = { ...recipe, savedAt: new Date().toISOString(), userId };
@@ -251,22 +271,51 @@ export class RecipeService {
   }
 
   /**
-   * Get saved recipes (placeholder for future implementation)
+   * Get saved recipes
    */
   static async getSavedRecipes(userId: string): Promise<RecipeServiceResponse<Recipe[]>> {
-    // TODO: Implement when user authentication and database are set up
+    try {
+      // Try to use database service first
+      if (await databaseRecipeService.isAvailable()) {
+        console.log('Loading recipes from Supabase database');
+        return await databaseRecipeService.getUserRecipes(userId);
+      } else {
+        console.log('Database not available, falling back to localStorage');
+        return await this.getSavedRecipesFromLocalStorage(userId);
+      }
+    } catch (error) {
+      console.warn('Database load failed, falling back to localStorage:', error);
+      return await this.getSavedRecipesFromLocalStorage(userId);
+    }
+  }
+
+  /**
+   * Fallback method to get recipes from localStorage
+   */
+  private static async getSavedRecipesFromLocalStorage(userId: string): Promise<RecipeServiceResponse<Recipe[]>> {
     try {
       const savedRecipes = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
-      const userRecipes = savedRecipes.filter((r: any) => r.userId === userId);
+      const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
+      
+      // Combine both sources and deduplicate by ID
+      const allRecipes = [...savedRecipes, ...userRecipes];
+      const uniqueRecipes = allRecipes.reduce((acc, recipe) => {
+        if (!acc.find(r => r.id === recipe.id)) {
+          acc.push(recipe);
+        }
+        return acc;
+      }, []);
+
+      const filteredRecipes = uniqueRecipes.filter((r: any) => r.userId === userId);
 
       return {
         success: true,
-        data: userRecipes,
+        data: filteredRecipes,
       };
     } catch (error) {
       return {
         success: false,
-        error: 'Failed to load saved recipes',
+        error: 'Failed to load saved recipes from local storage',
       };
     }
   }

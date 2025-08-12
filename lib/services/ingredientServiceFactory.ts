@@ -18,14 +18,18 @@ class IngredientServiceFactory {
 
   private async initialize(): Promise<void> {
     try {
-      // For now, always use mock service until user is authenticated
-      // This allows the app to work in demo mode and during initial load
-      console.log('Using mock ingredient service (demo mode)');
-      this._currentService = mockIngredientService;
+      // Check if database service is available (user authenticated)
+      const isDatabaseAvailable = await this.isDatabaseAvailable();
+      
+      if (isDatabaseAvailable) {
+        console.log('User authenticated - using Supabase database ingredient service');
+        this._currentService = databaseIngredientService as any;
+      } else {
+        console.log('User not authenticated - using mock ingredient service (demo mode)');
+        this._currentService = mockIngredientService;
+      }
+      
       this._initialized = true;
-
-      // TODO: Switch to database service after user authentication
-      // We can add a method to switch services when auth state changes
     } catch (error) {
       console.warn('Error initializing ingredient service, falling back to mock:', error);
       this._currentService = mockIngredientService;
