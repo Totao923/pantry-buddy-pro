@@ -4,9 +4,11 @@ export default function DeploymentTest() {
   const deploymentInfo = {
     version: '1.0.1',
     timestamp: new Date().toISOString(),
-    commitHash: 'acf97fc',
+    commitHash: '045b805',
     buildDate: '2025-08-13',
     analyticsFixIncluded: true,
+    manifestFixed: true,
+    documentAdded: true,
   };
 
   return (
