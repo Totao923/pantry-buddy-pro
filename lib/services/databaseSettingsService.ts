@@ -383,7 +383,10 @@ class DatabaseSettingsService {
 
       return true;
     } catch (error) {
-      console.log('Database unavailable: Exception thrown', error.message);
+      console.log(
+        'Database unavailable: Exception thrown',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       return false;
     }
   }
