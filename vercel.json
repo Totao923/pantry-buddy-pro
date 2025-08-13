@@ -1,4 +1,5 @@
 {
+  "//": "Force deployment update for analytics fix",
   "build": {
     "env": {
       "NEXT_TELEMETRY_DISABLED": "1"
