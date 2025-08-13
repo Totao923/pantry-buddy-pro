@@ -33,6 +33,9 @@ async function generateRecipeHandler(
   }
 
   try {
+    // Log incoming request data for debugging
+    console.log('🔍 Incoming request body:', JSON.stringify(req.body, null, 2));
+
     // Validate and sanitize input
     const validatedData = validateAndSanitize(GenerateRecipeSchema, req.body);
     const { ingredients, cuisine, servings = 4, preferences } = validatedData;

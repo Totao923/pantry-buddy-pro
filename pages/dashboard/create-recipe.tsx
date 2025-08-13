@@ -127,8 +127,12 @@ export default function CreateRecipe() {
   };
 
   const generateRecipe = async () => {
+    console.log('🔍 Generate Recipe called with ingredients:', ingredients);
+
     if (ingredients.length === 0) {
-      setError('Please add at least one ingredient to generate a recipe!');
+      setError(
+        'Please add at least one ingredient to generate a recipe! Go to Smart Pantry to add ingredients first.'
+      );
       return;
     }
 
@@ -154,7 +158,7 @@ export default function CreateRecipe() {
               maxTime: cookingPreferences.maxTime,
               difficulty:
                 cookingPreferences.difficulty !== 'any'
-                  ? (cookingPreferences.difficulty as any)
+                  ? (cookingPreferences.difficulty as 'Easy' | 'Medium' | 'Hard')
                   : undefined,
               spiceLevel: cookingPreferences.spiceLevel,
               experienceLevel: cookingPreferences.experienceLevel,
@@ -241,29 +245,33 @@ export default function CreateRecipe() {
         // For unauthenticated users, use public AI endpoint with timeout
         console.log('🚀 Generating recipe via public AI endpoint (no auth)...');
 
+        const requestBody = {
+          ingredients: ingredients.map(ing => ({
+            ...ing,
+            quantity: ing.quantity?.toString() || '1',
+          })),
+          cuisine: selectedCuisine,
+          servings: 4,
+          preferences: {
+            maxTime: cookingPreferences.maxTime,
+            difficulty:
+              cookingPreferences.difficulty !== 'any'
+                ? (cookingPreferences.difficulty as 'Easy' | 'Medium' | 'Hard')
+                : undefined,
+            spiceLevel: cookingPreferences.spiceLevel,
+            experienceLevel: cookingPreferences.experienceLevel,
+            dietary: [],
+          },
+        };
+
+        console.log('🚀 Sending request to public API:', JSON.stringify(requestBody, null, 2));
+
         const unauthPromise = fetch('/api/recipes/generate-public', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            ingredients: ingredients.map(ing => ({
-              ...ing,
-              quantity: ing.quantity?.toString() || '1',
-            })),
-            cuisine: selectedCuisine,
-            servings: 4,
-            preferences: {
-              maxTime: cookingPreferences.maxTime,
-              difficulty:
-                cookingPreferences.difficulty !== 'any'
-                  ? (cookingPreferences.difficulty as any)
-                  : undefined,
-              spiceLevel: cookingPreferences.spiceLevel,
-              experienceLevel: cookingPreferences.experienceLevel,
-              dietary: [],
-            },
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         const unauthTimeoutPromise = new Promise<never>((_, reject) =>
