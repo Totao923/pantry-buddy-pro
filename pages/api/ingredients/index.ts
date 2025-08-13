@@ -4,6 +4,7 @@ import { withAuth, type AuthenticatedRequest } from '../../../lib/middleware/aut
 import { withSecurity, sanitizeError } from '../../../lib/middleware/enhanced-security';
 import { validateAndSanitize, CreateIngredientSchema } from '../../../lib/validation/schemas';
 import { createUserSupabaseClient } from '../../../lib/supabase/server';
+import { withSubscription, type SubscriptionRequest } from '../../../lib/middleware/subscription';
 
 interface IngredientsResponse {
   success: boolean;
@@ -12,7 +13,7 @@ interface IngredientsResponse {
 }
 
 async function ingredientsHandler(
-  req: AuthenticatedRequest,
+  req: SubscriptionRequest,
   res: NextApiResponse<IngredientsResponse | Ingredient>
 ) {
   const { method } = req;
@@ -68,12 +69,36 @@ async function handleGetIngredients(
 }
 
 async function handleCreateIngredient(
-  req: AuthenticatedRequest,
+  req: SubscriptionRequest,
   res: NextApiResponse,
   supabase: any
 ) {
   // Validate and sanitize input
   const validatedData = validateAndSanitize(CreateIngredientSchema, req.body);
+
+  // Check current pantry count
+  const { count: currentCount, error: countError } = await supabase
+    .from('pantry_items')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', req.user.id);
+
+  if (countError) {
+    throw new Error(`Failed to check pantry count: ${countError.message}`);
+  }
+
+  // Check if user can add more pantry items
+  const { allowed, remaining } = await req.subscription.canAddPantryItem(currentCount || 0);
+
+  if (!allowed) {
+    return res.status(402).json({
+      success: false,
+      error: 'Pantry item limit reached',
+      code: 'PANTRY_LIMIT_EXCEEDED',
+      currentCount,
+      remaining: 0,
+      upgradeUrl: '/dashboard/subscription',
+    });
+  }
 
   // Create ingredient with user ID (RLS will enforce ownership)
   const { data: ingredient, error } = await supabase
@@ -107,7 +132,7 @@ async function handleCreateIngredient(
 }
 
 async function handleDeleteAllIngredients(
-  req: AuthenticatedRequest,
+  req: SubscriptionRequest,
   res: NextApiResponse,
   supabase: any
 ) {
@@ -124,9 +149,9 @@ async function handleDeleteAllIngredients(
   });
 }
 
-// Apply security middleware with authentication requirement
+// Apply security middleware with authentication requirement and subscription limits
 export default withSecurity({
   rateLimit: { windowMs: 15 * 60 * 1000, max: 100 },
   allowedMethods: ['GET', 'POST', 'DELETE'],
   maxBodySize: 10 * 1024,
-})(withAuth(ingredientsHandler));
+})(withAuth(withSubscription(ingredientsHandler)));

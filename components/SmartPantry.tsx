@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Ingredient, IngredientCategory, SmartSuggestion } from '../types';
 import { getIngredientService } from '../lib/services/ingredientServiceFactory';
 import { useIngredients } from '../lib/hooks/useIngredients';
+import { useAuth } from '../lib/auth/AuthProvider';
 
 interface SmartPantryProps {
   ingredients: Ingredient[];
@@ -81,9 +82,11 @@ export default function SmartPantry({
   const [searchFilter, setSearchFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<IngredientCategory | 'all'>('all');
   const [showExpiringSoon, setShowExpiringSoon] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
   // Use the ingredients hook to get loading and error states
   const { loading, error, searchIngredients, filterByCategory } = useIngredients();
+  const { session } = useAuth();
 
   const generateSmartSuggestions = useCallback(() => {
     const suggestions: SmartSuggestion[] = [];
@@ -146,6 +149,7 @@ export default function SmartPantry({
 
   const addIngredient = async (name: string, category?: IngredientCategory) => {
     if (name.trim() && !ingredients.some(ing => ing.name.toLowerCase() === name.toLowerCase())) {
+      setIsAdding(true);
       try {
         const detectedCategory = category || detectCategory(name);
         const ingredientData = {
@@ -156,15 +160,39 @@ export default function SmartPantry({
           isProtein: detectedCategory === 'protein',
         };
 
-        const service = await getIngredientService();
-        const newIngredient = await service.createIngredient(ingredientData);
-        onAddIngredient(newIngredient);
-        setInputValue('');
-        setSuggestions([]);
-      } catch (error) {
-        console.error('Failed to add ingredient:', error);
-        // Fallback to local addition for better UX
-        const detectedCategory = category || detectCategory(name);
+        console.log('Adding ingredient with data:', ingredientData);
+
+        // If user is authenticated, try to save to database via API
+        if (session?.access_token) {
+          try {
+            const response = await fetch('/api/ingredients', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify(ingredientData),
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log('Successfully added ingredient to database:', result);
+              onAddIngredient(result.ingredient);
+              setInputValue('');
+              setSuggestions([]);
+              return;
+            } else {
+              console.error('API response not ok:', response.status);
+              // Fall through to local addition
+            }
+          } catch (apiError) {
+            console.error('API call failed:', apiError);
+            // Fall through to local addition
+          }
+        }
+
+        // Fallback to local addition (for demo mode or API failure)
+        console.log('Adding ingredient locally');
         const ingredient: Ingredient = {
           id: Date.now().toString(),
           name: name.trim(),
@@ -176,6 +204,11 @@ export default function SmartPantry({
         onAddIngredient(ingredient);
         setInputValue('');
         setSuggestions([]);
+      } catch (error) {
+        console.error('Failed to add ingredient:', error);
+        alert('Failed to add ingredient. Please try again.');
+      } finally {
+        setIsAdding(false);
       }
     }
   };
@@ -267,9 +300,10 @@ export default function SmartPantry({
                 </div>
                 <button
                   onClick={() => addIngredient(suggestion.title.replace('Add ', ''))}
-                  className="px-3 py-1 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm"
+                  disabled={isAdding}
+                  className="px-3 py-1 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Add
+                  {isAdding ? 'Adding...' : 'Add'}
                 </button>
               </div>
             ))}
@@ -285,9 +319,14 @@ export default function SmartPantry({
               type="text"
               value={inputValue}
               onChange={e => handleInputChange(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && addIngredient(inputValue)}
-              placeholder="Add ingredient (e.g., chicken breast, organic tomatoes...)"
-              className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-base"
+              onKeyPress={e => e.key === 'Enter' && !isAdding && addIngredient(inputValue)}
+              placeholder={
+                isAdding
+                  ? 'Adding ingredient...'
+                  : 'Add ingredient (e.g., chicken breast, organic tomatoes...)'
+              }
+              disabled={isAdding}
+              className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all text-base disabled:opacity-50 disabled:cursor-not-allowed"
             />
 
             {suggestions.length > 0 && (
@@ -296,7 +335,8 @@ export default function SmartPantry({
                   <button
                     key={suggestion}
                     onClick={() => addIngredient(suggestion)}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-b-0 transition-colors"
+                    disabled={isAdding}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-b-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xl">

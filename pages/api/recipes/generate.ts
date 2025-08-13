@@ -4,6 +4,8 @@ import { CuisineType, Ingredient, Recipe } from '../../../types';
 import { withAuth, type AuthenticatedRequest } from '../../../lib/middleware/auth';
 import { withSecurity, sanitizeError } from '../../../lib/middleware/enhanced-security';
 import { validateAndSanitize, GenerateRecipeSchema } from '../../../lib/validation/schemas';
+import { checkRecipeLimit, type SubscriptionRequest } from '../../../lib/middleware/subscription';
+import { UsageTrackingService } from '../../../lib/services/usageTrackingService';
 
 interface GenerateRecipeResponse {
   success: boolean;
@@ -22,7 +24,7 @@ interface GenerateRecipeResponse {
 }
 
 async function generateRecipeHandler(
-  req: AuthenticatedRequest,
+  req: SubscriptionRequest,
   res: NextApiResponse<GenerateRecipeResponse>
 ) {
   if (req.method !== 'POST') {
@@ -68,6 +70,9 @@ async function generateRecipeHandler(
     const responseTime = Date.now() - startTime;
 
     if (result.success && result.recipe) {
+      // Track successful recipe generation
+      await UsageTrackingService.trackRecipeGeneration(userId, 0, 0);
+
       return res.status(200).json({
         success: true,
         recipe: result.recipe,
@@ -104,9 +109,9 @@ async function generateRecipeHandler(
   }
 }
 
-// Apply security middleware with authentication requirement
+// Apply security middleware with authentication requirement and subscription limits
 export default withSecurity({
   rateLimit: { windowMs: 15 * 60 * 1000, max: 20 }, // Lower limit for AI operations
   allowedMethods: ['POST'],
   maxBodySize: 50 * 1024, // 50KB for recipe data
-})(withAuth(generateRecipeHandler));
+})(withAuth(checkRecipeLimit(generateRecipeHandler)));
