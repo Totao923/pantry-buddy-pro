@@ -45,18 +45,26 @@ export default function CookingTracker({
   const handleQuickMarkCooked = async () => {
     setLoading(true);
     try {
+      const requestData = {
+        recipe_id: recipe.id,
+        recipe_title: recipe.title,
+        recipe_data: recipe,
+      };
+
+      console.log('Sending cooking session request:', requestData);
+
       const response = await fetch('/api/cooking-sessions/mark-cooked', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipe_id: recipe.id,
-          recipe_title: recipe.title,
-          recipe_data: recipe,
-        }),
+        body: JSON.stringify(requestData),
       });
+
+      console.log('Response status:', response.status);
 
       if (response.ok) {
         const result = await response.json();
+        console.log('Success response:', result);
+
         setHasCooked(true);
         setTimesCooked(prev => prev + 1);
         setRecentSession(result.data);
@@ -69,7 +77,9 @@ export default function CookingTracker({
         // You can integrate with your existing notification system
         console.log('Recipe marked as cooked!');
       } else {
-        throw new Error('Failed to mark recipe as cooked');
+        const errorData = await response.text();
+        console.error('Error response:', { status: response.status, data: errorData });
+        throw new Error(`Failed to mark recipe as cooked: ${response.status} ${errorData}`);
       }
     } catch (error) {
       console.error('Error marking recipe as cooked:', error);

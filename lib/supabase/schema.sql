@@ -208,6 +208,16 @@ CREATE INDEX idx_usage_tracking_user_date ON public.usage_tracking(user_id, date
 CREATE INDEX idx_ai_cache_key ON public.ai_cache(cache_key);
 CREATE INDEX idx_ai_cache_expires ON public.ai_cache(expires_at);
 
+-- Cooking tracking indexes
+CREATE INDEX idx_cooking_sessions_user_id ON public.cooking_sessions(user_id);
+CREATE INDEX idx_cooking_sessions_recipe_id ON public.cooking_sessions(recipe_id);
+CREATE INDEX idx_cooking_sessions_cooked_at ON public.cooking_sessions(cooked_at);
+CREATE INDEX idx_cooking_sessions_rating ON public.cooking_sessions(rating);
+
+CREATE INDEX idx_recipe_stats_times_cooked ON public.recipe_cooking_stats(total_times_cooked);
+CREATE INDEX idx_recipe_stats_rating ON public.recipe_cooking_stats(average_rating);
+CREATE INDEX idx_recipe_stats_last_cooked ON public.recipe_cooking_stats(last_cooked_at);
+
 -- Enable Row Level Security (RLS) on all tables
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
@@ -219,6 +229,9 @@ ALTER TABLE public.usage_tracking ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shopping_lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cooking_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recipe_cooking_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_cooking_preferences ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
 
@@ -280,6 +293,115 @@ CREATE POLICY "System can manage ai cache" ON public.ai_cache
 CREATE POLICY "Users can manage own shopping lists" ON public.shopping_lists
     FOR ALL USING (auth.uid() = user_id);
 
+-- Cooking sessions: Users can manage their own cooking sessions
+CREATE POLICY "Users can view own cooking sessions" ON public.cooking_sessions
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own cooking sessions" ON public.cooking_sessions
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own cooking sessions" ON public.cooking_sessions
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own cooking sessions" ON public.cooking_sessions
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Recipe stats: Publicly readable, system managed
+CREATE POLICY "Recipe stats are publicly readable" ON public.recipe_cooking_stats
+    FOR SELECT USING (true);
+
+-- User cooking preferences: Users can manage their own preferences
+CREATE POLICY "Users can view own cooking preferences" ON public.user_cooking_preferences
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own cooking preferences" ON public.user_cooking_preferences
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own cooking preferences" ON public.user_cooking_preferences
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Cooking Sessions table (from migration 007)
+CREATE TABLE public.cooking_sessions (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE NOT NULL,
+    recipe_id TEXT NOT NULL,
+    recipe_title TEXT NOT NULL,
+    recipe_data JSONB,
+    cooked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Optional user feedback
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    cooking_notes TEXT,
+    difficulty_rating INTEGER CHECK (difficulty_rating >= 1 AND difficulty_rating <= 5),
+    cook_time_actual INTEGER,
+    
+    -- Success indicators
+    would_cook_again BOOLEAN,
+    recipe_followed_exactly BOOLEAN DEFAULT TRUE,
+    modifications_made TEXT,
+    
+    -- Additional metadata
+    cooking_method TEXT,
+    servings_made INTEGER,
+    photo_url TEXT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Recipe cooking stats table
+CREATE TABLE public.recipe_cooking_stats (
+    recipe_id TEXT PRIMARY KEY,
+    recipe_title TEXT NOT NULL,
+    
+    -- Cooking frequency stats
+    total_times_cooked INTEGER DEFAULT 0,
+    unique_users_cooked INTEGER DEFAULT 0,
+    last_cooked_at TIMESTAMP WITH TIME ZONE,
+    first_cooked_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Rating aggregations
+    average_rating DECIMAL(3,2),
+    total_ratings INTEGER DEFAULT 0,
+    average_difficulty DECIMAL(3,2),
+    
+    -- Success metrics
+    success_rate DECIMAL(5,2),
+    exact_follow_rate DECIMAL(5,2),
+    
+    -- Time tracking
+    average_cook_time INTEGER,
+    
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- User cooking preferences table
+CREATE TABLE public.user_cooking_preferences (
+    user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE PRIMARY KEY,
+    
+    -- Cooking frequency
+    total_recipes_cooked INTEGER DEFAULT 0,
+    cooking_streak_current INTEGER DEFAULT 0,
+    cooking_streak_longest INTEGER DEFAULT 0,
+    last_cooked_at TIMESTAMP WITH TIME ZONE,
+    first_cooked_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Preferences derived from cooking history
+    favorite_cuisines TEXT[],
+    preferred_cook_times INTEGER[],
+    preferred_difficulty INTEGER,
+    
+    -- Cooking patterns
+    most_active_cooking_day TEXT,
+    most_active_cooking_hour INTEGER,
+    
+    -- Success patterns
+    average_rating_given DECIMAL(3,2),
+    recipe_completion_rate DECIMAL(5,2),
+    
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Functions
 
 -- Function to handle user registration
@@ -340,6 +462,14 @@ CREATE TRIGGER update_subscriptions_updated_at
 
 CREATE TRIGGER update_shopping_lists_updated_at
     BEFORE UPDATE ON public.shopping_lists
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_cooking_sessions_updated_at
+    BEFORE UPDATE ON public.cooking_sessions
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_user_cooking_preferences_updated_at
+    BEFORE UPDATE ON public.user_cooking_preferences
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Function to clean expired cache entries
@@ -415,3 +545,97 @@ BEGIN
     RETURN features;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Functions to update cooking statistics
+CREATE OR REPLACE FUNCTION public.update_recipe_cooking_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update or insert recipe cooking stats
+    INSERT INTO public.recipe_cooking_stats (
+        recipe_id,
+        recipe_title,
+        total_times_cooked,
+        unique_users_cooked,
+        last_cooked_at,
+        first_cooked_at,
+        average_rating,
+        total_ratings,
+        average_difficulty,
+        success_rate,
+        exact_follow_rate,
+        average_cook_time
+    )
+    SELECT 
+        NEW.recipe_id,
+        NEW.recipe_title,
+        COUNT(*) as total_times_cooked,
+        COUNT(DISTINCT user_id) as unique_users_cooked,
+        MAX(cooked_at) as last_cooked_at,
+        MIN(cooked_at) as first_cooked_at,
+        AVG(rating) as average_rating,
+        COUNT(*) FILTER (WHERE rating IS NOT NULL) as total_ratings,
+        AVG(difficulty_rating) as average_difficulty,
+        AVG(CASE WHEN would_cook_again THEN 100.0 ELSE 0.0 END) as success_rate,
+        AVG(CASE WHEN recipe_followed_exactly THEN 100.0 ELSE 0.0 END) as exact_follow_rate,
+        AVG(cook_time_actual) as average_cook_time
+    FROM public.cooking_sessions 
+    WHERE recipe_id = NEW.recipe_id
+    ON CONFLICT (recipe_id) DO UPDATE SET
+        total_times_cooked = EXCLUDED.total_times_cooked,
+        unique_users_cooked = EXCLUDED.unique_users_cooked,
+        last_cooked_at = EXCLUDED.last_cooked_at,
+        first_cooked_at = EXCLUDED.first_cooked_at,
+        average_rating = EXCLUDED.average_rating,
+        total_ratings = EXCLUDED.total_ratings,
+        average_difficulty = EXCLUDED.average_difficulty,
+        success_rate = EXCLUDED.success_rate,
+        exact_follow_rate = EXCLUDED.exact_follow_rate,
+        average_cook_time = EXCLUDED.average_cook_time,
+        updated_at = NOW();
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically update recipe stats when cooking session is added
+CREATE TRIGGER trigger_update_recipe_cooking_stats
+    AFTER INSERT OR UPDATE ON public.cooking_sessions
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_recipe_cooking_stats();
+
+-- Function to update user cooking preferences
+CREATE OR REPLACE FUNCTION public.update_user_cooking_preferences()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update or insert user cooking preferences
+    INSERT INTO public.user_cooking_preferences (
+        user_id,
+        total_recipes_cooked,
+        last_cooked_at,
+        first_cooked_at,
+        average_rating_given
+    )
+    SELECT 
+        NEW.user_id,
+        COUNT(*) as total_recipes_cooked,
+        MAX(cooked_at) as last_cooked_at,
+        MIN(cooked_at) as first_cooked_at,
+        AVG(rating) as average_rating_given
+    FROM public.cooking_sessions 
+    WHERE user_id = NEW.user_id
+    ON CONFLICT (user_id) DO UPDATE SET
+        total_recipes_cooked = EXCLUDED.total_recipes_cooked,
+        last_cooked_at = EXCLUDED.last_cooked_at,
+        first_cooked_at = GREATEST(public.user_cooking_preferences.first_cooked_at, EXCLUDED.first_cooked_at),
+        average_rating_given = EXCLUDED.average_rating_given,
+        updated_at = NOW();
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically update user preferences when cooking session is added
+CREATE TRIGGER trigger_update_user_cooking_preferences
+    AFTER INSERT OR UPDATE ON public.cooking_sessions
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_user_cooking_preferences();

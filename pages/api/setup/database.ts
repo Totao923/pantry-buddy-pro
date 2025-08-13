@@ -68,6 +68,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'subscriptions',
       'usage_tracking',
       'ai_cache',
+      'cooking_sessions',
+      'recipe_cooking_stats',
+      'user_cooking_preferences',
+      'shopping_lists',
+      'recipe_ratings',
+      'recipe_photos',
     ];
 
     const existingTables = tables?.map(t => t.table_name) || [];

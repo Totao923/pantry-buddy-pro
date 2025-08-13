@@ -94,8 +94,14 @@ class CookingSessionService {
       error,
     } = await this.supabase.auth.getUser();
 
+    console.log('Authentication check:', {
+      hasUser: !!user,
+      userId: user?.id,
+      error: error?.message,
+    });
+
     if (error || !user) {
-      throw new Error('User not authenticated');
+      throw new Error(`User not authenticated: ${error?.message || 'No user found'}`);
     }
 
     return user.id;
@@ -104,36 +110,41 @@ class CookingSessionService {
   // Create a new cooking session
   async createCookingSession(sessionData: CookingSessionInput): Promise<CookingSession> {
     try {
+      console.log('Creating cooking session with data:', sessionData);
       const userId = await this.ensureAuthenticated();
 
+      console.log('User authenticated, userId:', userId);
+
+      const insertData = {
+        user_id: userId,
+        recipe_id: sessionData.recipe_id,
+        recipe_title: sessionData.recipe_title,
+        recipe_data: sessionData.recipe_data || null,
+        rating: sessionData.rating || null,
+        cooking_notes: sessionData.cooking_notes || null,
+        difficulty_rating: sessionData.difficulty_rating || null,
+        cook_time_actual: sessionData.cook_time_actual || null,
+        would_cook_again: sessionData.would_cook_again ?? null,
+        recipe_followed_exactly: sessionData.recipe_followed_exactly ?? true,
+        modifications_made: sessionData.modifications_made || null,
+        cooking_method: sessionData.cooking_method || null,
+        servings_made: sessionData.servings_made || null,
+        photo_url: sessionData.photo_url || null,
+      };
+
+      console.log('Inserting into cooking_sessions table with data:', insertData);
+
       const { data, error } = await withRetry(async () => {
-        return await this.supabase
-          .from('cooking_sessions')
-          .insert({
-            user_id: userId,
-            recipe_id: sessionData.recipe_id,
-            recipe_title: sessionData.recipe_title,
-            recipe_data: sessionData.recipe_data || null,
-            rating: sessionData.rating || null,
-            cooking_notes: sessionData.cooking_notes || null,
-            difficulty_rating: sessionData.difficulty_rating || null,
-            cook_time_actual: sessionData.cook_time_actual || null,
-            would_cook_again: sessionData.would_cook_again ?? null,
-            recipe_followed_exactly: sessionData.recipe_followed_exactly ?? true,
-            modifications_made: sessionData.modifications_made || null,
-            cooking_method: sessionData.cooking_method || null,
-            servings_made: sessionData.servings_made || null,
-            photo_url: sessionData.photo_url || null,
-          })
-          .select()
-          .single();
+        return await this.supabase.from('cooking_sessions').insert(insertData).select().single();
       });
 
       if (error) {
+        console.error('Supabase insert error:', error);
         const handled = handleSupabaseError(error, 'creating cooking session');
         throw new Error(handled.message);
       }
 
+      console.log('Successfully inserted cooking session:', data);
       return data as CookingSession;
     } catch (error) {
       console.error('Error creating cooking session:', error);
