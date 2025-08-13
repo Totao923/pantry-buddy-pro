@@ -23,8 +23,8 @@ export default function AuthCallback() {
         }
 
         if (session) {
-          // Successfully authenticated, redirect to home
-          router.push('/?auth=success');
+          // Successfully authenticated, redirect to dashboard
+          router.push('/dashboard');
         } else {
           // No session, redirect to home
           router.push('/');
