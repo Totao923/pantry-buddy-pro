@@ -213,10 +213,6 @@ export class UsageTrackingService {
           console.error('Error inserting recipe generation tracking:', error);
         }
       }
-
-      if (error) {
-        console.error('Error tracking recipe generation:', error);
-      }
     } catch (error) {
       console.error('Error in trackRecipeGeneration:', error);
     }
@@ -264,10 +260,6 @@ export class UsageTrackingService {
         if (error) {
           console.error('Error inserting premium feature attempt tracking:', error);
         }
-      }
-
-      if (error) {
-        console.error('Error tracking premium feature attempt:', error);
       }
     } catch (error) {
       console.error('Error in trackPremiumFeatureAttempt:', error);
