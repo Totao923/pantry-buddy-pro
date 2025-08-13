@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { cookingSessionService } from '../../../../lib/services/cookingSessionService';
+import { withAuth, type AuthenticatedRequest } from '../../../../lib/middleware/auth';
+import { withSecurity, sanitizeError } from '../../../../lib/middleware/enhanced-security';
+import { createUserSupabaseClient } from '../../../../lib/supabase/server';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function recipeSessionsHandler(req: AuthenticatedRequest, res: NextApiResponse) {
   const { recipeId } = req.query;
 
   if (!recipeId || typeof recipeId !== 'string') {
@@ -12,8 +14,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     switch (req.method) {
       case 'GET':
         console.log('Fetching cooking sessions for recipe:', recipeId);
-        // Get cooking sessions for this recipe by current user
-        const sessions = await cookingSessionService.getUserRecipeCookingSessions(recipeId);
+        console.log('Authenticated user:', req.user);
+
+        // Create user-scoped Supabase client
+        const supabase = createUserSupabaseClient(
+          req.headers.authorization!.replace('Bearer ', '')
+        );
+
+        // Get cooking sessions for this recipe by current user (RLS will enforce user filtering)
+        const { data: sessions, error } = await supabase
+          .from('cooking_sessions')
+          .select('*')
+          .eq('recipe_id', recipeId)
+          .order('cooked_at', { ascending: false });
+
+        if (error) {
+          console.error('Supabase query error:', error);
+          throw new Error(`Database error: ${error.message}`);
+        }
+
         const hasCooked = sessions.length > 0;
 
         console.log('Found cooking sessions:', { count: sessions.length, hasCooked });
@@ -21,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({
           success: true,
           data: {
-            sessions,
+            sessions: sessions || [],
             hasCooked,
             timesCooked: sessions.length,
           },
@@ -38,10 +57,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       recipeId,
       error,
     });
+    const sanitizedError = sanitizeError(error, process.env.NODE_ENV === 'development');
     return res.status(500).json({
-      error: 'Internal server error',
+      success: false,
+      error: sanitizedError.error || 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
-      debug: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 }
+
+// Apply security middleware with authentication requirement
+export default withSecurity({
+  rateLimit: { windowMs: 15 * 60 * 1000, max: 100 },
+  allowedMethods: ['GET'],
+  maxBodySize: 1 * 1024,
+})(withAuth(recipeSessionsHandler));

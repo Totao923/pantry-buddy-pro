@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Recipe } from '../../types';
 import { CookingSession, cookingSessionService } from '../../lib/services/cookingSessionService';
 import CookingFeedbackModal from './CookingFeedbackModal';
+import { useAuth } from '../../lib/auth/AuthProvider';
 
 interface CookingTrackerProps {
   recipe: Recipe;
@@ -21,14 +22,28 @@ export default function CookingTracker({
   const [loading, setLoading] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [recentSession, setRecentSession] = useState<CookingSession | null>(null);
+  const { session } = useAuth();
 
   useEffect(() => {
-    checkCookingStatus();
-  }, [recipe.id]);
+    if (session) {
+      checkCookingStatus();
+    }
+  }, [recipe.id, session]);
 
   const checkCookingStatus = async () => {
     try {
-      const response = await fetch(`/api/cooking-sessions/recipe/${recipe.id}`);
+      if (!session?.access_token) {
+        console.log('No session available for checking cooking status');
+        return;
+      }
+
+      const response = await fetch(`/api/cooking-sessions/recipe/${recipe.id}`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (response.ok) {
         const data = await response.json();
         setHasCooked(data.data.hasCooked);
@@ -36,6 +51,8 @@ export default function CookingTracker({
         if (data.data.sessions.length > 0) {
           setRecentSession(data.data.sessions[0]); // Most recent session
         }
+      } else {
+        console.error('Failed to check cooking status:', response.status);
       }
     } catch (error) {
       console.error('Error checking cooking status:', error);
@@ -45,6 +62,12 @@ export default function CookingTracker({
   const handleQuickMarkCooked = async () => {
     setLoading(true);
     try {
+      if (!session?.access_token) {
+        console.error('No session available for marking recipe as cooked');
+        alert('Please log in to mark recipes as cooked');
+        return;
+      }
+
       const requestData = {
         recipe_id: recipe.id,
         recipe_title: recipe.title,
@@ -55,7 +78,10 @@ export default function CookingTracker({
 
       const response = await fetch('/api/cooking-sessions/mark-cooked', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify(requestData),
       });
 

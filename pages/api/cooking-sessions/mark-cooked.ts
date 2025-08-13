@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { cookingSessionService } from '../../../lib/services/cookingSessionService';
+import { withAuth, type AuthenticatedRequest } from '../../../lib/middleware/auth';
+import { withSecurity, sanitizeError } from '../../../lib/middleware/enhanced-security';
+import { createUserSupabaseClient } from '../../../lib/supabase/server';
 
 interface MarkCookedRequest {
   recipe_id: string;
@@ -7,7 +9,7 @@ interface MarkCookedRequest {
   recipe_data?: any;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function markCookedHandler(req: AuthenticatedRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: `Method ${req.method} not allowed` });
@@ -15,6 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     console.log('Mark cooked API called with body:', req.body);
+    console.log('Authenticated user:', req.user);
+
     const { recipe_id, recipe_title, recipe_data }: MarkCookedRequest = req.body;
 
     if (!recipe_id || !recipe_title) {
@@ -25,23 +29,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    console.log('Calling cookingSessionService.markRecipeAsCooked with:', {
-      recipe_id,
-      recipe_title,
-      has_recipe_data: !!recipe_data,
-    });
+    // Create user-scoped Supabase client
+    const supabase = createUserSupabaseClient(req.headers.authorization!.replace('Bearer ', ''));
 
-    const session = await cookingSessionService.markRecipeAsCooked(
-      recipe_id,
-      recipe_title,
-      recipe_data
-    );
+    console.log('Creating cooking session with user ID:', req.user.id);
 
-    console.log('Successfully created cooking session:', session.id);
+    // Insert cooking session directly with proper auth context
+    const { data, error } = await supabase
+      .from('cooking_sessions')
+      .insert({
+        user_id: req.user.id,
+        recipe_id,
+        recipe_title,
+        recipe_data: recipe_data || null,
+        recipe_followed_exactly: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    console.log('Successfully created cooking session:', data.id);
 
     return res.status(201).json({
       success: true,
-      data: session,
+      data,
       message: 'Recipe marked as cooked successfully!',
     });
   } catch (error) {
@@ -51,10 +66,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       name: error instanceof Error ? error.name : 'Unknown',
       error,
     });
+    const sanitizedError = sanitizeError(error, process.env.NODE_ENV === 'development');
     return res.status(500).json({
-      error: 'Internal server error',
+      success: false,
+      error: sanitizedError.error || 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
-      debug: process.env.NODE_ENV === 'development' ? error : undefined,
     });
   }
 }
+
+// Apply security middleware with authentication requirement
+export default withSecurity({
+  rateLimit: { windowMs: 15 * 60 * 1000, max: 100 },
+  allowedMethods: ['POST'],
+  maxBodySize: 10 * 1024,
+})(withAuth(markCookedHandler));
