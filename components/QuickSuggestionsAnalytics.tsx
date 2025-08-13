@@ -32,7 +32,7 @@ export default function QuickSuggestionsAnalytics({
     setLoading(true);
     try {
       const userAnalytics = quickSuggestionsService.getUserAnalytics(user?.id || '');
-      
+
       // If no analytics exist for user, create default analytics
       if (!userAnalytics && user?.id) {
         const defaultAnalytics: SuggestionAnalytics = {
@@ -41,7 +41,7 @@ export default function QuickSuggestionsAnalytics({
           suggestionsUsed: 0,
           mostPopularCuisines: [],
           averageMatchPercentage: 0,
-          lastUsed: new Date()
+          lastUsed: new Date(),
         };
         setAnalytics(defaultAnalytics);
       } else {
