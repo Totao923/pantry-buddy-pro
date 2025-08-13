@@ -182,10 +182,7 @@ export default function EnhancedRecipeCard({
           </div>
 
           {/* Cooking Tracker replaces Start Cooking button */}
-          <CookingTracker 
-            recipe={recipe} 
-            showDetailedButton={true}
-          />
+          <CookingTracker recipe={recipe} showDetailedButton={true} />
         </div>
       </div>
 

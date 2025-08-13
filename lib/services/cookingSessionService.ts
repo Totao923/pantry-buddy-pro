@@ -11,23 +11,23 @@ export interface CookingSession {
   recipe_title: string;
   recipe_data?: Recipe;
   cooked_at: string;
-  
+
   // Optional user feedback
   rating?: number;
   cooking_notes?: string;
   difficulty_rating?: number;
   cook_time_actual?: number;
-  
+
   // Success indicators
   would_cook_again?: boolean;
   recipe_followed_exactly?: boolean;
   modifications_made?: string;
-  
+
   // Additional metadata
   cooking_method?: string;
   servings_made?: number;
   photo_url?: string;
-  
+
   created_at: string;
   updated_at: string;
 }
@@ -142,7 +142,11 @@ class CookingSessionService {
   }
 
   // Quick "Mark as Cooked" without detailed feedback
-  async markRecipeAsCooked(recipeId: string, recipeTitle: string, recipeData?: Recipe): Promise<CookingSession> {
+  async markRecipeAsCooked(
+    recipeId: string,
+    recipeTitle: string,
+    recipeData?: Recipe
+  ): Promise<CookingSession> {
     return this.createCookingSession({
       recipe_id: recipeId,
       recipe_title: recipeTitle,
@@ -152,7 +156,10 @@ class CookingSessionService {
   }
 
   // Update an existing cooking session (for adding feedback later)
-  async updateCookingSession(sessionId: string, updates: Partial<CookingSessionInput>): Promise<CookingSession> {
+  async updateCookingSession(
+    sessionId: string,
+    updates: Partial<CookingSessionInput>
+  ): Promise<CookingSession> {
     try {
       const userId = await this.ensureAuthenticated();
 
@@ -392,7 +399,7 @@ class CookingSessionService {
         const date = new Date(session.cooked_at);
         date.setHours(0, 0, 0, 0);
         const dateKey = date.toISOString().split('T')[0];
-        
+
         if (!sessionsByDate.has(dateKey)) {
           sessionsByDate.set(dateKey, []);
         }
@@ -401,21 +408,25 @@ class CookingSessionService {
 
       // Sort dates and calculate streaks
       const sortedDates = Array.from(sessionsByDate.keys()).sort().reverse();
-      
+
       for (let i = 0; i < sortedDates.length; i++) {
         const currentDate = new Date(sortedDates[i]);
-        
+
         if (i === 0) {
           // Check if most recent cooking was today or yesterday
-          const daysDiff = Math.floor((today.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+          const daysDiff = Math.floor(
+            (today.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
           if (daysDiff <= 1) {
             currentStreak = 1;
             tempStreak = 1;
           }
         } else {
           const prevDate = new Date(sortedDates[i - 1]);
-          const daysDiff = Math.floor((prevDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-          
+          const daysDiff = Math.floor(
+            (prevDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
           if (daysDiff === 1) {
             tempStreak++;
             if (i < sortedDates.length - 1 || currentStreak > 0) {

@@ -62,7 +62,9 @@ export default function Analytics() {
   const [receipts, setReceipts] = useState<ExtractedReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '3m' | 'all'>('30d');
-  const [activeTab, setActiveTab] = useState<'overview' | 'spending' | 'pantry' | 'cooking'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'spending' | 'pantry' | 'cooking'>(
+    'overview'
+  );
 
   useEffect(() => {
     console.log('📊 Analytics: useEffect triggered');
@@ -297,17 +299,21 @@ export default function Analytics() {
 
         // Process cooking statistics
         const totalRecipesCooked = cookingPreferences?.total_recipes_cooked || 0;
-        const uniqueRecipesCooked = [...new Set(recentCookingSessions.map(s => s.recipe_id))].length;
+        const uniqueRecipesCooked = [...new Set(recentCookingSessions.map(s => s.recipe_id))]
+          .length;
         const averageUserRating = cookingPreferences?.average_rating_given || 0;
-        
+
         // Get most cooked recipes from sessions
         const recipeCounts = recentCookingSessions.reduce((acc: any, session: any) => {
           acc[session.recipe_title] = (acc[session.recipe_title] || 0) + 1;
           return acc;
         }, {});
-        
+
         const mostCookedRecipes = Object.entries(recipeCounts)
-          .map(([recipe_title, times_cooked]) => ({ recipe_title, times_cooked: times_cooked as number }))
+          .map(([recipe_title, times_cooked]) => ({
+            recipe_title,
+            times_cooked: times_cooked as number,
+          }))
           .sort((a, b) => b.times_cooked - a.times_cooked)
           .slice(0, 5);
 
@@ -739,17 +745,22 @@ export default function Analytics() {
 
               {/* Cooking Streak Progress */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Cooking Streak Achievement</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Cooking Streak Achievement
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">Current Streak</span>
-                    <span className="text-sm text-gray-500">{analyticsData.cookingStreak.current} / {analyticsData.cookingStreak.longest} days</span>
+                    <span className="text-sm text-gray-500">
+                      {analyticsData.cookingStreak.current} / {analyticsData.cookingStreak.longest}{' '}
+                      days
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-300" 
-                      style={{ 
-                        width: `${Math.min((analyticsData.cookingStreak.current / Math.max(analyticsData.cookingStreak.longest, 1)) * 100, 100)}%` 
+                    <div
+                      className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min((analyticsData.cookingStreak.current / Math.max(analyticsData.cookingStreak.longest, 1)) * 100, 100)}%`,
                       }}
                     ></div>
                   </div>
@@ -762,9 +773,7 @@ export default function Analytics() {
 
               {/* Most Cooked Recipes */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Your Favorite Recipes
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Favorite Recipes</h3>
                 {analyticsData.mostCookedRecipes.length > 0 ? (
                   <div className="space-y-3">
                     {analyticsData.mostCookedRecipes.map((recipe, index) => (
@@ -777,9 +786,12 @@ export default function Analytics() {
                             <span className="text-lg font-bold text-orange-600">{index + 1}</span>
                           </div>
                           <div>
-                            <span className="font-semibold text-gray-900">{recipe.recipe_title}</span>
+                            <span className="font-semibold text-gray-900">
+                              {recipe.recipe_title}
+                            </span>
                             <div className="text-sm text-gray-600">
-                              Cooked {recipe.times_cooked} {recipe.times_cooked === 1 ? 'time' : 'times'}
+                              Cooked {recipe.times_cooked}{' '}
+                              {recipe.times_cooked === 1 ? 'time' : 'times'}
                             </div>
                           </div>
                         </div>
@@ -793,7 +805,9 @@ export default function Analytics() {
                   <div className="text-center py-8">
                     <div className="text-4xl mb-3">👨‍🍳</div>
                     <p className="text-gray-600 mb-2">No cooking sessions yet</p>
-                    <p className="text-sm text-gray-500">Start cooking recipes to see your favorites here!</p>
+                    <p className="text-sm text-gray-500">
+                      Start cooking recipes to see your favorites here!
+                    </p>
                   </div>
                 )}
               </div>
@@ -806,21 +820,21 @@ export default function Analytics() {
                   <ul className="text-sm text-gray-600 space-y-2">
                     <li className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                      {analyticsData.totalRecipesCooked > 0 ? 
-                        `You've cooked ${analyticsData.totalRecipesCooked} recipes total` : 
-                        'Start cooking to see insights'}
+                      {analyticsData.totalRecipesCooked > 0
+                        ? `You've cooked ${analyticsData.totalRecipesCooked} recipes total`
+                        : 'Start cooking to see insights'}
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                      {analyticsData.cookingStreak.longest > 0 ? 
-                        `Your longest streak: ${analyticsData.cookingStreak.longest} days` : 
-                        'Build a cooking streak!'}
+                      {analyticsData.cookingStreak.longest > 0
+                        ? `Your longest streak: ${analyticsData.cookingStreak.longest} days`
+                        : 'Build a cooking streak!'}
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
-                      {analyticsData.averageUserRating > 0 ? 
-                        `Average satisfaction: ${analyticsData.averageUserRating.toFixed(1)}/5` : 
-                        'Rate recipes to track satisfaction'}
+                      {analyticsData.averageUserRating > 0
+                        ? `Average satisfaction: ${analyticsData.averageUserRating.toFixed(1)}/5`
+                        : 'Rate recipes to track satisfaction'}
                     </li>
                   </ul>
                 </div>
@@ -836,9 +850,11 @@ export default function Analytics() {
                       </span>
                     </div>
                     <div className="w-full bg-green-200 rounded-full h-2">
-                      <div 
-                        className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-                        style={{ width: `${Math.min((analyticsData.uniqueRecipesCooked / 10) * 100, 100)}%` }}
+                      <div
+                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min((analyticsData.uniqueRecipesCooked / 10) * 100, 100)}%`,
+                        }}
                       ></div>
                     </div>
                     <div className="flex justify-between items-center">
@@ -848,9 +864,11 @@ export default function Analytics() {
                       </span>
                     </div>
                     <div className="w-full bg-green-200 rounded-full h-2">
-                      <div 
-                        className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-                        style={{ width: `${Math.min((analyticsData.cookingStreak.current / 7) * 100, 100)}%` }}
+                      <div
+                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min((analyticsData.cookingStreak.current / 7) * 100, 100)}%`,
+                        }}
                       ></div>
                     </div>
                   </div>

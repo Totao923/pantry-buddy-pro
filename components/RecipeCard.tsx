@@ -134,10 +134,10 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
                 Save Recipe
               </button>
             </div>
-            
+
             {/* Cooking Tracker */}
-            <CookingTracker 
-              recipe={recipe} 
+            <CookingTracker
+              recipe={recipe}
               showDetailedButton={true}
               className="flex justify-center"
             />

@@ -9,10 +9,10 @@ interface CookingHistoryProps {
   showTitle?: boolean;
 }
 
-export default function CookingHistory({ 
-  className = '', 
+export default function CookingHistory({
+  className = '',
   limit = 10,
-  showTitle = true 
+  showTitle = true,
 }: CookingHistoryProps) {
   const [sessions, setSessions] = useState<CookingSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,10 +43,8 @@ export default function CookingHistory({
   };
 
   const handleReviewUpdated = (updatedSession: CookingSession) => {
-    setSessions(prev => 
-      prev.map(session => 
-        session.id === updatedSession.id ? updatedSession : session
-      )
+    setSessions(prev =>
+      prev.map(session => (session.id === updatedSession.id ? updatedSession : session))
     );
     setShowFeedbackModal(false);
     setSelectedSession(null);
@@ -57,7 +55,7 @@ export default function CookingHistory({
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -71,7 +69,7 @@ export default function CookingHistory({
       <div className={`cooking-history ${className}`}>
         {showTitle && <h2 className="text-xl font-semibold text-gray-900 mb-4">Cooking History</h2>}
         <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="animate-pulse">
               <div className="bg-gray-200 h-24 rounded-lg"></div>
             </div>
@@ -104,9 +102,9 @@ export default function CookingHistory({
           <span className="text-sm text-gray-600">{sessions.length} recipes cooked</span>
         </div>
       )}
-      
+
       <div className="space-y-4">
-        {sessions.map((session) => (
+        {sessions.map(session => (
           <div
             key={session.id}
             className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all"
@@ -122,24 +120,18 @@ export default function CookingHistory({
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                   <span>🕒 {formatTimeAgo(session.cooked_at)}</span>
-                  {session.cook_time_actual && (
-                    <span>⏱️ {session.cook_time_actual}m</span>
-                  )}
+                  {session.cook_time_actual && <span>⏱️ {session.cook_time_actual}m</span>}
                   {session.cooking_method && (
                     <span>🍳 {session.cooking_method.replace('_', ' ')}</span>
                   )}
-                  {session.servings_made && (
-                    <span>👥 {session.servings_made} servings</span>
-                  )}
+                  {session.servings_made && <span>👥 {session.servings_made} servings</span>}
                 </div>
 
                 {session.cooking_notes && (
-                  <p className="text-sm text-gray-700 mb-2 italic">
-                    "{session.cooking_notes}"
-                  </p>
+                  <p className="text-sm text-gray-700 mb-2 italic">"{session.cooking_notes}"</p>
                 )}
 
                 <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -183,19 +175,21 @@ export default function CookingHistory({
       {/* Edit Review Modal */}
       {selectedSession && showFeedbackModal && (
         <CookingFeedbackModal
-          recipe={selectedSession.recipe_data as Recipe || {
-            id: selectedSession.recipe_id,
-            title: selectedSession.recipe_title,
-            description: '',
-            ingredients: [],
-            instructions: [],
-            totalTime: selectedSession.cook_time_actual || 30,
-            servings: selectedSession.servings_made || 4,
-            difficulty: 'medium',
-            cuisine: 'other',
-            tags: [],
-            rating: selectedSession.rating,
-          }}
+          recipe={
+            (selectedSession.recipe_data as Recipe) || {
+              id: selectedSession.recipe_id,
+              title: selectedSession.recipe_title,
+              description: '',
+              ingredients: [],
+              instructions: [],
+              totalTime: selectedSession.cook_time_actual || 30,
+              servings: selectedSession.servings_made || 4,
+              difficulty: 'medium',
+              cuisine: 'other',
+              tags: [],
+              rating: selectedSession.rating,
+            }
+          }
           existingSession={selectedSession}
           onSubmit={handleReviewUpdated}
           onClose={() => {

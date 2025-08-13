@@ -60,7 +60,7 @@ export default function CookingTracker({
         setHasCooked(true);
         setTimesCooked(prev => prev + 1);
         setRecentSession(result.data);
-        
+
         if (onCookingMarked) {
           onCookingMarked(result.data);
         }
@@ -88,7 +88,7 @@ export default function CookingTracker({
     setTimesCooked(prev => prev + 1);
     setRecentSession(session);
     setShowFeedbackModal(false);
-    
+
     if (onCookingMarked) {
       onCookingMarked(session);
     }
@@ -103,9 +103,10 @@ export default function CookingTracker({
           disabled={loading}
           className={`
             px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2
-            ${hasCooked 
-              ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200' 
-              : 'bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700'
+            ${
+              hasCooked
+                ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
+                : 'bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700'
             }
             ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}

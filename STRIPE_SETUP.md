@@ -39,13 +39,15 @@ You need to create products and prices in Stripe for each subscription tier:
 2. Create these products:
 
 **Premium Plan**
+
 - Name: "Pantry Buddy Pro - Premium"
 - Description: "Unlimited AI recipes and advanced features"
 - Pricing:
   - Monthly: $9.99/month (recurring)
   - Yearly: $95.88/year (recurring)
 
-**Family Plan**  
+**Family Plan**
+
 - Name: "Pantry Buddy Pro - Family"
 - Description: "Premium features for up to 6 family members"
 - Pricing:
@@ -53,6 +55,7 @@ You need to create products and prices in Stripe for each subscription tier:
   - Yearly: $191.76/year (recurring)
 
 **Chef Plan**
+
 - Name: "Pantry Buddy Pro - Chef"
 - Description: "Professional features for serious home chefs"
 - Pricing:
@@ -160,6 +163,7 @@ Use these test cards for development:
 ### Stripe Dashboard
 
 Monitor these sections regularly:
+
 - **Payments** → Failed payments
 - **Billing** → Subscription metrics
 - **Disputes** → Chargebacks and disputes
@@ -170,17 +174,20 @@ Monitor these sections regularly:
 ### Common Issues
 
 **Webhook Not Receiving Events**
+
 - Verify endpoint URL is correct and accessible
 - Check webhook signing secret
 - Ensure endpoint returns 200 status code
 - Check Stripe webhook logs for delivery attempts
 
 **Payment Failures**
+
 - Review declined payment reasons
 - Check if customers need to update payment methods
 - Monitor retry logic and dunning management
 
 **Subscription Sync Issues**
+
 - Verify webhook events are being processed correctly
 - Check database subscription status matches Stripe
 - Implement reconciliation job for data consistency
@@ -202,11 +209,13 @@ stripe logs tail
 ## 📝 Support
 
 For Stripe-specific issues:
+
 - [Stripe Documentation](https://stripe.com/docs)
 - [Stripe Support](https://support.stripe.com)
 - [Stripe Discord Community](https://discord.gg/stripe)
 
 For Pantry Buddy Pro integration issues:
+
 - Check the webhook logs in your application
 - Review error messages in browser developer tools
 - Ensure all environment variables are set correctly
@@ -216,6 +225,7 @@ For Pantry Buddy Pro integration issues:
 ## 🎯 Quick Reference
 
 ### Environment Variables
+
 ```env
 STRIPE_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
@@ -229,12 +239,15 @@ STRIPE_CHEF_YEARLY_PRICE_ID=price_...
 ```
 
 ### API Endpoints
+
 - Checkout: `POST /api/stripe/create-checkout-session`
 - Portal: `POST /api/stripe/create-portal-session`
 - Webhook: `POST /api/stripe/webhook`
 
 ### Database Migration
+
 Run the subscription table migration:
+
 ```sql
 -- See: supabase/migrations/003_create_subscriptions_table.sql
 ```

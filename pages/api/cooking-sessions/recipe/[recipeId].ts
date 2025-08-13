@@ -14,14 +14,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Get cooking sessions for this recipe by current user
         const sessions = await cookingSessionService.getUserRecipeCookingSessions(recipeId);
         const hasCooked = sessions.length > 0;
-        
+
         return res.status(200).json({
           success: true,
           data: {
             sessions,
             hasCooked,
-            timesCooked: sessions.length
-          }
+            timesCooked: sessions.length,
+          },
         });
 
       default:
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Recipe cooking sessions API error:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }

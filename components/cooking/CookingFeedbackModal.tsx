@@ -19,12 +19,20 @@ export default function CookingFeedbackModal({
   const [rating, setRating] = useState(existingSession?.rating || 0);
   const [difficultyRating, setDifficultyRating] = useState(existingSession?.difficulty_rating || 0);
   const [cookingNotes, setCookingNotes] = useState(existingSession?.cooking_notes || '');
-  const [cookTimeActual, setCookTimeActual] = useState(existingSession?.cook_time_actual || recipe.totalTime || 0);
+  const [cookTimeActual, setCookTimeActual] = useState(
+    existingSession?.cook_time_actual || recipe.totalTime || 0
+  );
   const [wouldCookAgain, setWouldCookAgain] = useState(existingSession?.would_cook_again ?? true);
-  const [recipeFollowedExactly, setRecipeFollowedExactly] = useState(existingSession?.recipe_followed_exactly ?? true);
-  const [modificationsMade, setModificationsMade] = useState(existingSession?.modifications_made || '');
+  const [recipeFollowedExactly, setRecipeFollowedExactly] = useState(
+    existingSession?.recipe_followed_exactly ?? true
+  );
+  const [modificationsMade, setModificationsMade] = useState(
+    existingSession?.modifications_made || ''
+  );
   const [cookingMethod, setCookingMethod] = useState(existingSession?.cooking_method || '');
-  const [servingsMade, setServingsMade] = useState(existingSession?.servings_made || recipe.servings || 4);
+  const [servingsMade, setServingsMade] = useState(
+    existingSession?.servings_made || recipe.servings || 4
+  );
   const [loading, setLoading] = useState(false);
 
   const cookingMethods = [
@@ -60,10 +68,10 @@ export default function CookingFeedbackModal({
         servings_made: servingsMade > 0 ? servingsMade : undefined,
       };
 
-      const url = existingSession 
+      const url = existingSession
         ? `/api/cooking-sessions/${existingSession.id}`
         : '/api/cooking-sessions';
-      
+
       const method = existingSession ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -86,11 +94,19 @@ export default function CookingFeedbackModal({
     }
   };
 
-  const StarRating = ({ value, onChange, label }: { value: number; onChange: (rating: number) => void; label: string }) => (
+  const StarRating = ({
+    value,
+    onChange,
+    label,
+  }: {
+    value: number;
+    onChange: (rating: number) => void;
+    label: string;
+  }) => (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">{label}</label>
       <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
+        {[1, 2, 3, 4, 5].map(star => (
           <button
             key={star}
             type="button"
@@ -102,9 +118,7 @@ export default function CookingFeedbackModal({
             ⭐
           </button>
         ))}
-        <span className="ml-2 text-sm text-gray-600">
-          {value > 0 ? `${value}/5` : 'Not rated'}
-        </span>
+        <span className="ml-2 text-sm text-gray-600">{value > 0 ? `${value}/5` : 'Not rated'}</span>
       </div>
     </div>
   );
@@ -121,11 +135,7 @@ export default function CookingFeedbackModal({
         </div>
 
         {/* Overall Rating */}
-        <StarRating
-          value={rating}
-          onChange={setRating}
-          label="Overall Rating"
-        />
+        <StarRating value={rating} onChange={setRating} label="Overall Rating" />
 
         {/* Difficulty Rating */}
         <StarRating
@@ -141,7 +151,7 @@ export default function CookingFeedbackModal({
               type="checkbox"
               id="wouldCookAgain"
               checked={wouldCookAgain}
-              onChange={(e) => setWouldCookAgain(e.target.checked)}
+              onChange={e => setWouldCookAgain(e.target.checked)}
               className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
             />
             <label htmlFor="wouldCookAgain" className="text-sm text-gray-700">
@@ -154,7 +164,7 @@ export default function CookingFeedbackModal({
               type="checkbox"
               id="recipeFollowedExactly"
               checked={recipeFollowedExactly}
-              onChange={(e) => setRecipeFollowedExactly(e.target.checked)}
+              onChange={e => setRecipeFollowedExactly(e.target.checked)}
               className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
             />
             <label htmlFor="recipeFollowedExactly" className="text-sm text-gray-700">
@@ -172,20 +182,18 @@ export default function CookingFeedbackModal({
             <input
               type="number"
               value={cookTimeActual}
-              onChange={(e) => setCookTimeActual(parseInt(e.target.value) || 0)}
+              onChange={e => setCookTimeActual(parseInt(e.target.value) || 0)}
               min="1"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Servings made
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Servings made</label>
             <input
               type="number"
               value={servingsMade}
-              onChange={(e) => setServingsMade(parseInt(e.target.value) || 0)}
+              onChange={e => setServingsMade(parseInt(e.target.value) || 0)}
               min="1"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
@@ -199,10 +207,10 @@ export default function CookingFeedbackModal({
           </label>
           <select
             value={cookingMethod}
-            onChange={(e) => setCookingMethod(e.target.value)}
+            onChange={e => setCookingMethod(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           >
-            {cookingMethods.map((method) => (
+            {cookingMethods.map(method => (
               <option key={method.value} value={method.value}>
                 {method.label}
               </option>
@@ -218,7 +226,7 @@ export default function CookingFeedbackModal({
             </label>
             <textarea
               value={modificationsMade}
-              onChange={(e) => setModificationsMade(e.target.value)}
+              onChange={e => setModificationsMade(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               placeholder="Describe any changes you made to the recipe..."
@@ -233,7 +241,7 @@ export default function CookingFeedbackModal({
           </label>
           <textarea
             value={cookingNotes}
-            onChange={(e) => setCookingNotes(e.target.value)}
+            onChange={e => setCookingNotes(e.target.value)}
             rows={3}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             placeholder="Any tips, observations, or notes about cooking this recipe..."

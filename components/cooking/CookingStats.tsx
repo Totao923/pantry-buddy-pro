@@ -39,7 +39,7 @@ export default function CookingStats({ className = '', compact = false }: Cookin
       <div className={`cooking-stats ${className}`}>
         <div className="animate-pulse">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4].map(i => (
               <div key={i} className="bg-gray-200 h-24 rounded-lg"></div>
             ))}
           </div>
@@ -82,7 +82,9 @@ export default function CookingStats({ className = '', compact = false }: Cookin
     },
     {
       label: 'Avg Rating Given',
-      value: preferences.average_rating_given ? `${preferences.average_rating_given.toFixed(1)}⭐` : 'N/A',
+      value: preferences.average_rating_given
+        ? `${preferences.average_rating_given.toFixed(1)}⭐`
+        : 'N/A',
       icon: '⭐',
       color: 'bg-blue-100 text-blue-700',
     },
@@ -108,11 +110,10 @@ export default function CookingStats({ className = '', compact = false }: Cookin
     <div className={`cooking-stats ${className}`}>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statsData.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-white border border-gray-200 rounded-lg p-4 text-center"
-          >
-            <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg mb-3 ${stat.color}`}>
+          <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+            <div
+              className={`inline-flex items-center justify-center w-12 h-12 rounded-lg mb-3 ${stat.color}`}
+            >
               <span className="text-2xl">{stat.icon}</span>
             </div>
             <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</div>
@@ -129,7 +130,7 @@ export default function CookingStats({ className = '', compact = false }: Cookin
             <div>
               <span className="font-medium">Favorite Cuisines:</span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {preferences.favorite_cuisines.slice(0, 3).map((cuisine) => (
+                {preferences.favorite_cuisines.slice(0, 3).map(cuisine => (
                   <span
                     key={cuisine}
                     className="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs"
@@ -139,7 +140,7 @@ export default function CookingStats({ className = '', compact = false }: Cookin
                 ))}
               </div>
             </div>
-            
+
             {preferences.most_active_cooking_day && (
               <div>
                 <span className="font-medium">Most Active Day:</span>
@@ -147,7 +148,7 @@ export default function CookingStats({ className = '', compact = false }: Cookin
               </div>
             )}
           </div>
-          
+
           {preferences.last_cooked_at && (
             <div className="mt-2 text-xs text-gray-500">
               Last cooked: {new Date(preferences.last_cooked_at).toLocaleDateString()}

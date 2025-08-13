@@ -15,10 +15,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { recipe_id, recipe_title, recipe_data }: MarkCookedRequest = req.body;
-    
+
     if (!recipe_id || !recipe_title) {
       return res.status(400).json({
-        error: 'Missing required fields: recipe_id and recipe_title'
+        error: 'Missing required fields: recipe_id and recipe_title',
       });
     }
 
@@ -28,16 +28,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       recipe_data
     );
 
-    return res.status(201).json({ 
-      success: true, 
+    return res.status(201).json({
+      success: true,
       data: session,
-      message: 'Recipe marked as cooked successfully!'
+      message: 'Recipe marked as cooked successfully!',
     });
   } catch (error) {
     console.error('Mark cooked API error:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }
