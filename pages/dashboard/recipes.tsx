@@ -46,35 +46,50 @@ export default function RecipesBrowser() {
         // Try to load from database first
         if (user?.id) {
           try {
-            if (await databaseSettingsService.isAvailable()) {
+            const dbAvailable = await databaseSettingsService.isAvailable();
+            console.log('Database availability for recipes:', dbAvailable);
+
+            if (dbAvailable) {
               console.log('Loading recipes from database');
 
               // Get saved recipes
               const savedResult = await RecipeService.getSavedRecipes(user.id);
               if (savedResult.success && savedResult.data) {
                 allRecipes = [...allRecipes, ...savedResult.data];
+                console.log(`Loaded ${savedResult.data.length} saved recipes from database`);
               }
 
               // Get recent recipes from recent items
               const recentItems = await databaseSettingsService.getRecentItems('recipe', 20);
-              const recentRecipes = recentItems.map(item => item.data);
-              allRecipes = [...allRecipes, ...recentRecipes];
+              if (recentItems.length > 0) {
+                const recentRecipes = recentItems.map(item => item.data);
+                allRecipes = [...allRecipes, ...recentRecipes];
+                console.log(`Loaded ${recentItems.length} recent recipes from database`);
+              }
 
-              console.log('Loaded recipes from database successfully');
+              console.log(`Total recipes loaded from database: ${allRecipes.length}`);
             } else {
               throw new Error('Database not available');
             }
           } catch (error) {
-            console.log('Falling back to localStorage for recipes');
+            console.log('Database error, falling back to localStorage:', error.message);
             // Fallback to localStorage
             const savedRecipes = localStorage.getItem('userRecipes');
             const recentRecipes = localStorage.getItem('recentRecipes');
 
             if (savedRecipes) {
-              allRecipes = [...allRecipes, ...JSON.parse(savedRecipes)];
+              const parsed = JSON.parse(savedRecipes);
+              allRecipes = [...allRecipes, ...parsed];
+              console.log(`Loaded ${parsed.length} recipes from userRecipes localStorage`);
             }
             if (recentRecipes) {
-              allRecipes = [...allRecipes, ...JSON.parse(recentRecipes)];
+              const parsed = JSON.parse(recentRecipes);
+              allRecipes = [...allRecipes, ...parsed];
+              console.log(`Loaded ${parsed.length} recipes from recentRecipes localStorage`);
+            }
+            
+            if (allRecipes.length === 0) {
+              console.log('No recipes found in localStorage either');
             }
           }
         } else {

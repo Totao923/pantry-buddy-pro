@@ -30,7 +30,10 @@ export default function Dashboard() {
         if (user?.id) {
           try {
             // Try to get recent recipes from database first
-            if (await databaseSettingsService.isAvailable()) {
+            const dbAvailable = await databaseSettingsService.isAvailable();
+            console.log('Database availability:', dbAvailable);
+            
+            if (dbAvailable) {
               console.log('Loading recent recipes from database');
               const recentItems = await databaseSettingsService.getRecentItems('recipe', 6);
               if (recentItems.length > 0) {
@@ -42,17 +45,27 @@ export default function Dashboard() {
                 if (result.success && result.data) {
                   setRecentRecipes(result.data.slice(0, 6));
                   console.log('Loaded saved recipes from database');
+                } else {
+                  console.log('No recipes found in database, checking localStorage');
+                  const savedRecipes = localStorage.getItem('recentRecipes');
+                  if (savedRecipes) {
+                    const recipes = JSON.parse(savedRecipes);
+                    setRecentRecipes(recipes.slice(0, 6));
+                  }
                 }
               }
             } else {
               throw new Error('Database not available');
             }
           } catch (error) {
-            console.log('Falling back to localStorage for recent recipes');
+            console.log('Database error, falling back to localStorage:', error.message);
             const savedRecipes = localStorage.getItem('recentRecipes');
             if (savedRecipes) {
               const recipes = JSON.parse(savedRecipes);
               setRecentRecipes(recipes.slice(0, 6)); // Show last 6 recipes
+            } else {
+              console.log('No recipes found in localStorage either');
+              setRecentRecipes([]); // Set empty array to stop loading
             }
           }
         } else {

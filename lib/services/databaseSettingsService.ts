@@ -354,18 +354,36 @@ class DatabaseSettingsService {
   // Health check
   async isAvailable(): Promise<boolean> {
     try {
-      if (!this.supabase) return false;
+      if (!this.supabase) {
+        console.log('Database unavailable: Supabase client not initialized');
+        return false;
+      }
 
       const {
         data: { user },
+        error: authError
       } = await this.supabase.auth.getUser();
-      if (!user) return false;
+      
+      if (authError || !user) {
+        console.log('Database unavailable: User not authenticated', authError?.message);
+        return false;
+      }
 
-      // Test basic query
-      const { error } = await this.supabase.from('user_settings').select('id').limit(1);
+      // Test basic query with timeout
+      const { error } = await this.supabase
+        .from('user_settings')
+        .select('id')
+        .limit(1)
+        .timeout(5000); // 5 second timeout
 
-      return !error;
-    } catch {
+      if (error) {
+        console.log('Database unavailable: Query failed', error.message);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.log('Database unavailable: Exception thrown', error.message);
       return false;
     }
   }
