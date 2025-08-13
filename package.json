@@ -1,6 +1,6 @@
 {
   "name": "pantry-buddy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI-powered pantry-based recipe generator app",
   "main": "index.js",
   "scripts": {
