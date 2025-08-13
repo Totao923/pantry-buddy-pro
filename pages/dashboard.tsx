@@ -98,7 +98,7 @@ export default function Dashboard() {
               throw new Error('Database not available');
             }
           } catch (error) {
-            console.log('Database error, falling back to localStorage:', error.message);
+            console.log('Database error, falling back to localStorage:', error instanceof Error ? error.message : 'Unknown error');
             const savedRecipes = localStorage.getItem('recentRecipes');
             if (savedRecipes) {
               const recipes = JSON.parse(savedRecipes);
