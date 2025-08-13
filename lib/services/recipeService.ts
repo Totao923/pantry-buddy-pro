@@ -49,11 +49,32 @@ export class RecipeService {
    */
   static async generateRecipe(options: RecipeGenerationOptions): Promise<RecipeServiceResponse> {
     try {
+      // Get authentication token from Supabase
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Check if we're in browser environment and have access to Supabase
+      if (typeof window !== 'undefined') {
+        try {
+          // Import supabase client dynamically to avoid SSR issues
+          const { createSupabaseClient } = await import('../supabase/client');
+          const supabase = createSupabaseClient();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session?.access_token) {
+            headers['Authorization'] = `Bearer ${session.access_token}`;
+          }
+        } catch (error) {
+          console.warn('Could not get auth token for recipe generation:', error);
+        }
+      }
+
       const response = await fetch(`${this.BASE_URL}/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(options),
       });
 

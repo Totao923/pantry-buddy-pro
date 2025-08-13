@@ -164,7 +164,7 @@ export default function CreateRecipe() {
           });
 
           const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('API timeout after 10 seconds')), 10000)
+            setTimeout(() => reject(new Error('API timeout after 20 seconds')), 20000)
           );
 
           const apiResponse = await Promise.race([apiPromise, timeoutPromise]);
@@ -214,7 +214,7 @@ export default function CreateRecipe() {
             });
 
             const publicTimeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Public API timeout after 8 seconds')), 8000)
+              setTimeout(() => reject(new Error('Public API timeout after 20 seconds')), 20000)
             );
 
             const publicResponse = await Promise.race([publicPromise, publicTimeoutPromise]);
@@ -267,7 +267,7 @@ export default function CreateRecipe() {
         });
 
         const unauthTimeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Unauth API timeout after 8 seconds')), 8000)
+          setTimeout(() => reject(new Error('Unauth API timeout after 20 seconds')), 20000)
         );
 
         const publicResponse = await Promise.race([unauthPromise, unauthTimeoutPromise]);
