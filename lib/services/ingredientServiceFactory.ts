@@ -20,7 +20,7 @@ class IngredientServiceFactory {
     try {
       // Check if database service is available (user authenticated)
       const isDatabaseAvailable = await this.isDatabaseAvailable();
-      
+
       if (isDatabaseAvailable) {
         console.log('User authenticated - using Supabase database ingredient service');
         this._currentService = databaseIngredientService as any;
@@ -28,7 +28,7 @@ class IngredientServiceFactory {
         console.log('User not authenticated - using mock ingredient service (demo mode)');
         this._currentService = mockIngredientService;
       }
-      
+
       this._initialized = true;
     } catch (error) {
       console.warn('Error initializing ingredient service, falling back to mock:', error);

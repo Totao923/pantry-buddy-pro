@@ -292,15 +292,17 @@ export class RecipeService {
   /**
    * Fallback method to get recipes from localStorage
    */
-  private static async getSavedRecipesFromLocalStorage(userId: string): Promise<RecipeServiceResponse<Recipe[]>> {
+  private static async getSavedRecipesFromLocalStorage(
+    userId: string
+  ): Promise<RecipeServiceResponse<Recipe[]>> {
     try {
       const savedRecipes = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
       const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
-      
+
       // Combine both sources and deduplicate by ID
       const allRecipes = [...savedRecipes, ...userRecipes];
-      const uniqueRecipes = allRecipes.reduce((acc, recipe) => {
-        if (!acc.find(r => r.id === recipe.id)) {
+      const uniqueRecipes = allRecipes.reduce((acc: any[], recipe: any) => {
+        if (!acc.find((r: any) => r.id === recipe.id)) {
           acc.push(recipe);
         }
         return acc;

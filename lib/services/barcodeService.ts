@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { IngredientCategory } from '../../types';
 import { getSupabaseClient } from '../config/supabase';
+import { databaseSettingsService } from './databaseSettingsService';
 
 export interface ProductInfo {
   id: string;
@@ -421,6 +422,22 @@ class BarcodeService {
         );
         localStorage.setItem('scannedProducts', JSON.stringify(updated));
         return;
+      }
+
+      // Try to save to new barcode_history table first
+      if (await databaseSettingsService.isAvailable()) {
+        console.log('Saving barcode to new barcode_history table');
+        const success = await databaseSettingsService.saveBarcodeHistory(
+          product.barcode,
+          product.name,
+          product,
+          false // Not added to pantry by default
+        );
+
+        if (success) {
+          console.log('Barcode saved to barcode_history successfully');
+          return;
+        }
       }
 
       const supabase = getSupabaseClient();

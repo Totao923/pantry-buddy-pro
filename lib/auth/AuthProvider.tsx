@@ -154,7 +154,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Switch back to mock service when user signs out
         ingredientServiceFactory.switchToMockService();
         console.log('Switched back to mock service after sign-out');
-        
+
         setProfile(null);
         setPreferences(null);
         setSubscription(null);

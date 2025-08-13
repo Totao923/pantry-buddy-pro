@@ -4,10 +4,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
+import { useAuth } from '../../lib/auth/AuthProvider';
+import { RecipeService } from '../../lib/services/recipeService';
+import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
 import { Recipe, CuisineType } from '../../types';
 
 export default function RecipesBrowser() {
   const router = useRouter();
+  const { user } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,18 +41,53 @@ export default function RecipesBrowser() {
   useEffect(() => {
     const loadRecipes = async () => {
       try {
-        // Load recipes from localStorage (placeholder for future database integration)
-        const savedRecipes = localStorage.getItem('userRecipes');
-        const recentRecipes = localStorage.getItem('recentRecipes');
-        const favoriteRecipes = localStorage.getItem('favoriteRecipes');
-
         let allRecipes: Recipe[] = [];
 
-        if (savedRecipes) {
-          allRecipes = [...allRecipes, ...JSON.parse(savedRecipes)];
-        }
-        if (recentRecipes) {
-          allRecipes = [...allRecipes, ...JSON.parse(recentRecipes)];
+        // Try to load from database first
+        if (user?.id) {
+          try {
+            if (await databaseSettingsService.isAvailable()) {
+              console.log('Loading recipes from database');
+
+              // Get saved recipes
+              const savedResult = await RecipeService.getSavedRecipes(user.id);
+              if (savedResult.success && savedResult.data) {
+                allRecipes = [...allRecipes, ...savedResult.data];
+              }
+
+              // Get recent recipes from recent items
+              const recentItems = await databaseSettingsService.getRecentItems('recipe', 20);
+              const recentRecipes = recentItems.map(item => item.data);
+              allRecipes = [...allRecipes, ...recentRecipes];
+
+              console.log('Loaded recipes from database successfully');
+            } else {
+              throw new Error('Database not available');
+            }
+          } catch (error) {
+            console.log('Falling back to localStorage for recipes');
+            // Fallback to localStorage
+            const savedRecipes = localStorage.getItem('userRecipes');
+            const recentRecipes = localStorage.getItem('recentRecipes');
+
+            if (savedRecipes) {
+              allRecipes = [...allRecipes, ...JSON.parse(savedRecipes)];
+            }
+            if (recentRecipes) {
+              allRecipes = [...allRecipes, ...JSON.parse(recentRecipes)];
+            }
+          }
+        } else {
+          // Not authenticated, use localStorage
+          const savedRecipes = localStorage.getItem('userRecipes');
+          const recentRecipes = localStorage.getItem('recentRecipes');
+
+          if (savedRecipes) {
+            allRecipes = [...allRecipes, ...JSON.parse(savedRecipes)];
+          }
+          if (recentRecipes) {
+            allRecipes = [...allRecipes, ...JSON.parse(recentRecipes)];
+          }
         }
 
         // Remove duplicates based on recipe ID
@@ -66,7 +105,7 @@ export default function RecipesBrowser() {
     };
 
     loadRecipes();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     // Apply filters based on URL query params

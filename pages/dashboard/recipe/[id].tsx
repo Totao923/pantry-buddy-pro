@@ -9,6 +9,8 @@ import RecipeRatingSystem from '../../../components/RecipeRatingSystem';
 import { useAuth } from '../../../lib/auth/AuthProvider';
 import { Recipe, RecipeRating, RecipeReview } from '../../../types';
 import { databaseRecipeService } from '../../../lib/services/databaseRecipeService';
+import { databaseRatingsService } from '../../../lib/services/databaseRatingsService';
+import { databaseSettingsService } from '../../../lib/services/databaseSettingsService';
 
 export default function RecipeDetail() {
   const router = useRouter();
@@ -43,7 +45,7 @@ export default function RecipeDetail() {
       if (!foundRecipe) {
         console.log('Loading recipe from localStorage fallback');
         const sources = ['userRecipes', 'recentRecipes'];
-        
+
         for (const source of sources) {
           const recipes = JSON.parse(localStorage.getItem(source) || '[]');
           foundRecipe = recipes.find((r: Recipe) => r.id === recipeId);
@@ -54,15 +56,31 @@ export default function RecipeDetail() {
       if (foundRecipe) {
         setRecipe(foundRecipe);
 
-        // Load rating and review (still using localStorage for now)
-        const ratings = JSON.parse(localStorage.getItem('recipeRatings') || '{}');
-        const reviews = JSON.parse(localStorage.getItem('recipeReviews') || '{}');
+        // Load rating and review from database first, fallback to localStorage
+        if (await databaseRatingsService.isAvailable()) {
+          console.log('Loading ratings from Supabase database');
+          try {
+            const dbRating = await databaseRatingsService.getRecipeRating(recipeId);
+            const dbReview = await databaseRatingsService.getRecipeReview(recipeId);
 
-        if (ratings[recipeId]) {
-          setRating(ratings[recipeId]);
-        }
-        if (reviews[recipeId]) {
-          setReview(reviews[recipeId]);
+            if (dbRating) setRating(dbRating);
+            if (dbReview) setReview(dbReview);
+          } catch (error) {
+            console.warn('Database rating load failed, using localStorage fallback:', error);
+            // Fallback to localStorage
+            const ratings = JSON.parse(localStorage.getItem('recipeRatings') || '{}');
+            const reviews = JSON.parse(localStorage.getItem('recipeReviews') || '{}');
+
+            if (ratings[recipeId]) setRating(ratings[recipeId]);
+            if (reviews[recipeId]) setReview(reviews[recipeId]);
+          }
+        } else {
+          // Not authenticated or database unavailable, use localStorage
+          const ratings = JSON.parse(localStorage.getItem('recipeRatings') || '{}');
+          const reviews = JSON.parse(localStorage.getItem('recipeReviews') || '{}');
+
+          if (ratings[recipeId]) setRating(ratings[recipeId]);
+          if (reviews[recipeId]) setReview(reviews[recipeId]);
         }
       } else {
         // Recipe not found, redirect to recipes page
@@ -106,21 +124,54 @@ export default function RecipeDetail() {
     }
   };
 
-  const handleSaveRecipe = () => {
+  const handleSaveRecipe = async () => {
     if (recipe) {
-      const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
-      const isAlreadySaved = userRecipes.some((r: Recipe) => r.id === recipe.id);
+      try {
+        // Try to save to database first
+        if (await databaseRecipeService.isAvailable()) {
+          console.log('Saving recipe to Supabase database');
+          const saveResult = await databaseRecipeService.saveRecipe(recipe, user?.id || '');
 
-      if (!isAlreadySaved) {
-        userRecipes.push(recipe);
-        localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
-      }
+          if (saveResult.success) {
+            // Add to recent items
+            await databaseSettingsService.addRecentItem('recipe', recipe.id, recipe);
+            console.log('Recipe saved to database successfully');
+            return;
+          }
+        }
 
-      // Add to favorites
-      const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
-      if (!favorites.includes(recipe.id)) {
-        favorites.push(recipe.id);
-        localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
+        // Fallback to localStorage
+        console.log('Saving recipe to localStorage fallback');
+        const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
+        const isAlreadySaved = userRecipes.some((r: Recipe) => r.id === recipe.id);
+
+        if (!isAlreadySaved) {
+          userRecipes.push(recipe);
+          localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
+        }
+
+        // Add to favorites
+        const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+        if (!favorites.includes(recipe.id)) {
+          favorites.push(recipe.id);
+          localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
+        }
+      } catch (error) {
+        console.error('Error saving recipe:', error);
+        // Still fallback to localStorage on error
+        const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
+        const isAlreadySaved = userRecipes.some((r: Recipe) => r.id === recipe.id);
+
+        if (!isAlreadySaved) {
+          userRecipes.push(recipe);
+          localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
+        }
+
+        const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+        if (!favorites.includes(recipe.id)) {
+          favorites.push(recipe.id);
+          localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
+        }
       }
     }
   };
@@ -135,9 +186,31 @@ export default function RecipeDetail() {
     }
   };
 
-  const handleSubmitRating = (newRating: RecipeRating, newReview?: RecipeReview) => {
+  const handleSubmitRating = async (newRating: RecipeRating, newReview?: RecipeReview) => {
     if (recipe) {
-      // Save rating
+      // Try to save to database first
+      if (await databaseRatingsService.isAvailable()) {
+        console.log('Saving rating to Supabase database');
+        try {
+          const success = await databaseRatingsService.saveRecipeRatingAndReview(
+            recipe.id,
+            newRating,
+            newReview
+          );
+
+          if (success) {
+            setRating(newRating);
+            if (newReview) setReview(newReview);
+            setShowRatingModal(false);
+            return;
+          }
+        } catch (error) {
+          console.warn('Database rating save failed, falling back to localStorage:', error);
+        }
+      }
+
+      // Fallback to localStorage
+      console.log('Saving rating to localStorage fallback');
       const ratings = JSON.parse(localStorage.getItem('recipeRatings') || '{}');
       ratings[recipe.id] = newRating;
       localStorage.setItem('recipeRatings', JSON.stringify(ratings));

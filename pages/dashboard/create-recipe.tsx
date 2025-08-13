@@ -10,6 +10,8 @@ import { useAuth } from '../../lib/auth/AuthProvider';
 import { RecipeService } from '../../lib/services/recipeService';
 import { AdvancedRecipeEngine } from '../../lib/advancedRecipeEngine';
 import { ingredientService } from '../../lib/services/ingredientService';
+import { databaseRecipeService } from '../../lib/services/databaseRecipeService';
+import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
 import { Ingredient, Recipe, CuisineType } from '../../types';
 
 export default function CreateRecipe() {
@@ -253,10 +255,20 @@ export default function CreateRecipe() {
 
       setGeneratedRecipe(recipe);
 
-      // Save recipe to recent recipes
-      const recentRecipes = JSON.parse(localStorage.getItem('recentRecipes') || '[]');
-      const updatedRecipes = [recipe, ...recentRecipes.slice(0, 9)]; // Keep last 10
-      localStorage.setItem('recentRecipes', JSON.stringify(updatedRecipes));
+      // Save recipe to recent recipes - try database first, fallback to localStorage
+      try {
+        if (await databaseSettingsService.isAvailable()) {
+          await databaseSettingsService.addRecentItem('recipe', recipe.id, recipe);
+          console.log('Recipe added to recent items in database');
+        } else {
+          throw new Error('Database not available');
+        }
+      } catch (error) {
+        console.log('Falling back to localStorage for recent recipes');
+        const recentRecipes = JSON.parse(localStorage.getItem('recentRecipes') || '[]');
+        const updatedRecipes = [recipe, ...recentRecipes.slice(0, 9)]; // Keep last 10
+        localStorage.setItem('recentRecipes', JSON.stringify(updatedRecipes));
+      }
 
       setStep(4);
     } catch (error) {
@@ -267,15 +279,40 @@ export default function CreateRecipe() {
     }
   };
 
-  const handleSaveRecipe = () => {
+  const handleSaveRecipe = async () => {
     if (generatedRecipe) {
-      // Save to user recipes
-      const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
-      userRecipes.push(generatedRecipe);
-      localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
+      try {
+        // Try to save to database first
+        if (await databaseRecipeService.isAvailable()) {
+          console.log('Saving recipe to database');
+          const saveResult = await databaseRecipeService.saveRecipe(
+            generatedRecipe,
+            user?.id || ''
+          );
 
-      // Redirect to recipes page
-      router.push('/dashboard/recipes');
+          if (saveResult.success) {
+            console.log('Recipe saved to database successfully');
+            router.push('/dashboard/recipes');
+            return;
+          }
+        }
+
+        // Fallback to localStorage
+        console.log('Saving recipe to localStorage fallback');
+        const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
+        userRecipes.push(generatedRecipe);
+        localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
+
+        router.push('/dashboard/recipes');
+      } catch (error) {
+        console.error('Error saving recipe:', error);
+        // Still fallback to localStorage on error
+        const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
+        userRecipes.push(generatedRecipe);
+        localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
+
+        router.push('/dashboard/recipes');
+      }
     }
   };
 

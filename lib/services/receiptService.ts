@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { IngredientCategory } from '../../types';
 import { getSupabaseClient } from '../config/supabase';
+import { databaseSettingsService } from './databaseSettingsService';
 
 export interface ExtractedReceiptItem {
   id: string;
@@ -946,6 +947,23 @@ class ReceiptService {
   // Save receipt data to database
   async saveReceiptData(receiptData: ExtractedReceiptData, userId: string): Promise<void> {
     try {
+      // Try to save to new receipt_history table first
+      if (await databaseSettingsService.isAvailable()) {
+        console.log('Saving receipt to new receipt_history table');
+        const success = await databaseSettingsService.saveReceiptHistory(
+          receiptData,
+          receiptData.items.length,
+          receiptData.totalAmount,
+          receiptData.storeName
+        );
+
+        if (success) {
+          console.log('Receipt saved to receipt_history successfully');
+          return;
+        }
+      }
+
+      // Fallback to legacy receipts table
       const supabase = getSupabaseClient();
 
       // Insert receipt record

@@ -22,7 +22,12 @@ interface RecipeCardProps {
   isLoading?: boolean;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onCookThis, onSaveRecipe, isLoading = false }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({
+  recipe,
+  onCookThis,
+  onSaveRecipe,
+  isLoading = false,
+}) => {
   const matchPercentage = Math.round(
     (recipe.matchingIngredients.length / recipe.ingredients.length) * 100
   );

@@ -78,11 +78,15 @@ class DatabaseRecipeService {
       cookTime: row.cook_time,
       totalTime: row.total_time,
       difficulty: row.difficulty as any,
-      ingredients: Array.isArray(row.ingredients) ? row.ingredients as Recipe['ingredients'] : [],
-      instructions: Array.isArray(row.instructions) ? row.instructions as Recipe['instructions'] : [],
+      ingredients: Array.isArray(row.ingredients)
+        ? (row.ingredients as unknown as Recipe['ingredients'])
+        : [],
+      instructions: Array.isArray(row.instructions)
+        ? (row.instructions as unknown as Recipe['instructions'])
+        : [],
       tags: row.tags || [],
-      nutritionInfo: row.nutrition_info as Recipe['nutritionInfo'] || undefined,
-      dietaryInfo: row.dietary_info as Recipe['dietaryInfo'] || {
+      nutritionInfo: (row.nutrition_info as unknown as Recipe['nutritionInfo']) || undefined,
+      dietaryInfo: (row.dietary_info as unknown as Recipe['dietaryInfo']) || {
         isVegetarian: false,
         isVegan: false,
         isGlutenFree: false,
@@ -91,8 +95,7 @@ class DatabaseRecipeService {
         isPaleo: false,
         allergens: [],
       },
-      createdAt: row.created_at ? new Date(row.created_at) : new Date(),
-      updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
+      // Note: createdAt and updatedAt are not part of Recipe interface
     };
   }
 
@@ -105,6 +108,7 @@ class DatabaseRecipeService {
       servings: recipe.servings,
       prep_time: recipe.prepTime,
       cook_time: recipe.cookTime,
+      total_time: recipe.prepTime + recipe.cookTime,
       difficulty: recipe.difficulty,
       ingredients: recipe.ingredients as any,
       instructions: recipe.instructions as any,
@@ -117,14 +121,17 @@ class DatabaseRecipeService {
     };
   }
 
-  async saveRecipe(recipe: Recipe, userId: string): Promise<RecipeServiceResponse<{ saved: boolean }>> {
+  async saveRecipe(
+    recipe: Recipe,
+    userId: string
+  ): Promise<RecipeServiceResponse<{ saved: boolean }>> {
     if (!this.supabase) {
       throw new Error('Database not available');
     }
 
     try {
       const authenticatedUserId = await this.ensureAuthenticated();
-      
+
       // Convert Recipe to CreateRecipeRequest format
       const recipeData: CreateRecipeRequest = {
         title: recipe.title,
@@ -143,7 +150,7 @@ class DatabaseRecipeService {
       };
 
       const insertData = this.convertRecipeToInsert(recipeData, authenticatedUserId);
-      
+
       // Check if recipe already exists (by ID if provided)
       if (recipe.id) {
         const { data: existing } = await this.supabase
@@ -156,8 +163,7 @@ class DatabaseRecipeService {
         if (existing) {
           // Update existing recipe
           const { error } = await withRetry(async () => {
-            return await this.supabase!
-              .from('recipes')
+            return await this.supabase!.from('recipes')
               .update(insertData)
               .eq('id', recipe.id)
               .eq('user_id', authenticatedUserId);
@@ -170,9 +176,7 @@ class DatabaseRecipeService {
         } else {
           // Insert with specific ID
           const { error } = await withRetry(async () => {
-            return await this.supabase!
-              .from('recipes')
-              .insert({ ...insertData, id: recipe.id });
+            return await this.supabase!.from('recipes').insert({ ...insertData, id: recipe.id });
           });
 
           if (error) {
@@ -183,9 +187,7 @@ class DatabaseRecipeService {
       } else {
         // Insert new recipe
         const { error } = await withRetry(async () => {
-          return await this.supabase!
-            .from('recipes')
-            .insert(insertData);
+          return await this.supabase!.from('recipes').insert(insertData);
         });
 
         if (error) {
@@ -225,8 +227,7 @@ class DatabaseRecipeService {
       }
 
       const { data, error } = await withRetry(async () => {
-        return await this.supabase!
-          .from('recipes')
+        return await this.supabase!.from('recipes')
           .select('*')
           .eq('user_id', authenticatedUserId)
           .order('created_at', { ascending: false });
@@ -237,12 +238,12 @@ class DatabaseRecipeService {
         throw new Error(handled.message);
       }
 
-      const recipes = (data || []).map(row => this.convertRecipeRowToRecipe(row));
+      const recipes = (data || []).map((row: any) => this.convertRecipeRowToRecipe(row));
 
       // Update cache
-      this.cache.set(`user_${authenticatedUserId}`, { 
-        data: recipes, 
-        timestamp: Date.now() 
+      this.cache.set(`user_${authenticatedUserId}`, {
+        data: recipes,
+        timestamp: Date.now(),
       });
 
       return {
@@ -267,8 +268,7 @@ class DatabaseRecipeService {
       const userId = await this.ensureAuthenticated();
 
       const { data, error } = await withRetry(async () => {
-        return await this.supabase!
-          .from('recipes')
+        return await this.supabase!.from('recipes')
           .select('*')
           .eq('id', recipeId)
           .eq('user_id', userId)
@@ -308,8 +308,7 @@ class DatabaseRecipeService {
       const userId = await this.ensureAuthenticated();
 
       const { error } = await withRetry(async () => {
-        return await this.supabase!
-          .from('recipes')
+        return await this.supabase!.from('recipes')
           .delete()
           .eq('id', recipeId)
           .eq('user_id', userId);
@@ -350,14 +349,13 @@ class DatabaseRecipeService {
     try {
       if (!this.supabase) return false;
 
-      const { data: { user } } = await this.supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await this.supabase.auth.getUser();
       if (!user) return false;
 
       // Test basic query
-      const { error } = await this.supabase
-        .from('recipes')
-        .select('id')
-        .limit(1);
+      const { error } = await this.supabase.from('recipes').select('id').limit(1);
 
       return !error;
     } catch {

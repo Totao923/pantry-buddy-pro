@@ -9,6 +9,7 @@ import { ingredientService } from '../lib/services/ingredientService';
 import { AInutritionist } from '../components/AInutritionist';
 import QuickSuggestionsAnalytics from '../components/QuickSuggestionsAnalytics';
 import { RecipeService } from '../lib/services/recipeService';
+import { databaseSettingsService } from '../lib/services/databaseSettingsService';
 import { Ingredient, Recipe } from '../types';
 
 export default function Dashboard() {
@@ -28,12 +29,23 @@ export default function Dashboard() {
         // Load recent recipes from database or localStorage fallback
         if (user?.id) {
           try {
-            const result = await RecipeService.getSavedRecipes(user.id);
-            if (result.success && result.data) {
-              setRecentRecipes(result.data.slice(0, 6)); // Show last 6 recipes
-              console.log('Loaded recent recipes from database');
+            // Try to get recent recipes from database first
+            if (await databaseSettingsService.isAvailable()) {
+              console.log('Loading recent recipes from database');
+              const recentItems = await databaseSettingsService.getRecentItems('recipe', 6);
+              if (recentItems.length > 0) {
+                setRecentRecipes(recentItems.map(item => item.data));
+                console.log('Loaded recent recipes from database successfully');
+              } else {
+                // Try getting saved recipes as fallback
+                const result = await RecipeService.getSavedRecipes(user.id);
+                if (result.success && result.data) {
+                  setRecentRecipes(result.data.slice(0, 6));
+                  console.log('Loaded saved recipes from database');
+                }
+              }
             } else {
-              throw new Error('Database load failed');
+              throw new Error('Database not available');
             }
           } catch (error) {
             console.log('Falling back to localStorage for recent recipes');
