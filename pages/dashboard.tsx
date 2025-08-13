@@ -44,12 +44,6 @@ export default function Dashboard() {
       userEmail: user?.email,
     });
 
-    // Don't load data if auth is still loading
-    if (authLoading) {
-      console.log('⏳ Dashboard: Auth still loading, waiting...');
-      return;
-    }
-
     const loadDashboardData = async () => {
       console.log('🚀 Dashboard: Starting to load data, user:', user?.id || 'not authenticated');
 
@@ -134,7 +128,7 @@ export default function Dashboard() {
     };
 
     loadDashboardData();
-  }, [user, authLoading]);
+  }, []);
 
   const stats = {
     totalIngredients: ingredients.length,
