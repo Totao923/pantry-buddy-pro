@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Recipe, DifficultyLevel } from '../types';
+import CookingTracker from './cooking/CookingTracker';
 
 interface EnhancedRecipeCardProps {
   recipe: Recipe;
@@ -180,14 +181,11 @@ export default function EnhancedRecipeCard({
             </div>
           </div>
 
-          <button
-            onClick={() => onStartCooking?.(recipe)}
-            className="px-4 md:px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl hover:from-green-600 hover:to-blue-600 transition-all font-semibold shadow-lg flex items-center justify-center gap-2 touch-manipulation"
-          >
-            <span className="text-lg">👨‍🍳</span>
-            <span className="hidden sm:inline">Start Cooking</span>
-            <span className="sm:hidden">Cook</span>
-          </button>
+          {/* Cooking Tracker replaces Start Cooking button */}
+          <CookingTracker 
+            recipe={recipe} 
+            showDetailedButton={true}
+          />
         </div>
       </div>
 

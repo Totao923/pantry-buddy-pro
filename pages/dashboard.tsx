@@ -8,6 +8,8 @@ import { useAuth } from '../lib/auth/AuthProvider';
 import { ingredientService } from '../lib/services/ingredientService';
 import { AInutritionist } from '../components/AInutritionist';
 import QuickSuggestionsAnalytics from '../components/QuickSuggestionsAnalytics';
+import CookingStats from '../components/cooking/CookingStats';
+import CookingHistory from '../components/cooking/CookingHistory';
 import { RecipeService } from '../lib/services/recipeService';
 import { databaseSettingsService } from '../lib/services/databaseSettingsService';
 import { Ingredient, Recipe } from '../types';
@@ -253,6 +255,12 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Cooking Statistics */}
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Cooking Journey</h2>
+            <CookingStats />
+          </div>
+
           {/* AI Nutritionist Section */}
           <AInutritionist
             ingredients={ingredients}
@@ -302,6 +310,18 @@ export default function Dashboard() {
                 </Link>
               </div>
             )}
+          </div>
+
+          {/* Cooking History */}
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
+            <CookingHistory limit={5} />
+            <div className="mt-4 text-center">
+              <Link href="/dashboard/cooking-history">
+                <button className="text-orange-600 hover:text-orange-700 font-medium">
+                  View All Cooking History
+                </button>
+              </Link>
+            </div>
           </div>
 
           {/* Upcoming Features */}

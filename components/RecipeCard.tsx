@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Recipe } from '../types';
+import CookingTracker from './cooking/CookingTracker';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -124,13 +125,22 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
         )}
 
         <div className="mt-6 pt-4 border-t border-gray-200">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              Prep: {recipe.prepTime}min • Cook: {recipe.cookTime}min
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-500">
+                Prep: {recipe.prepTime}min • Cook: {recipe.cookTime}min
+              </div>
+              <button className="bg-accent-500 text-white px-6 py-2 rounded-lg hover:bg-accent-600 transition-colors">
+                Save Recipe
+              </button>
             </div>
-            <button className="bg-accent-500 text-white px-6 py-2 rounded-lg hover:bg-accent-600 transition-colors">
-              Save Recipe
-            </button>
+            
+            {/* Cooking Tracker */}
+            <CookingTracker 
+              recipe={recipe} 
+              showDetailedButton={true}
+              className="flex justify-center"
+            />
           </div>
         </div>
       </div>
