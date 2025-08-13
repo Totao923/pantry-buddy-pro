@@ -72,7 +72,10 @@ export default function RecipesBrowser() {
               throw new Error('Database not available');
             }
           } catch (error) {
-            console.log('Database error, falling back to localStorage:', error instanceof Error ? error.message : 'Unknown error');
+            console.log(
+              'Database error, falling back to localStorage:',
+              error instanceof Error ? error.message : 'Unknown error'
+            );
             // Fallback to localStorage
             const savedRecipes = localStorage.getItem('userRecipes');
             const recentRecipes = localStorage.getItem('recentRecipes');
