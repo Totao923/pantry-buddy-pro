@@ -115,8 +115,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleWhatShouldICook = () => {
     // Check if user has premium subscription
-    const isPremium = subscription?.tier === 'premium' || subscription?.tier === 'family' || subscription?.tier === 'chef';
-    
+    const isPremium =
+      subscription?.tier === 'premium' ||
+      subscription?.tier === 'family' ||
+      subscription?.tier === 'chef';
+
     if (!isPremium) {
       // Redirect to subscription page with a message about this feature
       router.push('/dashboard/subscription?feature=quick-suggestions');
@@ -125,7 +128,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     // Check pantry requirements
     if (pantryItemCount < 3) {
-      alert('You need at least 3 ingredients in your pantry to get recipe suggestions. Add more ingredients first!');
+      alert(
+        'You need at least 3 ingredients in your pantry to get recipe suggestions. Add more ingredients first!'
+      );
       return;
     }
 
@@ -212,7 +217,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <span>🤔</span>
                 What Should I Cook?
                 {(subscription?.tier === 'free' || !subscription) && (
-                  <span className="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full ml-1">PRO</span>
+                  <span className="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full ml-1">
+                    PRO
+                  </span>
                 )}
               </button>
             </div>

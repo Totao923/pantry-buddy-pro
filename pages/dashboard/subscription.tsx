@@ -23,7 +23,7 @@ export default function Subscription() {
   const { user, subscription } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
+
   // Check if user came here for a specific feature
   const featureParam = router.query.feature as string;
 
@@ -157,7 +157,9 @@ export default function Subscription() {
                     "What Should I Cook?" Feature
                   </h3>
                   <p className="text-purple-700 mb-3">
-                    Get AI-powered recipe suggestions based on your pantry inventory! This premium feature analyzes your ingredients and suggests personalized recipes you can make right now.
+                    Get AI-powered recipe suggestions based on your pantry inventory! This premium
+                    feature analyzes your ingredients and suggests personalized recipes you can make
+                    right now.
                   </p>
                   <div className="flex items-center gap-2 text-sm text-purple-600">
                     <span>✨</span>
