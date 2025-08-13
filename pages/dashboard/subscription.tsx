@@ -23,6 +23,9 @@ export default function Subscription() {
   const { user, subscription } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  
+  // Check if user came here for a specific feature
+  const featureParam = router.query.feature as string;
 
   const subscriptionTiers: SubscriptionTier[] = [
     {
@@ -50,6 +53,7 @@ export default function Subscription() {
       popular: true,
       features: [
         'Unlimited AI recipes',
+        '"What Should I Cook?" suggestions',
         'AI Nutritionist with health goals',
         'Advanced meal planning',
         'Recipe books with PDF export',
@@ -142,6 +146,27 @@ export default function Subscription() {
               of home chef.
             </p>
           </div>
+
+          {/* Feature-specific callout */}
+          {featureParam === 'quick-suggestions' && (
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-6">
+              <div className="flex items-center gap-4">
+                <div className="text-4xl">🤔</div>
+                <div>
+                  <h3 className="text-xl font-semibold text-purple-900 mb-2">
+                    "What Should I Cook?" Feature
+                  </h3>
+                  <p className="text-purple-700 mb-3">
+                    Get AI-powered recipe suggestions based on your pantry inventory! This premium feature analyzes your ingredients and suggests personalized recipes you can make right now.
+                  </p>
+                  <div className="flex items-center gap-2 text-sm text-purple-600">
+                    <span>✨</span>
+                    <span>Upgrade to Premium to unlock intelligent recipe suggestions</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Current Subscription Status */}
           {currentTier && (

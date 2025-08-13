@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [pantryItemCount, setPantryItemCount] = useState<number>(0);
-  const { user, signOut } = useAuth();
+  const { user, signOut, subscription } = useAuth();
   const router = useRouter();
 
   // Load pantry count for What Should I Cook button
@@ -113,6 +113,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     router.push('/');
   };
 
+  const handleWhatShouldICook = () => {
+    // Check if user has premium subscription
+    const isPremium = subscription?.tier === 'premium' || subscription?.tier === 'family' || subscription?.tier === 'chef';
+    
+    if (!isPremium) {
+      // Redirect to subscription page with a message about this feature
+      router.push('/dashboard/subscription?feature=quick-suggestions');
+      return;
+    }
+
+    // Check pantry requirements
+    if (pantryItemCount < 3) {
+      alert('You need at least 3 ingredients in your pantry to get recipe suggestions. Add more ingredients first!');
+      return;
+    }
+
+    // Show suggestions modal
+    setShowSuggestions(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar backdrop */}
@@ -182,8 +202,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </button>
               </Link>
               <button
-                onClick={() => setShowSuggestions(true)}
-                disabled={pantryItemCount < 3}
+                onClick={handleWhatShouldICook}
                 className={`w-full px-4 py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 min-h-[44px] transition-colors ${
                   pantryItemCount < 3
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -192,6 +211,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 <span>🤔</span>
                 What Should I Cook?
+                {(subscription?.tier === 'free' || !subscription) && (
+                  <span className="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full ml-1">PRO</span>
+                )}
               </button>
             </div>
           </div>

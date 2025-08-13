@@ -59,7 +59,10 @@ export default function Analytics() {
   useEffect(() => {
     const loadAnalyticsData = async () => {
       try {
-        if (!user) return;
+        if (!user) {
+          setLoading(false);
+          return;
+        }
 
         // Get AI usage stats
         const aiStats = await aiService.getUsageStats(user.id);
@@ -259,6 +262,9 @@ export default function Analytics() {
 
     if (user) {
       loadAnalyticsData();
+    } else {
+      // Set loading to false if no user to prevent infinite loading
+      setLoading(false);
     }
   }, [user, timeRange]);
 

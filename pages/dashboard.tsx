@@ -71,7 +71,7 @@ export default function Dashboard() {
     };
 
     loadDashboardData();
-  }, []);
+  }, [user]);
 
   const stats = {
     totalIngredients: ingredients.length,
