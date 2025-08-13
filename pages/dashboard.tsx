@@ -67,7 +67,9 @@ export default function Dashboard() {
             console.log('🔍 Dashboard: Checking database availability...');
             const dbAvailable = await Promise.race([
               databaseSettingsService.isAvailable(),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Database check timeout')), 3000))
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Database check timeout')), 3000)
+              ),
             ]);
             console.log('Database availability:', dbAvailable);
 
@@ -75,7 +77,9 @@ export default function Dashboard() {
               console.log('Loading recent recipes from database');
               const recentItems = await Promise.race([
                 databaseSettingsService.getRecentItems('recipe', 6),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Recent items timeout')), 3000))
+                new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error('Recent items timeout')), 3000)
+                ),
               ]);
               if (recentItems.length > 0) {
                 setRecentRecipes(recentItems.map(item => item.data));
@@ -85,7 +89,9 @@ export default function Dashboard() {
                 console.log('🔍 Dashboard: No recent items, trying saved recipes...');
                 const result = await Promise.race([
                   RecipeService.getSavedRecipes(user.id),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error('Saved recipes timeout')), 3000))
+                  new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Saved recipes timeout')), 3000)
+                  ),
                 ]);
                 if (result.success && result.data) {
                   setRecentRecipes(result.data.slice(0, 6));
