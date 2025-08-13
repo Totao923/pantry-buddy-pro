@@ -1,0 +1,19 @@
+FORCE VERCEL DEPLOYMENT REBUILD
+================================
+
+This file forces Vercel to rebuild all deployment instances.
+
+Deployment Details:
+- Timestamp: 2025-08-13T15:50:00Z
+- Commit: f1de9fb
+- Purpose: Sync all Vercel URLs to serve latest analytics fixes
+- Status: Analytics loading timeout protection implemented
+
+All dashboard pages should load within 5 seconds maximum.
+
+URLs to sync:
+1. https://pantry-buddy-pro.vercel.app
+2. https://pantry-buddy-pro-git-main-totao923s-projects.vercel.app  
+3. https://pantry-buddy-mcd2ysugg-totao923s-projects.vercel.app
+
+Target: All URLs should serve identical content with commit f1de9fb.
