@@ -20,7 +20,7 @@
     "test:api": "jest --testPathPatterns=api",
     "validate:prod": "node scripts/validate-production.js",
     "pre-deploy": "npm run type-check && npm run lint && npm run validate:prod",
-    "prepare": "husky"
+    "prepare": "node -e \"process.env.CI && process.exit(0)\" || husky"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
