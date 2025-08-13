@@ -32,7 +32,21 @@ export default function QuickSuggestionsAnalytics({
     setLoading(true);
     try {
       const userAnalytics = quickSuggestionsService.getUserAnalytics(user?.id || '');
-      setAnalytics(userAnalytics);
+      
+      // If no analytics exist for user, create default analytics
+      if (!userAnalytics && user?.id) {
+        const defaultAnalytics: SuggestionAnalytics = {
+          userId: user.id,
+          suggestionsGenerated: 0,
+          suggestionsUsed: 0,
+          mostPopularCuisines: [],
+          averageMatchPercentage: 0,
+          lastUsed: new Date()
+        };
+        setAnalytics(defaultAnalytics);
+      } else {
+        setAnalytics(userAnalytics);
+      }
     } catch (error) {
       console.error('Failed to load analytics:', error);
     } finally {
