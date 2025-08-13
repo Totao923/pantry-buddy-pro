@@ -4,7 +4,7 @@ export default function DeploymentTest() {
   const deploymentInfo = {
     version: '1.0.1',
     timestamp: new Date().toISOString(),
-    commitHash: '045b805',
+    commitHash: '897b826',
     buildDate: '2025-08-13',
     analyticsFixIncluded: true,
     manifestFixed: true,
