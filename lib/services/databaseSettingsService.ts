@@ -361,9 +361,9 @@ class DatabaseSettingsService {
 
       const {
         data: { user },
-        error: authError
+        error: authError,
       } = await this.supabase.auth.getUser();
-      
+
       if (authError || !user) {
         console.log('Database unavailable: User not authenticated', authError?.message);
         return false;

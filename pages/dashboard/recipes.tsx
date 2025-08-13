@@ -87,7 +87,7 @@ export default function RecipesBrowser() {
               allRecipes = [...allRecipes, ...parsed];
               console.log(`Loaded ${parsed.length} recipes from recentRecipes localStorage`);
             }
-            
+
             if (allRecipes.length === 0) {
               console.log('No recipes found in localStorage either');
             }

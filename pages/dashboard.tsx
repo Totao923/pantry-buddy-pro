@@ -18,37 +18,47 @@ export default function Dashboard() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Force loading to false after 3 seconds as emergency fallback
   useEffect(() => {
     const emergencyTimeout = setTimeout(() => {
       console.log('🚨 Dashboard: Emergency timeout - forcing loading to false');
       setLoading(false);
     }, 3000);
-    
+
     return () => clearTimeout(emergencyTimeout);
   }, []);
-  
-  console.log('🔍 Dashboard: Component render, authLoading:', authLoading, 'user:', user?.id || 'none', 'loading:', loading);
+
+  console.log(
+    '🔍 Dashboard: Component render, authLoading:',
+    authLoading,
+    'user:',
+    user?.id || 'none',
+    'loading:',
+    loading
+  );
 
   useEffect(() => {
-    console.log('📍 Dashboard: useEffect triggered, authLoading:', authLoading, 'user state:', { userId: user?.id, userEmail: user?.email });
-    
+    console.log('📍 Dashboard: useEffect triggered, authLoading:', authLoading, 'user state:', {
+      userId: user?.id,
+      userEmail: user?.email,
+    });
+
     // Don't load data if auth is still loading
     if (authLoading) {
       console.log('⏳ Dashboard: Auth still loading, waiting...');
       return;
     }
-    
+
     const loadDashboardData = async () => {
       console.log('🚀 Dashboard: Starting to load data, user:', user?.id || 'not authenticated');
-      
+
       // Set a timeout to ensure we don't hang forever
       const timeoutId = setTimeout(() => {
         console.log('⏰ Dashboard: Loading timeout, forcing completion');
         setLoading(false);
       }, 10000); // 10 second timeout
-      
+
       try {
         // Load ingredients
         console.log('📦 Dashboard: Loading ingredients...');
@@ -62,7 +72,7 @@ export default function Dashboard() {
             // Try to get recent recipes from database first
             const dbAvailable = await databaseSettingsService.isAvailable();
             console.log('Database availability:', dbAvailable);
-            
+
             if (dbAvailable) {
               console.log('Loading recent recipes from database');
               const recentItems = await databaseSettingsService.getRecentItems('recipe', 6);
