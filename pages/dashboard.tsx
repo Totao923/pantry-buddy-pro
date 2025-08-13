@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import AuthGuard from '../components/auth/AuthGuard';
 import { useAuth } from '../lib/auth/AuthProvider';
-import { ingredientService } from '../lib/services/ingredientService';
+import { getIngredientService } from '../lib/services/ingredientServiceFactory';
 // Dynamic imports for heavy components to improve initial load time
 import dynamic from 'next/dynamic';
 
@@ -68,6 +68,7 @@ export default function Dashboard() {
     const loadDashboardData = async () => {
       try {
         // Load data in parallel for better performance
+        const ingredientService = await getIngredientService();
         const [ingredientsResult, recipesResult] = await Promise.allSettled([
           ingredientService.getAllIngredients(),
           loadRecipesFromStorage(),

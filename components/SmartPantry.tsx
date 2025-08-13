@@ -151,6 +151,11 @@ const SmartPantry = React.memo(function SmartPantry({
         };
 
         console.log('Adding ingredient with data:', ingredientData);
+        console.log('🔐 Session info:', {
+          hasSession: !!session,
+          hasAccessToken: !!session?.access_token,
+          tokenLength: session?.access_token?.length || 0,
+        });
 
         // If user is authenticated, try to save to database via API
         if (session?.access_token) {
@@ -166,13 +171,15 @@ const SmartPantry = React.memo(function SmartPantry({
 
             if (response.ok) {
               const result = await response.json();
-              console.log('Successfully added ingredient to database:', result);
+              console.log('✅ Successfully added ingredient to database:', result);
+              console.log('🔗 Calling onAddIngredient with:', result.ingredient);
               onAddIngredient(result.ingredient);
               setInputValue('');
               setSuggestions([]);
               return;
             } else {
-              console.error('API response not ok:', response.status);
+              const errorText = await response.text();
+              console.error('❌ API response not ok:', response.status, errorText);
               // Fall through to local addition
             }
           } catch (apiError) {

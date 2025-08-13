@@ -9,7 +9,7 @@ import EnhancedRecipeCard from '../../components/EnhancedRecipeCard';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { RecipeService } from '../../lib/services/recipeService';
 // Dynamic import for AdvancedRecipeEngine to reduce initial bundle size
-import { ingredientService } from '../../lib/services/ingredientService';
+import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
 import { databaseRecipeService } from '../../lib/services/databaseRecipeService';
 import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
 import { Ingredient, Recipe, CuisineType } from '../../types';
@@ -34,12 +34,17 @@ export default function CreateRecipe() {
   // Load ingredients function that can be called on demand
   const loadIngredients = async () => {
     try {
-      console.log('Loading ingredients in Create Recipe...');
+      console.log('🔄 Loading ingredients in Create Recipe...');
+      const ingredientService = await getIngredientService();
       const userIngredients = await ingredientService.getAllIngredients();
-      console.log('Loaded ingredients:', userIngredients.length);
+      console.log(
+        '✅ Loaded ingredients:',
+        userIngredients.length,
+        userIngredients.map(ing => ing.name)
+      );
       setIngredients(userIngredients);
     } catch (error) {
-      console.error('Error loading ingredients:', error);
+      console.error('❌ Error loading ingredients:', error);
     }
   };
 
@@ -63,7 +68,8 @@ export default function CreateRecipe() {
   const handleAddIngredient = (ingredient: Ingredient) => {
     // Smart Pantry handles the API call, but we still need to update local state
     // for immediate UI feedback and synchronization
-    console.log('Adding ingredient to Create Recipe state:', ingredient);
+    console.log('🎯 Create Recipe: handleAddIngredient called with:', ingredient);
+    console.log('🎯 Current ingredients count:', ingredients.length);
     setIngredients(prev => {
       // Check if ingredient already exists to avoid duplicates
       const exists = prev.some(
@@ -90,6 +96,7 @@ export default function CreateRecipe() {
 
   const handleRemoveIngredient = async (id: string) => {
     try {
+      const ingredientService = await getIngredientService();
       await ingredientService.deleteIngredient(id);
       setIngredients(ingredients.filter(ing => ing.id !== id));
     } catch (error) {
@@ -100,6 +107,7 @@ export default function CreateRecipe() {
 
   const handleUpdateIngredient = async (ingredient: Ingredient) => {
     try {
+      const ingredientService = await getIngredientService();
       const updatedIngredient = await ingredientService.updateIngredient(ingredient.id, {
         name: ingredient.name,
         category: ingredient.category,
