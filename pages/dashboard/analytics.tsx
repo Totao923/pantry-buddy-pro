@@ -49,6 +49,7 @@ interface AnalyticsData {
 }
 
 export default function Analytics() {
+  // Force deployment update v1.0.1
   const { user } = useAuth();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [receipts, setReceipts] = useState<ExtractedReceiptData[]>([]);

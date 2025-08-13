@@ -100,7 +100,7 @@ const nextConfig = {
   // Environment variable validation
   env: {
     // Only expose safe environment variables to client
-    NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version || '1.0.0',
+    NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version || '1.0.1',
     NEXT_PUBLIC_APP_NAME: 'Pantry Buddy Pro',
   },
 

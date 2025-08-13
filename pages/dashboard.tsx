@@ -13,6 +13,7 @@ import { databaseSettingsService } from '../lib/services/databaseSettingsService
 import { Ingredient, Recipe } from '../types';
 
 export default function Dashboard() {
+  // Force deployment update v1.0.1
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
