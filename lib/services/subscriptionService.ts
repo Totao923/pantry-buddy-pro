@@ -179,16 +179,8 @@ export class SubscriptionService {
         stripe_customer_id: subscription.customer as string,
         stripe_subscription_id: subscription.id,
         tier: tierInfo?.tier || 'free',
-        status:
-          subscription.status === 'active'
-            ? 'active'
-            : subscription.status === 'trialing'
-              ? 'trialing'
-              : subscription.status === 'past_due'
-                ? 'past_due'
-                : subscription.status === 'canceled'
-                  ? 'canceled'
-                  : 'incomplete',
+        stripe_status: subscription.status, // Use stripe_status for Stripe statuses
+        status: 'active', // Keep original status as 'active' to avoid enum conflicts
         current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
         cancel_at_period_end: (subscription as any).cancel_at_period_end,
         trial_end: (subscription as any).trial_end
@@ -226,7 +218,8 @@ export class SubscriptionService {
         .update({
           stripe_subscription_id: null,
           tier: 'free',
-          status: 'canceled',
+          stripe_status: 'canceled', // Use stripe_status instead of status
+          status: 'active', // Keep original status to avoid enum conflicts
           current_period_end: null,
           cancel_at_period_end: false,
           trial_end: null,
@@ -277,7 +270,9 @@ export class SubscriptionService {
       }
 
       // Premium features are available for all paid tiers
-      if (subscription.status === 'active' || subscription.status === 'trialing') {
+      // Check both stripe_status and regular status for compatibility
+      const effectiveStatus = (subscription as any).stripe_status || subscription.status;
+      if (effectiveStatus === 'active' || effectiveStatus === 'trialing') {
         return true;
       }
 
