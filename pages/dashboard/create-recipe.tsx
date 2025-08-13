@@ -155,7 +155,7 @@ export default function CreateRecipe() {
             userId: user.id,
           });
 
-          const timeoutPromise = new Promise((_, reject) =>
+          const timeoutPromise = new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('API timeout after 10 seconds')), 10000)
           );
 
@@ -205,7 +205,7 @@ export default function CreateRecipe() {
               }),
             });
 
-            const publicTimeoutPromise = new Promise((_, reject) =>
+            const publicTimeoutPromise = new Promise<never>((_, reject) =>
               setTimeout(() => reject(new Error('Public API timeout after 8 seconds')), 8000)
             );
 
@@ -258,7 +258,7 @@ export default function CreateRecipe() {
           }),
         });
 
-        const unauthTimeoutPromise = new Promise((_, reject) =>
+        const unauthTimeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Unauth API timeout after 8 seconds')), 8000)
         );
 

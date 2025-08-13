@@ -78,7 +78,6 @@ const SmartPantry = React.memo(function SmartPantry({
   const [inputValue, setInputValue] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<IngredientCategory>('other');
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [smartSuggestions, setSmartSuggestions] = useState<SmartSuggestion[]>([]);
   const [searchFilter, setSearchFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<IngredientCategory | 'all'>('all');
   const [showExpiringSoon, setShowExpiringSoon] = useState(false);
