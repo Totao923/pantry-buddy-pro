@@ -39,107 +39,47 @@ export default function Dashboard() {
   );
 
   useEffect(() => {
-    console.log('📍 Dashboard: useEffect triggered, authLoading:', authLoading, 'user state:', {
-      userId: user?.id,
-      userEmail: user?.email,
-    });
+    console.log('📍 Dashboard: useEffect triggered - using simplified loading');
 
-    const loadDashboardData = async () => {
-      console.log('🚀 Dashboard: Starting to load data, user:', user?.id || 'not authenticated');
-
-      // Set a timeout to ensure we don't hang forever
-      const timeoutId = setTimeout(() => {
-        console.log('⏰ Dashboard: Loading timeout, forcing completion');
-        setLoading(false);
-      }, 10000); // 10 second timeout
+    const loadDashboardData = () => {
+      console.log('🚀 Dashboard: Starting simplified data load');
 
       try {
-        // Load ingredients
+        // Load ingredients synchronously (mock service)
         console.log('📦 Dashboard: Loading ingredients...');
-        const userIngredients = await ingredientService.getAllIngredients();
-        console.log('✅ Dashboard: Loaded ingredients:', userIngredients.length);
-        setIngredients(userIngredients);
+        ingredientService.getAllIngredients().then(userIngredients => {
+          console.log('✅ Dashboard: Loaded ingredients:', userIngredients.length);
+          setIngredients(userIngredients);
+        }).catch(error => {
+          console.log('❌ Error loading ingredients:', error);
+          setIngredients([]);
+        });
 
-        // Load recent recipes from database or localStorage fallback
-        if (user?.id) {
+        // Load recipes from localStorage only (skip database complexity)
+        console.log('📚 Dashboard: Loading recipes from localStorage...');
+        const savedRecipes = localStorage.getItem('recentRecipes');
+        if (savedRecipes) {
           try {
-            // Try to get recent recipes from database first with timeout
-            console.log('🔍 Dashboard: Checking database availability...');
-            const dbAvailable = (await Promise.race([
-              databaseSettingsService.isAvailable(),
-              new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Database check timeout')), 3000)
-              ),
-            ])) as boolean;
-            console.log('Database availability:', dbAvailable);
-
-            if (dbAvailable) {
-              console.log('Loading recent recipes from database');
-              const recentItems = (await Promise.race([
-                databaseSettingsService.getRecentItems('recipe', 6),
-                new Promise((_, reject) =>
-                  setTimeout(() => reject(new Error('Recent items timeout')), 3000)
-                ),
-              ])) as any[];
-              if (recentItems.length > 0) {
-                setRecentRecipes(recentItems.map(item => item.data));
-                console.log('Loaded recent recipes from database successfully');
-              } else {
-                // Try getting saved recipes as fallback
-                console.log('🔍 Dashboard: No recent items, trying saved recipes...');
-                const result = (await Promise.race([
-                  RecipeService.getSavedRecipes(user.id),
-                  new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Saved recipes timeout')), 3000)
-                  ),
-                ])) as any;
-                if (result.success && result.data) {
-                  setRecentRecipes(result.data.slice(0, 6));
-                  console.log('Loaded saved recipes from database');
-                } else {
-                  console.log('No recipes found in database, checking localStorage');
-                  const savedRecipes = localStorage.getItem('recentRecipes');
-                  if (savedRecipes) {
-                    const recipes = JSON.parse(savedRecipes);
-                    setRecentRecipes(recipes.slice(0, 6));
-                  }
-                }
-              }
-            } else {
-              throw new Error('Database not available');
-            }
-          } catch (error) {
-            console.log(
-              'Database error, falling back to localStorage:',
-              error instanceof Error ? error.message : 'Unknown error'
-            );
-            const savedRecipes = localStorage.getItem('recentRecipes');
-            if (savedRecipes) {
-              const recipes = JSON.parse(savedRecipes);
-              setRecentRecipes(recipes.slice(0, 6)); // Show last 6 recipes
-            } else {
-              console.log('No recipes found in localStorage either');
-              setRecentRecipes([]); // Set empty array to stop loading
-            }
-          }
-        } else {
-          // Not authenticated, use localStorage
-          console.log('👤 Dashboard: User not authenticated, using localStorage');
-          const savedRecipes = localStorage.getItem('recentRecipes');
-          if (savedRecipes) {
             const recipes = JSON.parse(savedRecipes);
-            setRecentRecipes(recipes.slice(0, 6)); // Show last 6 recipes
+            setRecentRecipes(recipes.slice(0, 6));
             console.log('✅ Dashboard: Loaded recipes from localStorage:', recipes.length);
-          } else {
-            console.log('📭 Dashboard: No recipes found in localStorage');
+          } catch (error) {
+            console.log('❌ Error parsing recipes:', error);
             setRecentRecipes([]);
           }
+        } else {
+          console.log('📭 Dashboard: No recipes found in localStorage');
+          setRecentRecipes([]);
         }
+
+        // Set loading to false after a short delay to ensure state updates
+        setTimeout(() => {
+          console.log('🏁 Dashboard: Finished loading, setting loading to false');
+          setLoading(false);
+        }, 500);
+
       } catch (error) {
-        console.error('❌ Dashboard: Error loading dashboard data:', error);
-      } finally {
-        clearTimeout(timeoutId); // Clear timeout if we finish normally
-        console.log('🏁 Dashboard: Finished loading, setting loading to false');
+        console.error('❌ Dashboard: Error in simplified loading:', error);
         setLoading(false);
       }
     };

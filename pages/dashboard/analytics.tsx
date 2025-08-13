@@ -57,22 +57,61 @@ export default function Analytics() {
   const [activeTab, setActiveTab] = useState<'overview' | 'spending' | 'pantry'>('overview');
 
   useEffect(() => {
+    console.log('📊 Analytics: useEffect triggered');
+    
+    // Emergency timeout to prevent infinite loading
+    const emergencyTimeout = setTimeout(() => {
+      console.log('🚨 Analytics: Emergency timeout - forcing loading to false');
+      setLoading(false);
+    }, 5000); // 5 seconds max
+    
     const loadAnalyticsData = async () => {
+      console.log('📊 Analytics: Starting data load');
+      
       try {
         if (!user) {
+          console.log('📊 Analytics: No user, stopping');
           setLoading(false);
           return;
         }
 
-        // Get AI usage stats
-        const aiStats = await aiService.getUsageStats(user.id);
+        // Use simplified approach with fallbacks
+        console.log('📊 Analytics: Loading AI stats...');
+        let aiStats;
+        try {
+          aiStats = await aiService.getUsageStats(user.id);
+        } catch (error) {
+          console.log('❌ AI stats error:', error);
+          aiStats = { aiEnabled: false, requestsUsed: 0, requestsRemaining: 100 };
+        }
 
-        // Load real data from services
-        const [userReceipts, pantryItems, scanningStats] = await Promise.all([
-          receiptService.getUserReceipts(user.id),
-          ingredientService.getAllIngredients(),
-          barcodeService.getScanningStats(user.id),
-        ]);
+        // Load data with individual try-catch blocks
+        console.log('📊 Analytics: Loading receipts...');
+        let userReceipts: ExtractedReceiptData[] = [];
+        try {
+          userReceipts = await receiptService.getUserReceipts(user.id);
+        } catch (error) {
+          console.log('❌ Receipts error:', error);
+          userReceipts = [];
+        }
+
+        console.log('📊 Analytics: Loading pantry items...');
+        let pantryItems: Ingredient[] = [];
+        try {
+          pantryItems = await ingredientService.getAllIngredients();
+        } catch (error) {
+          console.log('❌ Pantry error:', error);
+          pantryItems = [];
+        }
+
+        console.log('📊 Analytics: Loading scanning stats...');
+        let scanningStats: any = {};
+        try {
+          scanningStats = await barcodeService.getScanningStats(user.id);
+        } catch (error) {
+          console.log('❌ Scanning stats error:', error);
+          scanningStats = {};
+        }
 
         setReceipts(userReceipts);
 
@@ -105,28 +144,28 @@ export default function Analytics() {
         // Calculate pantry value (estimated based on items)
         const pantryValue = pantryItems.reduce((sum, item) => {
           // Estimate value based on category and quantity
-          const baseValue =
-            {
-              protein: 8,
-              vegetables: 3,
-              fruits: 4,
-              dairy: 5,
-              grains: 6,
-              oils: 7,
-              spices: 2,
-              herbs: 3,
-              pantry: 4,
-              other: 3,
-            }[item.category] || 3;
+          const categoryValues: Record<string, number> = {
+            protein: 8,
+            vegetables: 3,
+            fruits: 4,
+            dairy: 5,
+            grains: 6,
+            oils: 7,
+            spices: 2,
+            herbs: 3,
+            pantry: 4,
+            other: 3,
+          };
+          const baseValue = categoryValues[item.category] || 3;
           const quantity = parseFloat(item.quantity || '1');
           return sum + baseValue * quantity;
         }, 0);
 
         // Category breakdown
         const categoryBreakdown = pantryItems.reduce(
-          (acc, item) => {
+          (acc: Array<{ category: string; count: number; value: number }>, item) => {
             const category = item.category;
-            const existing = acc.find(c => c.category === category);
+            const existing = acc.find((c: { category: string; count: number; value: number }) => c.category === category);
             if (existing) {
               existing.count++;
               existing.value += 3; // Base estimated value
@@ -230,7 +269,7 @@ export default function Analytics() {
         );
 
         const topIngredients = Object.entries(ingredientCounts)
-          .map(([name, count]) => ({ name, count }))
+          .map(([name, count]) => ({ name, count: count as number }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
 
@@ -256,6 +295,7 @@ export default function Analytics() {
       } catch (error) {
         console.error('Error loading analytics data:', error);
       } finally {
+        clearTimeout(emergencyTimeout);
         setLoading(false);
       }
     };
@@ -264,8 +304,14 @@ export default function Analytics() {
       loadAnalyticsData();
     } else {
       // Set loading to false if no user to prevent infinite loading
+      clearTimeout(emergencyTimeout);
       setLoading(false);
     }
+
+    // Cleanup function to clear emergency timeout
+    return () => {
+      clearTimeout(emergencyTimeout);
+    };
   }, [user, timeRange]);
 
   if (loading || !analyticsData) {
