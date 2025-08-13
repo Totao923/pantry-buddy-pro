@@ -65,34 +65,34 @@ export default function Dashboard() {
           try {
             // Try to get recent recipes from database first with timeout
             console.log('🔍 Dashboard: Checking database availability...');
-            const dbAvailable = await Promise.race([
+            const dbAvailable = (await Promise.race([
               databaseSettingsService.isAvailable(),
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Database check timeout')), 3000)
               ),
-            ]);
+            ])) as boolean;
             console.log('Database availability:', dbAvailable);
 
             if (dbAvailable) {
               console.log('Loading recent recipes from database');
-              const recentItems = await Promise.race([
+              const recentItems = (await Promise.race([
                 databaseSettingsService.getRecentItems('recipe', 6),
                 new Promise((_, reject) =>
                   setTimeout(() => reject(new Error('Recent items timeout')), 3000)
                 ),
-              ]);
+              ])) as any[];
               if (recentItems.length > 0) {
                 setRecentRecipes(recentItems.map(item => item.data));
                 console.log('Loaded recent recipes from database successfully');
               } else {
                 // Try getting saved recipes as fallback
                 console.log('🔍 Dashboard: No recent items, trying saved recipes...');
-                const result = await Promise.race([
+                const result = (await Promise.race([
                   RecipeService.getSavedRecipes(user.id),
                   new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Saved recipes timeout')), 3000)
                   ),
-                ]);
+                ])) as any;
                 if (result.success && result.data) {
                   setRecentRecipes(result.data.slice(0, 6));
                   console.log('Loaded saved recipes from database');
