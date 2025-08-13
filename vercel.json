@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "build": {
     "env": {
       "NEXT_TELEMETRY_DISABLED": "1",
@@ -6,6 +7,8 @@
     }
   },
   "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "outputDirectory": ".next",
   "functions": {
     "pages/api/**/*.ts": {
       "maxDuration": 30

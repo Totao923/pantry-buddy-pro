@@ -4,11 +4,13 @@ export default function DeploymentTest() {
   const deploymentInfo = {
     version: '1.0.1',
     timestamp: new Date().toISOString(),
-    commitHash: '897b826',
+    commitHash: 'd274bad',
     buildDate: '2025-08-13',
     analyticsFixIncluded: true,
     manifestFixed: true,
     documentAdded: true,
+    aggressiveRebuild: true,
+    deploymentId: process.env.NEXT_PUBLIC_DEPLOYMENT_ID || 'unknown',
   };
 
   return (
