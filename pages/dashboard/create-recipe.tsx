@@ -8,7 +8,7 @@ import AdvancedCuisineSelector from '../../components/AdvancedCuisineSelector';
 import EnhancedRecipeCard from '../../components/EnhancedRecipeCard';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { RecipeService } from '../../lib/services/recipeService';
-import { AdvancedRecipeEngine } from '../../lib/advancedRecipeEngine';
+// Dynamic import for AdvancedRecipeEngine to reduce initial bundle size
 import { ingredientService } from '../../lib/services/ingredientService';
 import { databaseRecipeService } from '../../lib/services/databaseRecipeService';
 import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
@@ -31,38 +31,61 @@ export default function CreateRecipe() {
   });
   const [showModeSelection, setShowModeSelection] = useState(subscription?.tier === 'premium');
 
-  useEffect(() => {
-    // Load existing ingredients from the service
-    const loadIngredients = async () => {
-      try {
-        const userIngredients = await ingredientService.getAllIngredients();
-        setIngredients(userIngredients);
-      } catch (error) {
-        console.error('Error loading ingredients:', error);
-      }
-    };
+  // Load ingredients function that can be called on demand
+  const loadIngredients = async () => {
+    try {
+      console.log('Loading ingredients in Create Recipe...');
+      const userIngredients = await ingredientService.getAllIngredients();
+      console.log('Loaded ingredients:', userIngredients.length);
+      setIngredients(userIngredients);
+    } catch (error) {
+      console.error('Error loading ingredients:', error);
+    }
+  };
 
+  useEffect(() => {
     loadIngredients();
   }, []);
 
-  const handleAddIngredient = async (ingredient: Ingredient) => {
-    try {
-      const newIngredient = await ingredientService.createIngredient({
-        name: ingredient.name,
-        category: ingredient.category,
-        quantity: ingredient.quantity,
-        unit: ingredient.unit,
-        expiryDate: ingredient.expiryDate?.toISOString(),
-        nutritionalValue: ingredient.nutritionalValue,
-        isProtein: ingredient.isProtein,
-        isVegetarian: ingredient.isVegetarian,
-        isVegan: ingredient.isVegan,
-      });
-      setIngredients([...ingredients, newIngredient]);
-    } catch (error) {
-      console.error('Error adding ingredient:', error);
-      setError('Failed to add ingredient');
-    }
+  // Add effect to reload ingredients when the page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page became visible, reloading ingredients...');
+        loadIngredients();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  const handleAddIngredient = (ingredient: Ingredient) => {
+    // Smart Pantry handles the API call, but we still need to update local state
+    // for immediate UI feedback and synchronization
+    console.log('Adding ingredient to Create Recipe state:', ingredient);
+    setIngredients(prev => {
+      // Check if ingredient already exists to avoid duplicates
+      const exists = prev.some(
+        ing => ing.id === ingredient.id || ing.name.toLowerCase() === ingredient.name.toLowerCase()
+      );
+      if (exists) {
+        console.log('Ingredient already exists, updating:', ingredient.name);
+        return prev.map(ing =>
+          ing.id === ingredient.id || ing.name.toLowerCase() === ingredient.name.toLowerCase()
+            ? ingredient
+            : ing
+        );
+      }
+      console.log('Adding new ingredient:', ingredient.name);
+      return [...prev, ingredient];
+    });
+
+    // Also reload ingredients to ensure sync with any changes made via SmartPantry
+    setTimeout(() => {
+      console.log('Reloading ingredients after addition to ensure sync...');
+      loadIngredients();
+    }, 100);
   };
 
   const handleRemoveIngredient = async (id: string) => {
@@ -107,11 +130,12 @@ export default function CreateRecipe() {
     try {
       let recipe: Recipe;
 
-      // Try API first if user is authenticated, otherwise use direct AI service
+      // Try API first with faster timeout if user is authenticated
       if (user?.id) {
         console.log('🚀 Generating recipe with AI via API (authenticated user)...');
         try {
-          const apiResponse = await RecipeService.generateRecipe({
+          // Create a timeout promise to limit API wait time
+          const apiPromise = RecipeService.generateRecipe({
             ingredients: ingredients.map(ing => ({
               ...ing,
               quantity: ing.quantity?.toString() || '1',
@@ -131,6 +155,12 @@ export default function CreateRecipe() {
             userId: user.id,
           });
 
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('API timeout after 10 seconds')), 10000)
+          );
+
+          const apiResponse = await Promise.race([apiPromise, timeoutPromise]);
+
           if (apiResponse.success && apiResponse.data) {
             recipe = apiResponse.data;
             console.log('✅ AI Recipe generated via API:', {
@@ -143,11 +173,14 @@ export default function CreateRecipe() {
             throw new Error(apiResponse.error || 'API failed');
           }
         } catch (apiError) {
-          console.log('❌ Authenticated API failed, trying public AI endpoint:', apiError);
+          console.log(
+            '❌ Authenticated API failed or timed out, trying public AI endpoint:',
+            apiError
+          );
 
-          // Try public AI endpoint as fallback
+          // Try public AI endpoint as fallback with timeout
           try {
-            const publicResponse = await fetch('/api/recipes/generate-public', {
+            const publicPromise = fetch('/api/recipes/generate-public', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -172,6 +205,12 @@ export default function CreateRecipe() {
               }),
             });
 
+            const publicTimeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Public API timeout after 8 seconds')), 8000)
+            );
+
+            const publicResponse = await Promise.race([publicPromise, publicTimeoutPromise]);
+
             const publicResult = await publicResponse.json();
 
             if (publicResult.success && publicResult.recipe) {
@@ -191,10 +230,10 @@ export default function CreateRecipe() {
           }
         }
       } else {
-        // For unauthenticated users, use public AI endpoint
+        // For unauthenticated users, use public AI endpoint with timeout
         console.log('🚀 Generating recipe via public AI endpoint (no auth)...');
 
-        const publicResponse = await fetch('/api/recipes/generate-public', {
+        const unauthPromise = fetch('/api/recipes/generate-public', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -219,6 +258,12 @@ export default function CreateRecipe() {
           }),
         });
 
+        const unauthTimeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Unauth API timeout after 8 seconds')), 8000)
+        );
+
+        const publicResponse = await Promise.race([unauthPromise, unauthTimeoutPromise]);
+
         const publicResult = await publicResponse.json();
 
         if (publicResult.success && publicResult.recipe) {
@@ -236,7 +281,8 @@ export default function CreateRecipe() {
 
       // If all AI methods fail, fall back to the advanced recipe engine
       if (!recipe) {
-        console.log('❌ All AI methods failed, using fallback engine');
+        console.log('❌ All AI methods failed, loading fallback engine dynamically');
+        const { AdvancedRecipeEngine } = await import('../../lib/advancedRecipeEngine');
         recipe = await AdvancedRecipeEngine.generateAdvancedRecipe(
           ingredients,
           selectedCuisine,

@@ -15,7 +15,7 @@ interface QuickSuggestionsAnalyticsProps {
   className?: string;
 }
 
-export default function QuickSuggestionsAnalytics({
+const QuickSuggestionsAnalytics = React.memo(function QuickSuggestionsAnalytics({
   className = '',
 }: QuickSuggestionsAnalyticsProps) {
   const { user } = useAuth();
@@ -168,4 +168,6 @@ export default function QuickSuggestionsAnalytics({
       )}
     </div>
   );
-}
+});
+
+export default QuickSuggestionsAnalytics;

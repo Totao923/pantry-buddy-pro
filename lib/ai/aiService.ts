@@ -6,7 +6,7 @@ import {
   RateLimiter,
   RecipeQuality,
 } from './types';
-import { AnthropicProvider } from './providers/anthropic';
+// Dynamic import for providers to reduce initial bundle size
 import { PromptEngine } from './promptEngineering';
 import { AdvancedRecipeEngine } from '../advancedRecipeEngine';
 import {
@@ -176,6 +176,8 @@ export class AIService {
 
     try {
       if (config.provider === 'anthropic') {
+        console.log('🔄 Loading Anthropic provider dynamically...');
+        const { AnthropicProvider } = await import('./providers/anthropic');
         this.provider = new AnthropicProvider(config.apiKey);
       } else {
         throw new Error(`Unsupported AI provider: ${config.provider}`);
@@ -254,8 +256,8 @@ export class AIService {
 
           const response = await this.provider.generateRecipe(prompt, {
             temperature: 0.7,
-            maxTokens: 2000,
-            timeout: 30000,
+            maxTokens: 1500, // Reduced for faster generation
+            timeout: 15000, // Reduced to 15 seconds
           });
 
           if (response.success && response.recipe) {

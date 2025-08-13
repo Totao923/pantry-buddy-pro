@@ -60,11 +60,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   console.log('AuthProvider initialized:', { isDemo, hasSupabase: !!supabase });
 
   useEffect(() => {
-    // Add timeout to prevent infinite loading
+    // Add reasonable timeout to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
       console.log('Auth loading timeout - setting loading to false');
       setLoading(false);
-    }, 5000); // 5 second timeout
+    }, 3000); // Reduced to 3 seconds
 
     // Skip auth setup if no Supabase client (demo mode)
     if (!supabase) {
@@ -92,15 +92,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Reset ingredients when loading existing session
-          try {
-            await ingredientService.clearAllIngredients();
-            console.log('Ingredients reset on session load');
-          } catch (error) {
-            console.error('Error resetting ingredients on session load:', error);
-          }
+          // Load user data immediately for faster UI response
+          loadUserData(session.user.id);
 
-          await loadUserData(session.user.id);
+          // Reset ingredients in background - don't await
+          ingredientService
+            .clearAllIngredients()
+            .then(() => console.log('Ingredients reset on session load'))
+            .catch(error => console.error('Error resetting ingredients on session load:', error));
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
@@ -122,23 +121,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(session?.user ?? null);
 
       if (event === 'SIGNED_IN' && session?.user) {
-        // Switch to database services when user signs in
-        try {
-          const switched = await ingredientServiceFactory.switchToDatabaseService();
-          console.log('Service switch result:', switched ? 'database' : 'mock');
-        } catch (error) {
-          console.error('Error switching to database service:', error);
-        }
+        // Load user data immediately for faster UI response
+        loadUserData(session.user.id);
 
-        // Reset ingredients every time user signs in
-        try {
-          await ingredientService.clearAllIngredients();
-          console.log('Ingredients reset on sign-in');
-        } catch (error) {
-          console.error('Error resetting ingredients on sign-in:', error);
-        }
+        // Switch to database services in background
+        ingredientServiceFactory
+          .switchToDatabaseService()
+          .then(switched => console.log('Service switch result:', switched ? 'database' : 'mock'))
+          .catch(error => console.error('Error switching to database service:', error));
 
-        await loadUserData(session.user.id);
+        // Reset ingredients in background - don't block UI
+        ingredientService
+          .clearAllIngredients()
+          .then(() => console.log('Ingredients reset on sign-in'))
+          .catch(error => console.error('Error resetting ingredients on sign-in:', error));
 
         // Redirect to dashboard after successful sign-in
         // Only redirect if not already on dashboard or auth pages
@@ -177,13 +173,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      setLoading(true);
+      // Don't set loading to true here - let the UI be responsive
+      console.log('Loading user data in background for userId:', userId);
 
       // Add timeout for database operations
       const dataTimeout = setTimeout(() => {
-        console.log('User data loading timeout - setting loading to false');
-        setLoading(false);
-      }, 10000); // 10 second timeout for data loading
+        console.log('User data loading timeout - operation completed');
+      }, 3000); // Reduced to 3 seconds
 
       // Load user profile
       const { data: profileData, error: profileError } = await supabase
@@ -236,11 +232,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       clearTimeout(dataTimeout);
+      console.log('User data loading completed successfully');
     } catch (error) {
       console.error('Error loading user data:', error);
-    } finally {
-      setLoading(false);
     }
+    // Don't call setLoading(false) here - let auth state handle loading
   };
 
   const signUp = async (email: string, password: string, metadata: any = {}) => {
@@ -319,8 +315,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Error resetting ingredients on demo sign-in:', error);
       }
 
-      // Simulate a brief loading delay for demo purposes
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Removed artificial delay for better performance
 
       // Set a mock user for demo mode
       const mockUser = {
@@ -336,7 +331,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Only redirect if not already on dashboard
       if (router.pathname !== '/dashboard' && !router.pathname.startsWith('/dashboard/')) {
         console.log('Redirecting to dashboard after demo sign-in');
-        setTimeout(() => router.push('/dashboard'), 100); // Small delay to ensure state is set
+        router.push('/dashboard'); // Removed artificial delay
       }
 
       return { error: null };

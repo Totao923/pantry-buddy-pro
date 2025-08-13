@@ -6,10 +6,39 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import AuthGuard from '../components/auth/AuthGuard';
 import { useAuth } from '../lib/auth/AuthProvider';
 import { ingredientService } from '../lib/services/ingredientService';
-import { AInutritionist } from '../components/AInutritionist';
-import QuickSuggestionsAnalytics from '../components/QuickSuggestionsAnalytics';
-import CookingStats from '../components/cooking/CookingStats';
-import CookingHistory from '../components/cooking/CookingHistory';
+// Dynamic imports for heavy components to improve initial load time
+import dynamic from 'next/dynamic';
+
+const AInutritionist = dynamic(
+  () => import('../components/AInutritionist').then(mod => ({ default: mod.AInutritionist })),
+  {
+    loading: () => (
+      <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 animate-pulse h-64"></div>
+    ),
+    ssr: false,
+  }
+);
+
+const QuickSuggestionsAnalytics = dynamic(() => import('../components/QuickSuggestionsAnalytics'), {
+  loading: () => (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 animate-pulse h-32"></div>
+  ),
+  ssr: false,
+});
+
+const CookingStats = dynamic(() => import('../components/cooking/CookingStats'), {
+  loading: () => (
+    <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 animate-pulse h-64"></div>
+  ),
+  ssr: false,
+});
+
+const CookingHistory = dynamic(() => import('../components/cooking/CookingHistory'), {
+  loading: () => (
+    <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 animate-pulse h-64"></div>
+  ),
+  ssr: false,
+});
 import { RecipeService } from '../lib/services/recipeService';
 import { databaseSettingsService } from '../lib/services/databaseSettingsService';
 import { Ingredient, Recipe } from '../types';
@@ -22,15 +51,7 @@ export default function Dashboard() {
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Force loading to false after 3 seconds as emergency fallback
-  useEffect(() => {
-    const emergencyTimeout = setTimeout(() => {
-      console.log('🚨 Dashboard: Emergency timeout - forcing loading to false');
-      setLoading(false);
-    }, 3000);
-
-    return () => clearTimeout(emergencyTimeout);
-  }, []);
+  // Removed emergency timeout - rely on proper loading state management
 
   console.log(
     '🔍 Dashboard: Component render, authLoading:',
@@ -42,99 +63,115 @@ export default function Dashboard() {
   );
 
   useEffect(() => {
-    console.log('📍 Dashboard: useEffect triggered - using simplified loading');
+    console.log('📍 Dashboard: Loading dashboard data...');
 
-    const loadDashboardData = () => {
-      console.log('🚀 Dashboard: Starting simplified data load');
-
+    const loadDashboardData = async () => {
       try {
-        // Load ingredients synchronously (mock service)
-        console.log('📦 Dashboard: Loading ingredients...');
-        ingredientService
-          .getAllIngredients()
-          .then(userIngredients => {
-            console.log('✅ Dashboard: Loaded ingredients:', userIngredients.length);
-            setIngredients(userIngredients);
-          })
-          .catch(error => {
-            console.log('❌ Error loading ingredients:', error);
-            setIngredients([]);
-          });
+        // Load data in parallel for better performance
+        const [ingredientsResult, recipesResult] = await Promise.allSettled([
+          ingredientService.getAllIngredients(),
+          loadRecipesFromStorage(),
+        ]);
 
-        // Load recipes from localStorage only (skip database complexity)
-        console.log('📚 Dashboard: Loading recipes from localStorage...');
-        const savedRecipes = localStorage.getItem('recentRecipes');
-        if (savedRecipes) {
-          try {
-            const recipes = JSON.parse(savedRecipes);
-            setRecentRecipes(recipes.slice(0, 6));
-            console.log('✅ Dashboard: Loaded recipes from localStorage:', recipes.length);
-          } catch (error) {
-            console.log('❌ Error parsing recipes:', error);
-            setRecentRecipes([]);
-          }
+        // Handle ingredients result
+        if (ingredientsResult.status === 'fulfilled') {
+          console.log('✅ Dashboard: Loaded ingredients:', ingredientsResult.value.length);
+          setIngredients(ingredientsResult.value);
         } else {
-          console.log('📭 Dashboard: No recipes found in localStorage');
-          setRecentRecipes([]);
+          console.log('❌ Error loading ingredients:', ingredientsResult.reason);
+          setIngredients([]);
         }
 
-        // Set loading to false after a short delay to ensure state updates
-        setTimeout(() => {
-          console.log('🏁 Dashboard: Finished loading, setting loading to false');
-          setLoading(false);
-        }, 500);
+        // Handle recipes result
+        if (recipesResult.status === 'fulfilled') {
+          console.log('✅ Dashboard: Loaded recipes:', recipesResult.value.length);
+          setRecentRecipes(recipesResult.value);
+        } else {
+          console.log('❌ Error loading recipes:', recipesResult.reason);
+          setRecentRecipes([]);
+        }
       } catch (error) {
-        console.error('❌ Dashboard: Error in simplified loading:', error);
+        console.error('❌ Dashboard: Unexpected error:', error);
+        setIngredients([]);
+        setRecentRecipes([]);
+      } finally {
+        console.log('🏁 Dashboard: Loading complete');
         setLoading(false);
       }
+    };
+
+    const loadRecipesFromStorage = () => {
+      return new Promise<Recipe[]>(resolve => {
+        try {
+          const savedRecipes = localStorage.getItem('recentRecipes');
+          if (savedRecipes) {
+            const recipes = JSON.parse(savedRecipes);
+            resolve(recipes.slice(0, 6));
+          } else {
+            resolve([]);
+          }
+        } catch (error) {
+          console.log('❌ Error parsing recipes:', error);
+          resolve([]);
+        }
+      });
     };
 
     loadDashboardData();
   }, []);
 
-  const stats = {
-    totalIngredients: ingredients.length,
-    totalRecipes: recentRecipes.length,
-    cookedToday: 0, // Placeholder for future implementation
-    weeklyGoal: 5, // Placeholder for user preferences
-  };
+  const stats = useMemo(
+    () => ({
+      totalIngredients: ingredients.length,
+      totalRecipes: recentRecipes.length,
+      cookedToday: 0, // Placeholder for future implementation
+      weeklyGoal: 5, // Placeholder for user preferences
+    }),
+    [ingredients.length, recentRecipes.length]
+  );
 
-  const quickActions = [
-    {
-      title: 'Generate Recipe',
-      description: 'Create a new recipe from your ingredients',
-      icon: '✨',
-      href: '/dashboard/create-recipe',
-      color: 'from-green-500 to-green-600',
-    },
-    {
-      title: 'Add Ingredients',
-      description: 'Stock up your virtual pantry',
-      icon: '🥗',
-      href: '/dashboard/pantry',
-      color: 'from-orange-500 to-orange-600',
-    },
-    {
-      title: 'Browse Recipes',
-      description: 'Explore your recipe collection',
-      icon: '📚',
-      href: '/dashboard/recipes',
-      color: 'from-yellow-500 to-yellow-600',
-    },
-    {
-      title: 'Plan Meals',
-      description: 'Organize your weekly menu',
-      icon: '📅',
-      href: '/dashboard/meal-plans',
-      color: 'from-gray-100 to-gray-200 text-gray-800',
-    },
-  ];
+  const quickActions = useMemo(
+    () => [
+      {
+        title: 'Generate Recipe',
+        description: 'Create a new recipe from your ingredients',
+        icon: '✨',
+        href: '/dashboard/create-recipe',
+        color: 'from-green-500 to-green-600',
+      },
+      {
+        title: 'Add Ingredients',
+        description: 'Stock up your virtual pantry',
+        icon: '🥗',
+        href: '/dashboard/pantry',
+        color: 'from-orange-500 to-orange-600',
+      },
+      {
+        title: 'Browse Recipes',
+        description: 'Explore your recipe collection',
+        icon: '📚',
+        href: '/dashboard/recipes',
+        color: 'from-yellow-500 to-yellow-600',
+      },
+      {
+        title: 'Plan Meals',
+        description: 'Organize your weekly menu',
+        icon: '📅',
+        href: '/dashboard/meal-plans',
+        color: 'from-gray-100 to-gray-200 text-gray-800',
+      },
+    ],
+    []
+  );
 
-  const upcomingFeatures = [
-    { name: 'Nutrition Tracking', status: 'Premium', icon: '📊' },
-    { name: 'Video Tutorials', status: 'Premium', icon: '🎥' },
-    { name: 'Family Sharing', status: 'Family Plan', icon: '👥' },
-  ];
+  const upcomingFeatures = useMemo(
+    () => [
+      { name: 'Nutrition Tracking', status: 'Premium', icon: '📊' },
+      { name: 'Video Tutorials', status: 'Premium', icon: '🎥' },
+      { name: 'Family Sharing', status: 'Family Plan', icon: '👥' },
+    ],
+    []
+  );
 
   if (loading) {
     return (

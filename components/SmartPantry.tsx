@@ -68,7 +68,7 @@ const categoryData: Record<
   },
 };
 
-export default function SmartPantry({
+const SmartPantry = React.memo(function SmartPantry({
   ingredients,
   onAddIngredient,
   onRemoveIngredient,
@@ -88,7 +88,7 @@ export default function SmartPantry({
   const { loading, error, searchIngredients, filterByCategory } = useIngredients();
   const { session } = useAuth();
 
-  const generateSmartSuggestions = useCallback(() => {
+  const smartSuggestions = useMemo(() => {
     const suggestions: SmartSuggestion[] = [];
 
     // Suggest complementary ingredients
@@ -115,17 +115,8 @@ export default function SmartPantry({
       });
     }
 
-    setSmartSuggestions(suggestions);
+    return suggestions;
   }, [ingredients]);
-
-  // Debounced effect
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      generateSmartSuggestions();
-    }, 300);
-
-    return () => clearTimeout(timeout);
-  }, [generateSmartSuggestions]);
 
   const handleInputChange = (value: string) => {
     setInputValue(value);
@@ -245,27 +236,31 @@ export default function SmartPantry({
     return true;
   };
 
-  const filteredIngredients = ingredients.filter(ingredient => {
-    const matchesSearch = ingredient.name.toLowerCase().includes(searchFilter.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || ingredient.category === categoryFilter;
-    const matchesExpiry =
-      !showExpiringSoon ||
-      (ingredient.expiryDate &&
-        new Date(ingredient.expiryDate).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000);
+  const filteredIngredients = useMemo(() => {
+    return ingredients.filter(ingredient => {
+      const matchesSearch = ingredient.name.toLowerCase().includes(searchFilter.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || ingredient.category === categoryFilter;
+      const matchesExpiry =
+        !showExpiringSoon ||
+        (ingredient.expiryDate &&
+          new Date(ingredient.expiryDate).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000);
 
-    return matchesSearch && matchesCategory && matchesExpiry;
-  });
+      return matchesSearch && matchesCategory && matchesExpiry;
+    });
+  }, [ingredients, searchFilter, categoryFilter, showExpiringSoon]);
 
-  const ingredientsByCategory = filteredIngredients.reduce(
-    (acc, ing) => {
-      if (!acc[ing.category]) {
-        acc[ing.category] = [];
-      }
-      acc[ing.category].push(ing);
-      return acc;
-    },
-    {} as Record<string, typeof filteredIngredients>
-  );
+  const ingredientsByCategory = useMemo(() => {
+    return filteredIngredients.reduce(
+      (acc, ing) => {
+        if (!acc[ing.category]) {
+          acc[ing.category] = [];
+        }
+        acc[ing.category].push(ing);
+        return acc;
+      },
+      {} as Record<string, typeof filteredIngredients>
+    );
+  }, [filteredIngredients]);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
@@ -591,4 +586,6 @@ export default function SmartPantry({
       ) : null}
     </div>
   );
-}
+});
+
+export default SmartPantry;
