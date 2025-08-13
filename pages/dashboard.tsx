@@ -47,13 +47,16 @@ export default function Dashboard() {
       try {
         // Load ingredients synchronously (mock service)
         console.log('📦 Dashboard: Loading ingredients...');
-        ingredientService.getAllIngredients().then(userIngredients => {
-          console.log('✅ Dashboard: Loaded ingredients:', userIngredients.length);
-          setIngredients(userIngredients);
-        }).catch(error => {
-          console.log('❌ Error loading ingredients:', error);
-          setIngredients([]);
-        });
+        ingredientService
+          .getAllIngredients()
+          .then(userIngredients => {
+            console.log('✅ Dashboard: Loaded ingredients:', userIngredients.length);
+            setIngredients(userIngredients);
+          })
+          .catch(error => {
+            console.log('❌ Error loading ingredients:', error);
+            setIngredients([]);
+          });
 
         // Load recipes from localStorage only (skip database complexity)
         console.log('📚 Dashboard: Loading recipes from localStorage...');
@@ -77,7 +80,6 @@ export default function Dashboard() {
           console.log('🏁 Dashboard: Finished loading, setting loading to false');
           setLoading(false);
         }, 500);
-
       } catch (error) {
         console.error('❌ Dashboard: Error in simplified loading:', error);
         setLoading(false);

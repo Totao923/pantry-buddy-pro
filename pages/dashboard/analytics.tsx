@@ -58,16 +58,16 @@ export default function Analytics() {
 
   useEffect(() => {
     console.log('📊 Analytics: useEffect triggered');
-    
+
     // Emergency timeout to prevent infinite loading
     const emergencyTimeout = setTimeout(() => {
       console.log('🚨 Analytics: Emergency timeout - forcing loading to false');
       setLoading(false);
     }, 5000); // 5 seconds max
-    
+
     const loadAnalyticsData = async () => {
       console.log('📊 Analytics: Starting data load');
-      
+
       try {
         if (!user) {
           console.log('📊 Analytics: No user, stopping');
@@ -165,7 +165,9 @@ export default function Analytics() {
         const categoryBreakdown = pantryItems.reduce(
           (acc: Array<{ category: string; count: number; value: number }>, item) => {
             const category = item.category;
-            const existing = acc.find((c: { category: string; count: number; value: number }) => c.category === category);
+            const existing = acc.find(
+              (c: { category: string; count: number; value: number }) => c.category === category
+            );
             if (existing) {
               existing.count++;
               existing.value += 3; // Base estimated value
