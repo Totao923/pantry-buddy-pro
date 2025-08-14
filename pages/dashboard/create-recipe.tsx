@@ -18,7 +18,7 @@ export default function CreateRecipe() {
   const router = useRouter();
   const { user, subscription } = useAuth();
   const [step, setStep] = useState(1);
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]); // Temporary ingredients for recipe
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('any');
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,39 +31,41 @@ export default function CreateRecipe() {
   });
   const [showModeSelection, setShowModeSelection] = useState(subscription?.tier === 'premium');
 
-  // Load ingredients function that can be called on demand
-  const loadIngredients = async () => {
+  // Fill pantry function - saves temporary ingredients to permanent pantry
+  const fillPantry = async (tempIngredients: Ingredient[]) => {
     try {
-      console.log('🔄 Loading ingredients in Create Recipe...');
-      const ingredientService = await getIngredientService();
-      const userIngredients = await ingredientService.getAllIngredients();
       console.log(
-        '✅ Loaded ingredients:',
-        userIngredients.length,
-        userIngredients.map(ing => ing.name)
+        '📦 Filling pantry with ingredients:',
+        tempIngredients.map(ing => ing.name)
       );
-      setIngredients(userIngredients);
+      const ingredientService = await getIngredientService();
+
+      for (const ingredient of tempIngredients) {
+        // Skip if ingredient is already marked as temporary (starts with temp_)
+        if (!ingredient.id.startsWith('temp_')) continue;
+
+        try {
+          await ingredientService.createIngredient({
+            name: ingredient.name,
+            category: ingredient.category,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
+            isProtein: ingredient.isProtein,
+            isVegetarian: ingredient.isVegetarian,
+            isVegan: ingredient.isVegan,
+          });
+          console.log('✅ Added to pantry:', ingredient.name);
+        } catch (error) {
+          console.error('❌ Failed to add to pantry:', ingredient.name, error);
+        }
+      }
+
+      alert(`Successfully added ${tempIngredients.length} ingredients to your pantry!`);
     } catch (error) {
-      console.error('❌ Error loading ingredients:', error);
+      console.error('❌ Error filling pantry:', error);
+      alert('Failed to add some ingredients to pantry. Please try again.');
     }
   };
-
-  useEffect(() => {
-    loadIngredients();
-  }, []);
-
-  // Add effect to reload ingredients when the page becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('Page became visible, reloading ingredients...');
-        loadIngredients();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
 
   const handleAddIngredient = (ingredient: Ingredient) => {
     // Smart Pantry handles the API call, but we still need to update local state
@@ -87,15 +89,18 @@ export default function CreateRecipe() {
       return [...prev, ingredient];
     });
 
-    // Also reload ingredients to ensure sync with any changes made via SmartPantry
-    setTimeout(() => {
-      console.log('Reloading ingredients after addition to ensure sync...');
-      loadIngredients();
-    }, 100);
+    // In Create Recipe mode, we don't need to reload from database since we use temporary ingredients
   };
 
   const handleRemoveIngredient = async (id: string) => {
     try {
+      // For temporary ingredients (Create Recipe mode), just remove locally
+      if (id.startsWith('temp_')) {
+        setIngredients(ingredients.filter(ing => ing.id !== id));
+        return;
+      }
+
+      // For permanent ingredients, remove from database
       const ingredientService = await getIngredientService();
       await ingredientService.deleteIngredient(id);
       setIngredients(ingredients.filter(ing => ing.id !== id));
@@ -484,6 +489,8 @@ export default function CreateRecipe() {
               onAddIngredient={handleAddIngredient}
               onRemoveIngredient={handleRemoveIngredient}
               onUpdateIngredient={handleUpdateIngredient}
+              mode="temporary"
+              onFillPantry={fillPantry}
               navigationButtons={
                 <div className="flex justify-between">
                   <button

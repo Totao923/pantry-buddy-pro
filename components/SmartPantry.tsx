@@ -10,6 +10,8 @@ interface SmartPantryProps {
   onRemoveIngredient: (id: string) => void;
   onUpdateIngredient: (ingredient: Ingredient) => void;
   navigationButtons?: React.ReactNode;
+  mode?: 'temporary' | 'permanent'; // temporary = Create Recipe, permanent = actual pantry
+  onFillPantry?: (ingredients: Ingredient[]) => void; // Save temp ingredients to pantry
 }
 
 const categoryData: Record<
@@ -74,6 +76,8 @@ const SmartPantry = React.memo(function SmartPantry({
   onRemoveIngredient,
   onUpdateIngredient,
   navigationButtons,
+  mode = 'permanent',
+  onFillPantry,
 }: SmartPantryProps) {
   const [inputValue, setInputValue] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<IngredientCategory>('other');
@@ -157,7 +161,24 @@ const SmartPantry = React.memo(function SmartPantry({
           tokenLength: session?.access_token?.length || 0,
         });
 
-        // If user is authenticated, try to save to database via API
+        // In temporary mode (Create Recipe), just add locally without saving to database
+        if (mode === 'temporary') {
+          console.log('🔄 Adding ingredient in temporary mode (Create Recipe)');
+          const ingredient: Ingredient = {
+            id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: name.trim(),
+            category: detectedCategory,
+            isVegetarian: isVegetarian(name, detectedCategory),
+            isVegan: isVegan(name, detectedCategory),
+            isProtein: detectedCategory === 'protein',
+          };
+          onAddIngredient(ingredient);
+          setInputValue('');
+          setSuggestions([]);
+          return;
+        }
+
+        // In permanent mode, save to database via API if authenticated
         if (session?.access_token) {
           try {
             const response = await fetch('/api/ingredients', {
@@ -273,12 +294,23 @@ const SmartPantry = React.memo(function SmartPantry({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <span className="text-3xl">🧑‍🍳</span>
-          <h2 className="text-3xl font-bold text-gray-800">Smart Pantry</h2>
+          <h2 className="text-3xl font-bold text-gray-800">
+            {mode === 'temporary' ? 'Recipe Ingredients' : 'Smart Pantry'}
+          </h2>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex items-center gap-3 text-sm text-gray-600">
           <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full font-medium">
             {ingredients.length} ingredients
           </span>
+          {mode === 'temporary' && ingredients.length > 0 && onFillPantry && (
+            <button
+              onClick={() => onFillPantry(ingredients)}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium text-sm"
+              title="Save these ingredients to your permanent pantry"
+            >
+              📦 Fill Pantry
+            </button>
+          )}
         </div>
       </div>
 
