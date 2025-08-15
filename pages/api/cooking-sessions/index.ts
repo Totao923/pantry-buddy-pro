@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { withAuth, type AuthenticatedRequest } from '../../../lib/middleware/auth';
 import { withSecurity, sanitizeError } from '../../../lib/middleware/enhanced-security';
+import { createUserSupabaseClient } from '../../../lib/supabase/server';
 import {
   cookingSessionService,
   CookingSessionInput,
@@ -30,12 +31,23 @@ async function cookingSessionsHandler(req: AuthenticatedRequest, res: NextApiRes
         const limit = parseInt(req.query.limit as string) || 20;
         const offset = parseInt(req.query.offset as string) || 0;
 
-        const sessions = await cookingSessionService.getUserCookingSessions(
-          req.user.id,
-          limit,
-          offset
+        // Create user-scoped Supabase client
+        const supabase = createUserSupabaseClient(
+          req.headers.authorization!.replace('Bearer ', '')
         );
-        return res.status(200).json({ success: true, data: sessions });
+
+        const { data: sessions, error } = await supabase
+          .from('cooking_sessions')
+          .select('*')
+          .eq('user_id', req.user.id)
+          .order('cooked_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (error) {
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        return res.status(200).json({ success: true, data: sessions || [] });
 
       default:
         res.setHeader('Allow', ['GET', 'POST']);
