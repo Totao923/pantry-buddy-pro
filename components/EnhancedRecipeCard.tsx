@@ -9,6 +9,7 @@ interface EnhancedRecipeCardProps {
   onStartCooking?: (recipe: Recipe) => void;
   onRateRecipe?: (rating: number) => void;
   onOpenRatingModal?: () => void;
+  showFavoriteButton?: boolean;
 }
 
 export default function EnhancedRecipeCard({
@@ -18,6 +19,7 @@ export default function EnhancedRecipeCard({
   onStartCooking,
   onRateRecipe,
   onOpenRatingModal,
+  showFavoriteButton = true,
 }: EnhancedRecipeCardProps) {
   const [currentServings, setCurrentServings] = useState(recipe.servings);
   const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions' | 'nutrition' | 'tips'>(
@@ -27,6 +29,27 @@ export default function EnhancedRecipeCard({
   const [showNutrition, setShowNutrition] = useState(false);
   const [userRating, setUserRating] = useState(0);
   const [showVariations, setShowVariations] = useState(false);
+
+  // Favorite functionality
+  const toggleFavorite = (recipeId: string) => {
+    const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+    const isFavorite = favorites.includes(recipeId);
+
+    if (isFavorite) {
+      const updatedFavorites = favorites.filter((id: string) => id !== recipeId);
+      localStorage.setItem('favoriteRecipes', JSON.stringify(updatedFavorites));
+    } else {
+      favorites.push(recipeId);
+      localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
+    }
+    // Force re-render
+    setUserRating(prev => prev); // Trigger re-render
+  };
+
+  const isFavorite = (recipeId: string) => {
+    const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+    return favorites.includes(recipeId);
+  };
 
   const handleServingChange = (newServings: number) => {
     if (newServings >= 1 && newServings <= 20) {
@@ -102,6 +125,19 @@ export default function EnhancedRecipeCard({
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 md:p-8">
         <div className="absolute top-4 right-4 flex gap-2">
+          {showFavoriteButton && (
+            <button
+              onClick={() => toggleFavorite(recipe.id)}
+              className={`p-2 rounded-lg transition-colors ${
+                isFavorite(recipe.id)
+                  ? 'text-red-500 bg-white/20 hover:bg-white/30'
+                  : 'text-white/70 hover:text-white hover:bg-white/20'
+              }`}
+              title={isFavorite(recipe.id) ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              ♥
+            </button>
+          )}
           <button
             onClick={() => onSaveRecipe?.(recipe)}
             className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"

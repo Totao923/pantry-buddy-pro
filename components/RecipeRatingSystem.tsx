@@ -137,17 +137,20 @@ export default function RecipeRatingSystem({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-90vh overflow-y-auto">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">⭐</span>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800">Rate This Recipe</h2>
-              <p className="text-gray-600">{recipe.title}</p>
+        <div className="flex items-start justify-between mb-4 sm:mb-6">
+          <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+            <span className="text-2xl sm:text-3xl flex-shrink-0">⭐</span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg sm:text-2xl font-bold text-gray-800">Rate This Recipe</h2>
+              <p className="text-sm sm:text-base text-gray-600 truncate">{recipe.title}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-xl sm:text-2xl flex-shrink-0 ml-2"
+          >
             ✕
           </button>
         </div>
@@ -318,17 +321,17 @@ export default function RecipeRatingSystem({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:justify-end gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200 sticky bottom-0 bg-white">
           <button
             onClick={onClose}
-            className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+            className="w-full sm:w-auto px-6 py-3 sm:py-2 text-gray-600 hover:text-gray-800 transition-colors border border-gray-300 rounded-lg order-2 sm:order-1"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={overallRating === 0}
-            className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-6 py-3 sm:py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
           >
             {existingRating ? 'Update Rating' : 'Submit Rating'}
           </button>

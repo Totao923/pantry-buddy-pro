@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CookingSession } from '../../lib/services/cookingSessionService';
 import CookingFeedbackModal from './CookingFeedbackModal';
 import { Recipe } from '../../types';
+import { useAuth } from '../../lib/auth/AuthProvider';
 
 interface CookingHistoryProps {
   className?: string;
@@ -18,17 +19,34 @@ export default function CookingHistory({
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<CookingSession | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const { session } = useAuth();
 
   useEffect(() => {
-    loadCookingHistory();
-  }, [limit]);
+    if (session) {
+      loadCookingHistory();
+    }
+  }, [limit, session]);
 
   const loadCookingHistory = async () => {
     try {
-      const response = await fetch(`/api/cooking-sessions?limit=${limit}`);
+      if (!session?.access_token) {
+        console.log('No session available for loading cooking history');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/cooking-sessions?limit=${limit}`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (response.ok) {
         const data = await response.json();
         setSessions(data.data);
+      } else {
+        console.error('Failed to load cooking history:', response.status);
       }
     } catch (error) {
       console.error('Error loading cooking history:', error);
