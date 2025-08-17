@@ -378,7 +378,7 @@ export default function PantryManagement() {
                 id: '', // Will be set by the service
                 name: product.name || 'Unknown Product',
                 category: product.category || 'other',
-                quantity: 1,
+                quantity: '1',
                 unit: 'item',
                 expiryDate: undefined,
                 nutritionalValue: product.nutritionalValue,
