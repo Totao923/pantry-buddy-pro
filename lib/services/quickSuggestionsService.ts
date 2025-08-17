@@ -249,16 +249,30 @@ FORMAT (JSON array):
 Focus on practical, delicious recipes that maximize use of available ingredients.`;
 
     try {
-      // Use generateContent for multiple recipe suggestions since generateRecipe only returns one recipe
+      // Use generateContent with enhanced parsing for multiple recipe suggestions
+      console.log('🤖 Generating multiple recipe suggestions with AI...');
+
       const response = await aiService.generateContent(prompt);
 
-      // Parse AI response - if it fails, create fallback recipes
+      // Parse AI response with improved error handling
       let recipes;
       try {
         recipes = this.parseAIResponse(response);
+
+        // Ensure we have valid recipes
+        if (!Array.isArray(recipes) || recipes.length === 0) {
+          throw new Error('No valid recipes in AI response');
+        }
+
         console.log(`✅ Successfully parsed ${recipes.length} recipe suggestions from AI`);
       } catch (parseError) {
         console.warn('Failed to parse AI response, creating fallback recipes:', parseError);
+        console.log(
+          'AI Response preview:',
+          typeof response === 'string'
+            ? response.substring(0, 200)
+            : JSON.stringify(response).substring(0, 200)
+        );
         recipes = this.createFallbackRecipesFromIngredients(
           prioritizedItems.slice(0, 8),
           maxSuggestions
@@ -274,29 +288,80 @@ Focus on practical, delicious recipes that maximize use of available ingredients
 
   private parseAIResponse(response: any): any[] {
     try {
-      // Handle different response formats
       let recipesData;
 
       if (typeof response === 'string') {
-        // Try to extract JSON from string response
-        const jsonMatch = response.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          recipesData = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON array found in response');
+        // Try multiple parsing strategies for string responses
+        // Strategy 1: Look for JSON array
+        const jsonArrayMatch = response.match(/\[[\s\S]*?\]/);
+        if (jsonArrayMatch) {
+          try {
+            recipesData = JSON.parse(jsonArrayMatch[0]);
+          } catch (e) {
+            console.warn('Failed to parse matched JSON array:', e);
+          }
+        }
+
+        // Strategy 2: Look for multiple JSON objects
+        if (!recipesData) {
+          const jsonObjectMatches = response.match(/\{[\s\S]*?\}(?=\s*[,\]\}]|$)/g);
+          if (jsonObjectMatches && jsonObjectMatches.length > 0) {
+            try {
+              recipesData = jsonObjectMatches.map(match => JSON.parse(match));
+            } catch (e) {
+              console.warn('Failed to parse JSON objects:', e);
+            }
+          }
+        }
+
+        // Strategy 3: Clean and try parsing entire response
+        if (!recipesData) {
+          try {
+            // Remove any text before the first [ and after the last ]
+            const cleanedResponse = response.replace(/^.*?(\[[\s\S]*\]).*?$/s, '$1');
+            recipesData = JSON.parse(cleanedResponse);
+          } catch (e) {
+            console.warn('Failed to parse cleaned response:', e);
+          }
+        }
+
+        if (!recipesData) {
+          throw new Error('Could not extract valid JSON from string response');
         }
       } else if (Array.isArray(response)) {
         recipesData = response;
-      } else if (response.recipes && Array.isArray(response.recipes)) {
+      } else if (response && response.recipes && Array.isArray(response.recipes)) {
         recipesData = response.recipes;
+      } else if (response && typeof response === 'object') {
+        // Single recipe object - wrap in array
+        recipesData = [response];
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('Unsupported response format');
       }
 
-      return recipesData;
+      // Validate the recipes
+      if (!Array.isArray(recipesData) || recipesData.length === 0) {
+        throw new Error('No recipes found in response');
+      }
+
+      // Filter out invalid recipes
+      const validRecipes = recipesData.filter(
+        recipe =>
+          recipe &&
+          typeof recipe === 'object' &&
+          recipe.name &&
+          (recipe.ingredients || recipe.instructions)
+      );
+
+      if (validRecipes.length === 0) {
+        throw new Error('No valid recipes found');
+      }
+
+      console.log(`📋 Parsed ${validRecipes.length} valid recipes from AI response`);
+      return validRecipes;
     } catch (error) {
       console.error('Failed to parse AI response:', error);
-      throw new Error('Failed to parse AI response');
+      throw error;
     }
   }
 
@@ -390,35 +455,104 @@ Focus on practical, delicious recipes that maximize use of available ingredients
     ingredients: PrioritizedIngredient[],
     maxRecipes: number
   ): any[] {
-    const recipes = [];
     const mainIngredients = ingredients.slice(0, Math.min(6, ingredients.length));
+    const protein = mainIngredients.find(ing => ing.category === 'protein');
+    const vegetables = mainIngredients.filter(ing => ing.category === 'vegetables');
+    const grains = mainIngredients.find(ing => ing.category === 'grains');
 
-    // Create simple recipe templates based on available ingredients
+    // Create diverse recipe templates based on available ingredients
     const recipeTemplates = [
       {
-        name: `${mainIngredients[0]?.name || 'Ingredient'} Stir Fry`,
+        name: `${mainIngredients[0]?.name || 'Pantry'} Stir Fry`,
         cuisine: 'Asian',
         cookTime: '15 minutes',
         difficulty: 'Easy',
         servings: 4,
-        ingredients: mainIngredients.map(ing => ({ name: ing.name, amount: '1 portion' })),
+        ingredients: mainIngredients.slice(0, 4).map(ing => ({
+          name: ing.name,
+          amount: `${Math.ceil(parseFloat(ing.quantity || '1') / 4)} ${ing.unit || 'portion'}`,
+          pantryItem: true,
+        })),
         instructions: [
-          'Heat oil in a pan',
-          'Add ingredients and stir fry',
-          'Season to taste',
-          'Serve hot',
+          'Heat 2 tbsp oil in a large pan or wok',
+          `Add ${mainIngredients[0]?.name || 'main ingredients'} and cook for 3-5 minutes`,
+          'Add remaining ingredients and stir fry for 5-7 minutes',
+          'Season with salt, pepper, and available spices',
+          'Serve hot over rice or noodles if available',
         ],
-        confidence: 0.7,
+        confidence: 0.8,
       },
       {
-        name: `Simple ${mainIngredients[1]?.name || 'Ingredient'} Bowl`,
+        name: `${protein?.name || mainIngredients[1]?.name || 'Pantry'} Bowl`,
         cuisine: 'International',
         cookTime: '20 minutes',
         difficulty: 'Easy',
         servings: 4,
-        ingredients: mainIngredients.map(ing => ({ name: ing.name, amount: '1 serving' })),
-        instructions: ['Prepare ingredients', 'Combine in a bowl', 'Add seasoning', 'Enjoy'],
-        confidence: 0.6,
+        ingredients: mainIngredients.slice(0, 5).map(ing => ({
+          name: ing.name,
+          amount: ing.quantity || '1 serving',
+          pantryItem: true,
+        })),
+        instructions: [
+          `Prepare ${protein?.name || 'main protein'} by cooking until done`,
+          'Steam or sauté any vegetables until tender',
+          `Cook ${grains?.name || 'rice'} according to package directions if available`,
+          'Arrange all components in bowls',
+          'Season and add any available sauces or dressings',
+        ],
+        confidence: 0.7,
+      },
+      {
+        name: `Quick ${vegetables[0]?.name || 'Vegetable'} Soup`,
+        cuisine: 'International',
+        cookTime: '25 minutes',
+        difficulty: 'Easy',
+        servings: 4,
+        ingredients: [
+          ...vegetables
+            .slice(0, 3)
+            .map(ing => ({ name: ing.name, amount: '1 cup chopped', pantryItem: true })),
+          { name: 'Water or Broth', amount: '4 cups', pantryItem: false },
+          { name: 'Salt', amount: 'to taste', pantryItem: true },
+        ],
+        instructions: [
+          'Chop all vegetables into bite-sized pieces',
+          'Heat 1 tbsp oil in a large pot',
+          'Sauté vegetables for 5 minutes',
+          'Add water or broth and bring to boil',
+          'Simmer for 15-20 minutes until vegetables are tender',
+          'Season with salt and available herbs',
+        ],
+        confidence: 0.7,
+      },
+      {
+        name: `Simple ${mainIngredients[2]?.name || 'Pantry'} Pasta`,
+        cuisine: 'Italian',
+        cookTime: '18 minutes',
+        difficulty: 'Easy',
+        servings: 4,
+        ingredients: [
+          {
+            name: 'Pasta',
+            amount: '8 oz',
+            pantryItem: grains?.name.toLowerCase().includes('pasta'),
+          },
+          ...mainIngredients.slice(0, 3).map(ing => ({
+            name: ing.name,
+            amount: '1/2 cup',
+            pantryItem: true,
+          })),
+          { name: 'Olive Oil', amount: '3 tbsp', pantryItem: true },
+        ],
+        instructions: [
+          'Cook pasta according to package directions',
+          'Heat olive oil in a large pan',
+          `Add ${mainIngredients[0]?.name || 'vegetables'} and cook for 5 minutes`,
+          'Drain pasta and add to the pan',
+          'Toss everything together and season well',
+          'Serve with grated cheese if available',
+        ],
+        confidence: 0.75,
       },
     ];
 
@@ -428,35 +562,133 @@ Focus on practical, delicious recipes that maximize use of available ingredients
   private async getFallbackSuggestions(
     request: SuggestionRequest
   ): Promise<QuickRecipeSuggestion[]> {
-    // Return some basic fallback suggestions when AI fails
+    console.log('🆘 Generating fallback suggestions...');
+
+    try {
+      // Try to get user's pantry for better fallback suggestions
+      const pantryItems = await ingredientService.getAllIngredients();
+      if (pantryItems.length >= 3) {
+        // Convert to PrioritizedIngredient format
+        const prioritizedItems = this.analyzePantryItems(pantryItems, true);
+        return this.createFallbackRecipesFromIngredients(
+          prioritizedItems.slice(0, 8),
+          request.maxSuggestions || 4
+        );
+      }
+    } catch (error) {
+      console.error('Could not load pantry for fallback:', error);
+    }
+
+    // Return multiple basic fallback suggestions when AI fails
     const fallbackSuggestions: QuickRecipeSuggestion[] = [
       {
         id: uuidv4(),
-        name: 'Simple Pasta with Available Ingredients',
+        name: 'Simple Pasta with Garlic Oil',
         cuisine: 'Italian',
         cookTime: '20 minutes',
         difficulty: 'Easy',
         servings: 4,
         ingredients: [
           { name: 'Pasta', amount: '8 oz', available: true },
-          { name: 'Olive Oil', amount: '2 tbsp', available: true },
-          { name: 'Garlic', amount: '2 cloves', available: true },
+          { name: 'Olive Oil', amount: '3 tbsp', available: true },
+          { name: 'Garlic', amount: '3 cloves', available: true },
+          { name: 'Salt', amount: 'to taste', available: true },
         ],
         instructions: [
           'Boil pasta according to package directions',
-          'Heat olive oil and sauté garlic',
-          'Combine pasta with oil and garlic',
+          'Heat olive oil in a large pan',
+          'Add minced garlic and cook until fragrant',
+          'Toss drained pasta with garlic oil',
           'Season with salt and pepper',
         ],
         matchingIngredients: ['Pasta', 'Olive Oil', 'Garlic'],
         missingIngredients: [],
+        priority: 75,
+        confidence: 0.8,
+      },
+      {
+        id: uuidv4(),
+        name: 'Quick Vegetable Stir Fry',
+        cuisine: 'Asian',
+        cookTime: '15 minutes',
+        difficulty: 'Easy',
+        servings: 4,
+        ingredients: [
+          { name: 'Mixed Vegetables', amount: '2 cups', available: true },
+          { name: 'Oil', amount: '2 tbsp', available: true },
+          { name: 'Soy Sauce', amount: '2 tbsp', available: false },
+          { name: 'Garlic', amount: '2 cloves', available: true },
+        ],
+        instructions: [
+          'Heat oil in a wok or large pan',
+          'Add garlic and cook for 30 seconds',
+          'Add vegetables and stir fry for 5-7 minutes',
+          'Add soy sauce and toss to combine',
+          'Serve immediately over rice',
+        ],
+        matchingIngredients: ['Mixed Vegetables', 'Oil', 'Garlic'],
+        missingIngredients: ['Soy Sauce'],
         priority: 70,
         confidence: 0.7,
       },
+      {
+        id: uuidv4(),
+        name: 'Basic Scrambled Eggs',
+        cuisine: 'International',
+        cookTime: '10 minutes',
+        difficulty: 'Easy',
+        servings: 2,
+        ingredients: [
+          { name: 'Eggs', amount: '4 large', available: true },
+          { name: 'Butter', amount: '1 tbsp', available: true },
+          { name: 'Milk', amount: '2 tbsp', available: true },
+          { name: 'Salt', amount: 'to taste', available: true },
+        ],
+        instructions: [
+          'Beat eggs with milk and salt',
+          'Heat butter in a non-stick pan',
+          'Pour in egg mixture',
+          'Cook slowly, stirring gently until set',
+          'Serve hot with toast',
+        ],
+        matchingIngredients: ['Eggs', 'Butter', 'Milk'],
+        missingIngredients: [],
+        priority: 80,
+        confidence: 0.9,
+      },
+      {
+        id: uuidv4(),
+        name: 'Simple Rice Bowl',
+        cuisine: 'International',
+        cookTime: '25 minutes',
+        difficulty: 'Easy',
+        servings: 4,
+        ingredients: [
+          { name: 'Rice', amount: '1 cup', available: true },
+          { name: 'Water', amount: '2 cups', available: true },
+          { name: 'Salt', amount: '1/2 tsp', available: true },
+          { name: 'Any vegetables', amount: '1 cup', available: true },
+        ],
+        instructions: [
+          'Rinse rice until water runs clear',
+          'Combine rice, water, and salt in a pot',
+          'Bring to boil, then simmer covered for 18 minutes',
+          'Steam any vegetables separately',
+          'Serve rice topped with vegetables',
+        ],
+        matchingIngredients: ['Rice', 'Any vegetables'],
+        missingIngredients: [],
+        priority: 65,
+        confidence: 0.8,
+      },
     ];
 
-    console.log('🆘 Using fallback suggestions');
-    return fallbackSuggestions;
+    // Return only the requested number of suggestions
+    const maxSuggestions = request.maxSuggestions || 4;
+    const result = fallbackSuggestions.slice(0, maxSuggestions);
+
+    console.log(`🆘 Using ${result.length} fallback suggestions`);
+    return result;
   }
 
   private generateCacheKey(userId: string, request: SuggestionRequest): string {
