@@ -8,9 +8,14 @@ import QuickSuggestionsCard from '../../components/QuickSuggestionsCard';
 import ReceiptScanner from '../../components/ReceiptScanner';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import { ingredientService } from '../../lib/services/ingredientService';
+import { receiptService } from '../../lib/services/receiptService';
+import { barcodeService, ProductInfo } from '../../lib/services/barcodeService';
+import { useAuth } from '../../lib/auth/AuthProvider';
+import { v4 as uuidv4 } from 'uuid';
 import { Ingredient, IngredientCategory } from '../../types';
 
 export default function PantryManagement() {
+  const { user } = useAuth();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
@@ -358,12 +363,35 @@ export default function PantryManagement() {
         {showReceiptScanner && (
           <ReceiptScanner
             onClose={() => setShowReceiptScanner(false)}
-            onReceiptScanned={(imageData, file) => {
-              // Process the receipt image (this would typically go to a receipt processing service)
-              console.log('Receipt scanned:', { imageData, file });
-              // For now, just close the modal
-              // In a real implementation, you'd process the receipt and extract ingredients
-              setShowReceiptScanner(false);
+            onReceiptScanned={async (imageData, file) => {
+              try {
+                console.log('Processing receipt:', file.name);
+                const extractedData = await receiptService.processReceiptImage(file);
+
+                // Add items directly to pantry (simplified - no review modal for pantry page)
+                for (const item of extractedData.items) {
+                  const ingredient: Ingredient = {
+                    id: '',
+                    name: item.name,
+                    category: item.category || 'other',
+                    quantity: item.quantity.toString(),
+                    unit: item.unit || 'item',
+                    expiryDate: undefined,
+                    nutritionalValue: undefined,
+                    isProtein: item.category === 'protein',
+                    isVegetarian: item.category !== 'protein',
+                    isVegan: item.category !== 'protein' && item.category !== 'dairy',
+                  };
+                  await handleAddIngredient(ingredient);
+                }
+
+                alert(`Successfully added ${extractedData.items.length} items from receipt!`);
+                setShowReceiptScanner(false);
+              } catch (error) {
+                console.error('Receipt processing failed:', error);
+                alert(error instanceof Error ? error.message : 'Failed to process receipt');
+                setShowReceiptScanner(false);
+              }
             }}
           />
         )}
@@ -372,22 +400,32 @@ export default function PantryManagement() {
         {showBarcodeScanner && (
           <BarcodeScanner
             onClose={() => setShowBarcodeScanner(false)}
-            onProductFound={product => {
-              // Convert the scanned product to an ingredient and add to pantry
-              const ingredient: Ingredient = {
-                id: '', // Will be set by the service
-                name: product.name || 'Unknown Product',
-                category: product.category || 'other',
-                quantity: '1',
-                unit: product.unit || 'item',
-                expiryDate: undefined,
-                nutritionalValue: product.nutritionInfo?.calories,
-                isProtein: (product.nutritionInfo?.protein || 0) > 5, // Consider high protein if >5g
-                isVegetarian: product.isVegetarian,
-                isVegan: product.isVegan,
-              };
-              handleAddIngredient(ingredient);
-              setShowBarcodeScanner(false);
+            onProductFound={async (product: ProductInfo) => {
+              try {
+                // Save scanned product to history
+                await barcodeService.saveScannedProduct(product, user?.id);
+
+                // Create ingredient from scanned product
+                const ingredient: Ingredient = {
+                  id: '',
+                  name: product.name,
+                  category: product.category,
+                  quantity: '1',
+                  unit: product.unit || 'item',
+                  expiryDate: undefined,
+                  nutritionalValue: product.nutritionInfo?.calories,
+                  isProtein: product.category === 'protein',
+                  isVegetarian: product.isVegetarian,
+                  isVegan: product.isVegan,
+                };
+
+                await handleAddIngredient(ingredient);
+                alert(`Added ${product.name} to your pantry!`);
+                setShowBarcodeScanner(false);
+              } catch (error) {
+                console.error('Failed to add scanned product:', error);
+                alert('Failed to add product to pantry. Please try again.');
+              }
             }}
           />
         )}
