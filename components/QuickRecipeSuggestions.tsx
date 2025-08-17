@@ -28,9 +28,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
   onSaveRecipe,
   isLoading = false,
 }) => {
-  const matchPercentage = Math.round(
-    (recipe.matchingIngredients.length / recipe.ingredients.length) * 100
-  );
+  const matchingLength = recipe.matchingIngredients?.length || 0;
+  const totalLength = recipe.ingredients?.length || 1; // Avoid division by zero
+  const matchPercentage = Math.round((matchingLength / totalLength) * 100);
 
   const difficultyColor =
     recipe.difficulty === 'Easy' ? 'text-green-600 bg-green-100' : 'text-orange-600 bg-orange-100';
@@ -60,19 +60,21 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         <div className="flex items-center gap-2 mb-2">
           <span className="text-sm font-medium text-gray-700">Ingredients:</span>
           <div className="flex items-center gap-1">
-            <span className="text-green-600">✓ {recipe.matchingIngredients.length} available</span>
-            {recipe.missingIngredients.length > 0 && (
-              <span className="text-orange-600">• {recipe.missingIngredients.length} needed</span>
+            <span className="text-green-600">✓ {matchingLength} available</span>
+            {(recipe.missingIngredients?.length || 0) > 0 && (
+              <span className="text-orange-600">
+                • {recipe.missingIngredients?.length || 0} needed
+              </span>
             )}
           </div>
         </div>
 
         {/* Available Ingredients */}
-        {recipe.matchingIngredients.length > 0 && (
+        {(recipe.matchingIngredients?.length || 0) > 0 && (
           <div className="mb-2">
             <div className="text-xs text-green-700 mb-1">✓ From your pantry:</div>
             <div className="flex flex-wrap gap-1">
-              {recipe.matchingIngredients.map((ingredient, index) => (
+              {(recipe.matchingIngredients || []).map((ingredient, index) => (
                 <span
                   key={index}
                   className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full border border-green-200"
@@ -85,11 +87,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
         )}
 
         {/* Missing Ingredients */}
-        {recipe.missingIngredients.length > 0 && (
+        {(recipe.missingIngredients?.length || 0) > 0 && (
           <div>
             <div className="text-xs text-orange-700 mb-1">🛒 Need to buy:</div>
             <div className="flex flex-wrap gap-1">
-              {recipe.missingIngredients.slice(0, 3).map((ingredient, index) => (
+              {(recipe.missingIngredients || []).slice(0, 3).map((ingredient, index) => (
                 <span
                   key={index}
                   className="px-2 py-1 bg-orange-50 text-orange-700 text-xs rounded-full border border-orange-200"
@@ -97,9 +99,9 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
                   {ingredient}
                 </span>
               ))}
-              {recipe.missingIngredients.length > 3 && (
+              {(recipe.missingIngredients?.length || 0) > 3 && (
                 <span className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-full border border-gray-200">
-                  +{recipe.missingIngredients.length - 3} more
+                  +{(recipe.missingIngredients?.length || 0) - 3} more
                 </span>
               )}
             </div>
@@ -110,17 +112,19 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       {/* Quick Instructions Preview */}
       <div className="mb-4">
         <div className="text-sm text-gray-600">
-          {recipe.instructions.slice(0, 2).map((instruction, index) => (
+          {(recipe.instructions || []).slice(0, 2).map((instruction, index) => (
             <div key={index} className="flex items-start gap-2 mb-1">
               <span className="text-pantry-500 font-medium">{index + 1}.</span>
               <span>
-                {instruction.length > 60 ? instruction.substring(0, 60) + '...' : instruction}
+                {(instruction || '').length > 60
+                  ? (instruction || '').substring(0, 60) + '...'
+                  : instruction || ''}
               </span>
             </div>
           ))}
-          {recipe.instructions.length > 2 && (
+          {(recipe.instructions?.length || 0) > 2 && (
             <div className="text-xs text-gray-500 mt-1">
-              +{recipe.instructions.length - 2} more steps
+              +{(recipe.instructions?.length || 0) - 2} more steps
             </div>
           )}
         </div>
@@ -186,8 +190,9 @@ export default function QuickRecipeSuggestions({
       const requestOptions = { ...options, ...customOptions, userId: user?.id };
       const newSuggestions = await quickSuggestionsService.getQuickSuggestions(requestOptions);
 
-      if (newSuggestions.length === 0) {
+      if (!newSuggestions || !Array.isArray(newSuggestions) || newSuggestions.length === 0) {
         setError('No recipes found with your current pantry items. Try adding more ingredients!');
+        setSuggestions([]); // Ensure suggestions is always an array
       } else {
         setSuggestions(newSuggestions);
       }

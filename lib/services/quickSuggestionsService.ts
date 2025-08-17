@@ -114,7 +114,7 @@ class QuickSuggestionsService {
 
       // Return fallback suggestions if available
       const fallbackSuggestions = await this.getFallbackSuggestions(request);
-      return fallbackSuggestions;
+      return Array.isArray(fallbackSuggestions) ? fallbackSuggestions : [];
     }
   }
 
@@ -492,6 +492,9 @@ Focus on practical, delicious recipes that maximize use of available ingredients
           'Serve hot over rice or noodles if available',
         ],
         confidence: 0.8,
+        matchingIngredients: mainIngredients.slice(0, 4).map(ing => ing.name),
+        missingIngredients: [],
+        priority: 80,
       },
       {
         name: `${protein?.name || mainIngredients[1]?.name || 'Pantry'} Bowl`,
@@ -512,6 +515,9 @@ Focus on practical, delicious recipes that maximize use of available ingredients
           'Season and add any available sauces or dressings',
         ],
         confidence: 0.7,
+        matchingIngredients: mainIngredients.slice(0, 5).map(ing => ing.name),
+        missingIngredients: [],
+        priority: 75,
       },
       {
         name: `Quick ${vegetables[0]?.name || 'Vegetable'} Soup`,
@@ -535,6 +541,9 @@ Focus on practical, delicious recipes that maximize use of available ingredients
           'Season with salt and available herbs',
         ],
         confidence: 0.7,
+        matchingIngredients: vegetables.slice(0, 3).map(ing => ing.name),
+        missingIngredients: ['Water or Broth'],
+        priority: 70,
       },
       {
         name: `Simple ${mainIngredients[2]?.name || 'Pantry'} Pasta`,
@@ -564,6 +573,9 @@ Focus on practical, delicious recipes that maximize use of available ingredients
           'Serve with grated cheese if available',
         ],
         confidence: 0.75,
+        matchingIngredients: mainIngredients.slice(0, 3).map(ing => ing.name),
+        missingIngredients: grains?.name.toLowerCase().includes('pasta') ? [] : ['Pasta'],
+        priority: 75,
       },
     ];
 
