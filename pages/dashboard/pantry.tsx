@@ -156,29 +156,39 @@ export default function PantryManagement() {
         const expirationDate = new Date();
         expirationDate.setDate(expirationDate.getDate() + item.expirationDays);
 
-        const ingredient: Ingredient = {
-          id: '',
+        const pantryItem = {
+          id: uuidv4(),
           name: item.name,
-          category: item.category || 'other',
-          quantity: item.quantity.toString(),
+          category: item.category!,
+          currentQuantity: item.quantity,
+          originalQuantity: item.quantity,
           unit: item.unit,
-          expiryDate: expirationDate,
-          nutritionalValue: undefined,
-          isProtein: item.category === 'protein',
+          location: item.storageLocation,
+          price: item.price,
+          brand: item.brand,
+          purchaseDate: currentReceipt.receiptDate,
+          expiryDate: expirationDate.toISOString(),
+          isRunningLow: false,
+          usageFrequency: 0,
+          autoReorderLevel: Math.max(1, Math.floor(item.quantity * 0.2)),
           isVegetarian:
             item.category !== 'protein' ||
             ['tofu', 'beans', 'eggs'].some(v => item.name.toLowerCase().includes(v)),
           isVegan:
             !['dairy', 'protein'].includes(item.category!) ||
             ['tofu', 'beans'].some(v => item.name.toLowerCase().includes(v)),
+          isProtein: item.category === 'protein',
         };
 
         try {
-          await handleAddIngredient(ingredient);
+          await ingredientService.createIngredient(pantryItem);
         } catch (error) {
           console.error('Failed to add item to pantry:', error);
         }
       }
+
+      // Reload ingredients to show new items in pantry
+      await loadIngredients();
 
       // Show success and close review
       alert(`Successfully added ${confirmedItems.length} items to your pantry!`);
