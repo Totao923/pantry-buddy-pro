@@ -122,9 +122,15 @@ class QuickSuggestionsService {
     pantryItems: Ingredient[],
     prioritizeExpiring: boolean
   ): PrioritizedIngredient[] {
+    if (!pantryItems || !Array.isArray(pantryItems)) {
+      console.warn('Invalid pantry items provided to analyzePantryItems');
+      return [];
+    }
+
     const now = new Date();
 
     return pantryItems
+      .filter(item => item && typeof item === 'object') // Filter out invalid items
       .map(item => {
         const daysUntilExpiry = item.expiryDate
           ? Math.ceil((new Date(item.expiryDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
@@ -455,10 +461,15 @@ Focus on practical, delicious recipes that maximize use of available ingredients
     ingredients: PrioritizedIngredient[],
     maxRecipes: number
   ): any[] {
+    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+      console.warn('No ingredients provided to createFallbackRecipesFromIngredients');
+      return [];
+    }
+
     const mainIngredients = ingredients.slice(0, Math.min(6, ingredients.length));
-    const protein = mainIngredients.find(ing => ing.category === 'protein');
-    const vegetables = mainIngredients.filter(ing => ing.category === 'vegetables');
-    const grains = mainIngredients.find(ing => ing.category === 'grains');
+    const protein = mainIngredients.find(ing => ing && ing.category === 'protein');
+    const vegetables = mainIngredients.filter(ing => ing && ing.category === 'vegetables');
+    const grains = mainIngredients.find(ing => ing && ing.category === 'grains');
 
     // Create diverse recipe templates based on available ingredients
     const recipeTemplates = [
@@ -567,13 +578,15 @@ Focus on practical, delicious recipes that maximize use of available ingredients
     try {
       // Try to get user's pantry for better fallback suggestions
       const pantryItems = await ingredientService.getAllIngredients();
-      if (pantryItems.length >= 3) {
+      if (pantryItems && Array.isArray(pantryItems) && pantryItems.length >= 3) {
         // Convert to PrioritizedIngredient format
         const prioritizedItems = this.analyzePantryItems(pantryItems, true);
-        return this.createFallbackRecipesFromIngredients(
-          prioritizedItems.slice(0, 8),
-          request.maxSuggestions || 4
-        );
+        if (prioritizedItems && prioritizedItems.length > 0) {
+          return this.createFallbackRecipesFromIngredients(
+            prioritizedItems.slice(0, 8),
+            request.maxSuggestions || 4
+          );
+        }
       }
     } catch (error) {
       console.error('Could not load pantry for fallback:', error);

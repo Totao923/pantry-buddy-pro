@@ -984,6 +984,16 @@ class ReceiptService {
 
       if (receiptError) {
         console.error('Error saving receipt:', receiptError);
+        // Handle authentication errors gracefully
+        if (
+          receiptError.code === 'PGRST301' ||
+          receiptError.message?.includes('401') ||
+          receiptError.message?.includes('JWT')
+        ) {
+          console.log('Authentication error, will fall back to localStorage');
+          // Force fallback to localStorage by throwing a specific error
+          throw new Error('Authentication failed - using offline storage');
+        }
         throw new Error('Failed to save receipt data');
       }
 

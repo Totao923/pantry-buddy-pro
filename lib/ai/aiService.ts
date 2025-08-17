@@ -149,10 +149,16 @@ export class AIService {
     }
 
     if (!this.provider) {
+      console.warn('⚠️ No AI provider available for content generation');
       throw new Error('No AI provider available');
     }
 
-    return await this.provider.generateContent(prompt);
+    try {
+      return await this.provider.generateContent(prompt);
+    } catch (error) {
+      console.error('AI content generation failed:', error);
+      throw error;
+    }
   }
 
   /**
