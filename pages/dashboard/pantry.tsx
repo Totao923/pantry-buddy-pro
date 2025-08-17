@@ -358,11 +358,11 @@ export default function PantryManagement() {
         {showReceiptScanner && (
           <ReceiptScanner
             onClose={() => setShowReceiptScanner(false)}
-            onIngredientsScanned={scannedIngredients => {
-              // Add the scanned ingredients to the pantry
-              scannedIngredients.forEach(ingredient => {
-                handleAddIngredient(ingredient);
-              });
+            onReceiptScanned={(imageData, file) => {
+              // Process the receipt image (this would typically go to a receipt processing service)
+              console.log('Receipt scanned:', { imageData, file });
+              // For now, just close the modal
+              // In a real implementation, you'd process the receipt and extract ingredients
               setShowReceiptScanner(false);
             }}
           />
@@ -372,7 +372,7 @@ export default function PantryManagement() {
         {showBarcodeScanner && (
           <BarcodeScanner
             onClose={() => setShowBarcodeScanner(false)}
-            onProductScanned={product => {
+            onProductFound={product => {
               // Convert the scanned product to an ingredient and add to pantry
               const ingredient: Ingredient = {
                 id: '', // Will be set by the service
