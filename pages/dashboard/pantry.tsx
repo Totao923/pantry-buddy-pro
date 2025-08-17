@@ -7,8 +7,9 @@ import SmartPantry from '../../components/SmartPantry';
 import QuickSuggestionsCard from '../../components/QuickSuggestionsCard';
 import ReceiptScanner from '../../components/ReceiptScanner';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import ReceiptReview, { ConfirmedReceiptItem } from '../../components/ReceiptReview';
 import { ingredientService } from '../../lib/services/ingredientService';
-import { receiptService } from '../../lib/services/receiptService';
+import { receiptService, ExtractedReceiptData } from '../../lib/services/receiptService';
 import { barcodeService, ProductInfo } from '../../lib/services/barcodeService';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { v4 as uuidv4 } from 'uuid';
@@ -20,6 +21,9 @@ export default function PantryManagement() {
   const [loading, setLoading] = useState(true);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showReceiptReview, setShowReceiptReview] = useState(false);
+  const [currentReceipt, setCurrentReceipt] = useState<ExtractedReceiptData | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     expiringSoon: 0,
@@ -137,6 +141,57 @@ export default function PantryManagement() {
     }
   };
 
+  const handleReceiptConfirmed = async (confirmedItems: ConfirmedReceiptItem[]) => {
+    if (!currentReceipt || !user) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Save receipt data
+      await receiptService.saveReceiptData(currentReceipt, user.id);
+
+      // Add confirmed items to pantry
+      for (const item of confirmedItems) {
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + item.expirationDays);
+
+        const ingredient: Ingredient = {
+          id: '',
+          name: item.name,
+          category: item.category || 'other',
+          quantity: item.quantity.toString(),
+          unit: item.unit,
+          expiryDate: expirationDate,
+          nutritionalValue: undefined,
+          isProtein: item.category === 'protein',
+          isVegetarian:
+            item.category !== 'protein' ||
+            ['tofu', 'beans', 'eggs'].some(v => item.name.toLowerCase().includes(v)),
+          isVegan:
+            !['dairy', 'protein'].includes(item.category!) ||
+            ['tofu', 'beans'].some(v => item.name.toLowerCase().includes(v)),
+        };
+
+        try {
+          await handleAddIngredient(ingredient);
+        } catch (error) {
+          console.error('Failed to add item to pantry:', error);
+        }
+      }
+
+      // Show success and close review
+      alert(`Successfully added ${confirmedItems.length} items to your pantry!`);
+      setShowReceiptReview(false);
+      setCurrentReceipt(null);
+    } catch (error) {
+      console.error('Failed to confirm receipt:', error);
+      setError('Failed to save receipt data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const categoryStats = Object.entries(stats.categories)
     .filter(([, count]) => count > 0)
     .sort(([, a], [, b]) => b - a);
@@ -165,6 +220,17 @@ export default function PantryManagement() {
 
       <DashboardLayout>
         <div className="space-y-8">
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+              <div className="flex items-center gap-2">
+                <span>⚠️</span>
+                <span className="font-medium">Error</span>
+              </div>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -363,34 +429,23 @@ export default function PantryManagement() {
         {showReceiptScanner && (
           <ReceiptScanner
             onClose={() => setShowReceiptScanner(false)}
+            loading={loading}
             onReceiptScanned={async (imageData, file) => {
+              setLoading(true);
+              setError(null);
+
               try {
                 console.log('Processing receipt:', file.name);
                 const extractedData = await receiptService.processReceiptImage(file);
-
-                // Add items directly to pantry (simplified - no review modal for pantry page)
-                for (const item of extractedData.items) {
-                  const ingredient: Ingredient = {
-                    id: '',
-                    name: item.name,
-                    category: item.category || 'other',
-                    quantity: item.quantity.toString(),
-                    unit: item.unit || 'item',
-                    expiryDate: undefined,
-                    nutritionalValue: undefined,
-                    isProtein: item.category === 'protein',
-                    isVegetarian: item.category !== 'protein',
-                    isVegan: item.category !== 'protein' && item.category !== 'dairy',
-                  };
-                  await handleAddIngredient(ingredient);
-                }
-
-                alert(`Successfully added ${extractedData.items.length} items from receipt!`);
+                setCurrentReceipt(extractedData);
                 setShowReceiptScanner(false);
+                setShowReceiptReview(true);
               } catch (error) {
                 console.error('Receipt processing failed:', error);
-                alert(error instanceof Error ? error.message : 'Failed to process receipt');
+                setError(error instanceof Error ? error.message : 'Failed to process receipt');
                 setShowReceiptScanner(false);
+              } finally {
+                setLoading(false);
               }
             }}
           />
@@ -427,6 +482,20 @@ export default function PantryManagement() {
                 alert('Failed to add product to pantry. Please try again.');
               }
             }}
+          />
+        )}
+
+        {/* Receipt Review Modal */}
+        {showReceiptReview && currentReceipt && (
+          <ReceiptReview
+            receiptData={currentReceipt}
+            onConfirm={handleReceiptConfirmed}
+            onClose={() => {
+              setShowReceiptReview(false);
+              setCurrentReceipt(null);
+              setError(null);
+            }}
+            loading={loading}
           />
         )}
       </DashboardLayout>
