@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
 import SmartPantry from '../../components/SmartPantry';
 import QuickSuggestionsCard from '../../components/QuickSuggestionsCard';
+import ReceiptScanner from '../../components/ReceiptScanner';
+import BarcodeScanner from '../../components/BarcodeScanner';
 import { ingredientService } from '../../lib/services/ingredientService';
 import { Ingredient, IngredientCategory } from '../../types';
 
 export default function PantryManagement() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     expiringSoon: 0,
@@ -163,7 +168,21 @@ export default function PantryManagement() {
                 Organize your ingredients and track what's in your kitchen
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setShowReceiptScanner(true)}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium flex items-center gap-2"
+              >
+                <span>📄</span>
+                Scan Receipt
+              </button>
+              <button
+                onClick={() => setShowBarcodeScanner(true)}
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-medium flex items-center gap-2"
+              >
+                <span>📱</span>
+                Scan Barcode
+              </button>
               <button
                 onClick={handleClearAll}
                 disabled={ingredients.length === 0}
@@ -284,6 +303,22 @@ export default function PantryManagement() {
               <p className="text-gray-600 mb-6">
                 Start adding ingredients to build your virtual pantry and generate amazing recipes!
               </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => setShowReceiptScanner(true)}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                >
+                  <span>📄</span>
+                  Scan Receipt
+                </button>
+                <button
+                  onClick={() => setShowBarcodeScanner(true)}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                >
+                  <span>📱</span>
+                  Scan Barcode
+                </button>
+              </div>
             </div>
           )}
 
@@ -291,6 +326,14 @@ export default function PantryManagement() {
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">💡 Pantry Tips</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+              <div className="flex gap-2">
+                <span>📄</span>
+                <span>Scan receipts to quickly add multiple ingredients at once</span>
+              </div>
+              <div className="flex gap-2">
+                <span>📱</span>
+                <span>Use barcode scanning for instant product identification</span>
+              </div>
               <div className="flex gap-2">
                 <span>📅</span>
                 <span>Add expiry dates to track freshness and reduce waste</span>
@@ -310,6 +353,44 @@ export default function PantryManagement() {
             </div>
           </div>
         </div>
+
+        {/* Receipt Scanner Modal */}
+        {showReceiptScanner && (
+          <ReceiptScanner
+            onClose={() => setShowReceiptScanner(false)}
+            onIngredientsScanned={scannedIngredients => {
+              // Add the scanned ingredients to the pantry
+              scannedIngredients.forEach(ingredient => {
+                handleAddIngredient(ingredient);
+              });
+              setShowReceiptScanner(false);
+            }}
+          />
+        )}
+
+        {/* Barcode Scanner Modal */}
+        {showBarcodeScanner && (
+          <BarcodeScanner
+            onClose={() => setShowBarcodeScanner(false)}
+            onProductScanned={product => {
+              // Convert the scanned product to an ingredient and add to pantry
+              const ingredient: Ingredient = {
+                id: '', // Will be set by the service
+                name: product.name || 'Unknown Product',
+                category: product.category || 'other',
+                quantity: 1,
+                unit: 'item',
+                expiryDate: undefined,
+                nutritionalValue: product.nutritionalValue,
+                isProtein: product.isProtein || false,
+                isVegetarian: product.isVegetarian || false,
+                isVegan: product.isVegan || false,
+              };
+              handleAddIngredient(ingredient);
+              setShowBarcodeScanner(false);
+            }}
+          />
+        )}
       </DashboardLayout>
     </AuthGuard>
   );
