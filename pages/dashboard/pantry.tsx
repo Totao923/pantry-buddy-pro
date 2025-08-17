@@ -379,12 +379,12 @@ export default function PantryManagement() {
                 name: product.name || 'Unknown Product',
                 category: product.category || 'other',
                 quantity: '1',
-                unit: 'item',
+                unit: product.unit || 'item',
                 expiryDate: undefined,
-                nutritionalValue: product.nutritionalValue,
-                isProtein: product.isProtein || false,
-                isVegetarian: product.isVegetarian || false,
-                isVegan: product.isVegan || false,
+                nutritionalValue: product.nutritionInfo?.calories,
+                isProtein: (product.nutritionInfo?.protein || 0) > 5, // Consider high protein if >5g
+                isVegetarian: product.isVegetarian,
+                isVegan: product.isVegan,
               };
               handleAddIngredient(ingredient);
               setShowBarcodeScanner(false);
