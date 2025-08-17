@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
 import { useAuth } from '../../lib/auth/AuthProvider';
@@ -23,7 +24,7 @@ interface FormData {
 }
 
 export default function Settings() {
-  const { user, profile, preferences, updateProfile, updatePreferences } = useAuth();
+  const { user, profile, preferences, subscription, updateProfile, updatePreferences } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -543,6 +544,60 @@ export default function Settings() {
                   </label>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Subscription Management */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Subscription</h2>
+            <div className="space-y-4">
+              {subscription ? (
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">
+                      {subscription.tier === 'free'
+                        ? '🆓'
+                        : subscription.tier === 'premium'
+                          ? '⭐'
+                          : subscription.tier === 'family'
+                            ? '👨‍👩‍👧‍👦'
+                            : '👨‍🍳'}
+                    </span>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 capitalize">
+                        {subscription.tier} Plan
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {subscription.tier === 'free'
+                          ? 'Basic features with limited AI recipes'
+                          : subscription.tier === 'premium'
+                            ? 'Unlimited AI recipes & advanced features'
+                            : subscription.tier === 'family'
+                              ? 'Family meal planning & shared features'
+                              : 'Professional chef features & priority support'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Link href="/dashboard/subscription">
+                      <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm">
+                        {subscription.tier === 'free' ? 'Upgrade' : 'Manage'}
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <p className="text-gray-600 mb-3">
+                    No subscription information available. Please sign in to view your plan.
+                  </p>
+                  <Link href="/dashboard/subscription">
+                    <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm">
+                      View Plans
+                    </button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

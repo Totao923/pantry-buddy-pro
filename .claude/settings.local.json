@@ -31,7 +31,16 @@
       "Bash(true)",
       "Bash(git push:*)",
       "Bash(sed:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git checkout:*)",
+      "Bash(grep:*)",
+      "Bash(tar:*)",
+      "Bash(sudo mv:*)",
+      "Bash(stripe:*)",
+      "Bash(./stripe --version)",
+      "Bash(./stripe login)",
+      "Bash(./stripe listen --forward-to localhost:3001/api/stripe/webhook)",
+      "Bash(./stripe trigger customer.subscription.created)"
     ],
     "deny": []
   }

@@ -102,4 +102,5 @@ temp/
 
 # API keys and secrets (additional safety)
 secrets.json
-credentials.json
+credentials.jsonstripe
+*.tar.gz

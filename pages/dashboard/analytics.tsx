@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
 import SpendingAnalytics from '../../components/SpendingAnalytics';
 import { useAuth } from '../../lib/auth/AuthProvider';
+import { createSupabaseClient } from '../../lib/supabase/client';
 import { aiService } from '../../lib/ai/aiService';
 import { receiptService } from '../../lib/services/receiptService';
 import { ingredientService } from '../../lib/services/ingredientService';
@@ -69,14 +70,8 @@ export default function Analytics() {
   useEffect(() => {
     console.log('📊 Analytics: useEffect triggered');
 
-    // Emergency timeout to prevent infinite loading
-    const emergencyTimeout = setTimeout(() => {
-      console.log('🚨 Analytics: Emergency timeout - forcing loading to false');
-      setLoading(false);
-    }, 5000); // 5 seconds max
-
     const loadAnalyticsData = async () => {
-      console.log('📊 Analytics: Starting data load');
+      console.log('📊 Analytics: Starting optimized parallel data load');
 
       try {
         if (!user) {
@@ -85,55 +80,119 @@ export default function Analytics() {
           return;
         }
 
-        // Use simplified approach with fallbacks
-        console.log('📊 Analytics: Loading AI stats...');
-        let aiStats;
-        try {
-          aiStats = await aiService.getUsageStats(user.id);
-        } catch (error) {
-          console.log('❌ AI stats error:', error);
-          aiStats = { aiEnabled: false, requestsUsed: 0, requestsRemaining: 100 };
-        }
+        // Get session once for all authenticated calls
+        const supabase = createSupabaseClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        // Load data with individual try-catch blocks
-        console.log('📊 Analytics: Loading receipts...');
-        let userReceipts: ExtractedReceiptData[] = [];
-        try {
-          userReceipts = await receiptService.getUserReceipts(user.id);
-        } catch (error) {
-          console.log('❌ Receipts error:', error);
-          userReceipts = [];
-        }
+        // Load all data in parallel with Promise.allSettled for better performance
+        const [
+          aiStatsResult,
+          userReceiptsResult,
+          pantryItemsResult,
+          scanningStatsResult,
+          cookingPreferencesResult,
+          cookingStreakResult,
+          cookingSessionsResult,
+        ] = await Promise.allSettled([
+          aiService.getUsageStats(user.id),
+          receiptService.getUserReceipts(user.id),
+          ingredientService.getAllIngredients(),
+          barcodeService.getScanningStats(user.id),
+          cookingSessionService.getUserCookingPreferences(),
+          cookingSessionService.getCookingStreak(),
+          // Use authenticated API for cooking sessions
+          session?.access_token
+            ? fetch('/api/cooking-sessions?limit=20', {
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                  'Content-Type': 'application/json',
+                },
+              }).then(res => (res.ok ? res.json().then(data => data.data || []) : []))
+            : Promise.resolve([]),
+        ]);
 
-        console.log('📊 Analytics: Loading pantry items...');
-        let pantryItems: Ingredient[] = [];
-        try {
-          pantryItems = await ingredientService.getAllIngredients();
-        } catch (error) {
-          console.log('❌ Pantry error:', error);
-          pantryItems = [];
-        }
+        // Extract results with fallbacks and improved error logging
+        const aiStats =
+          aiStatsResult.status === 'fulfilled'
+            ? aiStatsResult.value
+            : (() => {
+                if (aiStatsResult.status === 'rejected') {
+                  console.log('❌ AI stats error:', aiStatsResult.reason);
+                }
+                return { aiEnabled: false, requestsUsed: 0, requestsRemaining: 100 };
+              })();
 
-        console.log('📊 Analytics: Loading scanning stats...');
-        let scanningStats: any = {};
-        try {
-          scanningStats = await barcodeService.getScanningStats(user.id);
-        } catch (error) {
-          console.log('❌ Scanning stats error:', error);
-          scanningStats = {};
-        }
+        const userReceipts =
+          userReceiptsResult.status === 'fulfilled'
+            ? userReceiptsResult.value
+            : (() => {
+                if (userReceiptsResult.status === 'rejected') {
+                  console.log('❌ Receipts error:', userReceiptsResult.reason);
+                }
+                return [];
+              })();
 
-        console.log('📊 Analytics: Loading cooking statistics...');
-        let cookingPreferences = null;
-        let cookingStreak = { current: 0, longest: 0 };
-        let recentCookingSessions: any[] = [];
-        try {
-          cookingPreferences = await cookingSessionService.getUserCookingPreferences();
-          cookingStreak = await cookingSessionService.getCookingStreak();
-          recentCookingSessions = await cookingSessionService.getUserCookingSessions(20);
-        } catch (error) {
-          console.log('❌ Cooking stats error:', error);
-        }
+        const pantryItems =
+          pantryItemsResult.status === 'fulfilled'
+            ? pantryItemsResult.value
+            : (() => {
+                if (pantryItemsResult.status === 'rejected') {
+                  console.log('❌ Pantry items error:', pantryItemsResult.reason);
+                }
+                return [];
+              })();
+
+        const scanningStats =
+          scanningStatsResult.status === 'fulfilled'
+            ? scanningStatsResult.value
+            : (() => {
+                if (scanningStatsResult.status === 'rejected') {
+                  console.log('❌ Scanning stats error:', scanningStatsResult.reason);
+                }
+                return {};
+              })();
+
+        const cookingPreferences =
+          cookingPreferencesResult.status === 'fulfilled'
+            ? cookingPreferencesResult.value
+            : (() => {
+                if (cookingPreferencesResult.status === 'rejected') {
+                  console.log('❌ Cooking preferences error:', cookingPreferencesResult.reason);
+                }
+                return null;
+              })();
+
+        const cookingStreak =
+          cookingStreakResult.status === 'fulfilled'
+            ? cookingStreakResult.value
+            : (() => {
+                if (cookingStreakResult.status === 'rejected') {
+                  console.log('❌ Cooking streak error:', cookingStreakResult.reason);
+                }
+                return { current: 0, longest: 0 };
+              })();
+
+        const recentCookingSessions =
+          cookingSessionsResult.status === 'fulfilled'
+            ? cookingSessionsResult.value
+            : (() => {
+                if (cookingSessionsResult.status === 'rejected') {
+                  console.log('❌ Cooking sessions error:', cookingSessionsResult.reason);
+                }
+                return [];
+              })();
+
+        console.log('📊 Analytics: Data loading results:', {
+          aiStats: aiStatsResult.status,
+          userReceipts: userReceiptsResult.status,
+          pantryItems: pantryItemsResult.status,
+          scanningStats: scanningStatsResult.status,
+          cookingPreferences: cookingPreferencesResult.status,
+          cookingStreak: cookingStreakResult.status,
+          cookingSessions: cookingSessionsResult.status,
+        });
 
         setReceipts(userReceipts);
 
@@ -299,7 +358,7 @@ export default function Analytics() {
 
         // Process cooking statistics
         const totalRecipesCooked = cookingPreferences?.total_recipes_cooked || 0;
-        const uniqueRecipesCooked = [...new Set(recentCookingSessions.map(s => s.recipe_id))]
+        const uniqueRecipesCooked = [...new Set(recentCookingSessions.map((s: any) => s.recipe_id))]
           .length;
         const averageUserRating = cookingPreferences?.average_rating_given || 0;
 
@@ -319,8 +378,10 @@ export default function Analytics() {
 
         setAnalyticsData({
           totalRecipes,
-          aiRequestsUsed: 100 - (aiStats.remainingRequests || 0),
-          aiRequestsRemaining: aiStats.remainingRequests || 0,
+          aiRequestsUsed:
+            100 - ((aiStats as any).remainingRequests || (aiStats as any).requestsRemaining || 0),
+          aiRequestsRemaining:
+            (aiStats as any).remainingRequests || (aiStats as any).requestsRemaining || 0,
           pantryItems: pantryItemsCount,
           cookingSessions: cookingHistory.length,
           favoritesCuisines: Object.keys(cuisineCounts).slice(0, 3) as CuisineType[],
@@ -345,7 +406,6 @@ export default function Analytics() {
       } catch (error) {
         console.error('Error loading analytics data:', error);
       } finally {
-        clearTimeout(emergencyTimeout);
         setLoading(false);
       }
     };
@@ -354,14 +414,8 @@ export default function Analytics() {
       loadAnalyticsData();
     } else {
       // Set loading to false if no user to prevent infinite loading
-      clearTimeout(emergencyTimeout);
       setLoading(false);
     }
-
-    // Cleanup function to clear emergency timeout
-    return () => {
-      clearTimeout(emergencyTimeout);
-    };
   }, [user, timeRange]);
 
   if (loading || !analyticsData) {

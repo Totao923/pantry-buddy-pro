@@ -268,7 +268,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </nav>
 
           {/* Footer */}
-          <div className="p-6 border-t border-gray-200 flex-shrink-0">
+          <div className="p-6 border-t border-gray-200 flex-shrink-0 space-y-3">
+            {/* Upgrade Button for Free Users */}
+            {(subscription?.tier === 'free' || !subscription) && (
+              <Link href="/dashboard/subscription">
+                <button className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all font-medium text-sm flex items-center justify-center gap-2 min-h-[44px] shadow-lg">
+                  <span>⭐</span>
+                  Upgrade to Premium
+                </button>
+              </Link>
+            )}
+
+            {/* Current Plan Display for Premium Users */}
+            {subscription && subscription.tier !== 'free' && (
+              <Link href="/dashboard/subscription">
+                <div className="w-full px-4 py-3 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 text-green-800 rounded-lg transition-all font-medium text-sm flex items-center justify-center gap-2 min-h-[44px]">
+                  <span>👑</span>
+                  {subscription.tier.charAt(0).toUpperCase() + subscription.tier.slice(1)} Plan
+                </div>
+              </Link>
+            )}
+
             <button
               onClick={handleSignOut}
               className="w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2 min-h-[44px]"
