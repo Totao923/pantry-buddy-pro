@@ -184,25 +184,39 @@ export default function QuickRecipeSuggestions({
   const [showFilters, setShowFilters] = useState(false);
 
   const generateSuggestions = async (customOptions?: Partial<SuggestionRequest>) => {
+    console.log('🔄 DEBUG: generateSuggestions called with options:', customOptions);
+    console.log(
+      '🔄 DEBUG: Current state - loading:',
+      loading,
+      'suggestions count:',
+      suggestions.length
+    );
+
     setLoading(true);
     setError(null);
 
     try {
       const requestOptions = { ...options, ...customOptions, userId: user?.id };
+      console.log('🔄 DEBUG: Request options:', requestOptions);
+
       const newSuggestions = await quickSuggestionsService.getQuickSuggestions(requestOptions);
+      console.log('🔄 DEBUG: Received suggestions:', newSuggestions);
 
       if (!newSuggestions || !Array.isArray(newSuggestions) || newSuggestions.length === 0) {
+        console.log('🔄 DEBUG: No suggestions received, setting error state');
         setError('No recipes found with your current pantry items. Try adding more ingredients!');
         setSuggestions([]); // Ensure suggestions is always an array
       } else {
+        console.log('🔄 DEBUG: Setting suggestions:', newSuggestions.length, 'items');
         setSuggestions(newSuggestions);
       }
     } catch (err) {
-      console.error('Failed to generate suggestions:', err);
+      console.error('🔄 DEBUG: Failed to generate suggestions:', err);
       setError(
         err instanceof Error ? err.message : 'Failed to generate suggestions. Please try again.'
       );
     } finally {
+      console.log('🔄 DEBUG: generateSuggestions finished, setting loading to false');
       setLoading(false);
     }
   };
@@ -299,13 +313,18 @@ export default function QuickRecipeSuggestions({
   };
 
   const handleSaveRecipe = async (recipe: QuickRecipeSuggestion) => {
+    console.log('🔍 DEBUG: handleSaveRecipe called with recipe:', recipe.name);
+    console.log('🔍 DEBUG: User object:', user);
+
     try {
       // Track suggestion usage for analytics
       if (user?.id) {
+        console.log('🔍 DEBUG: Tracking suggestion usage for user:', user.id);
         quickSuggestionsService.trackSuggestionUsed(user.id, recipe);
       }
 
       // Convert suggestion to proper Recipe format and save
+      console.log('🔍 DEBUG: Converting recipe to Recipe format...');
       const recipeData: Recipe = {
         id: recipe.id,
         title: recipe.name,
@@ -355,16 +374,25 @@ export default function QuickRecipeSuggestions({
       };
 
       const userId = user?.id || 'anonymous';
-      console.log('Saving recipe with userId:', userId, 'Recipe:', recipe.name);
+      console.log('🔍 DEBUG: Saving recipe with userId:', userId, 'Recipe:', recipe.name);
+      console.log('🔍 DEBUG: Recipe data structure:', recipeData);
 
       const saveResult = await RecipeService.saveRecipe(recipeData, userId);
+      console.log('🔍 DEBUG: Save result:', saveResult);
 
       if (!saveResult.success) {
-        console.error('Recipe save failed:', saveResult.error);
+        console.error('🔍 DEBUG: Recipe save failed:', saveResult.error);
         throw new Error(saveResult.error || 'Failed to save recipe');
       }
 
-      console.log('Recipe saved successfully:', recipe.name, 'UserId:', userId);
+      console.log('🔍 DEBUG: Recipe saved successfully:', recipe.name, 'UserId:', userId);
+
+      // Check localStorage immediately after save
+      const userRecipes = localStorage.getItem('userRecipes');
+      const savedRecipes = localStorage.getItem('savedRecipes');
+      console.log('🔍 DEBUG: localStorage userRecipes after save:', userRecipes);
+      console.log('🔍 DEBUG: localStorage savedRecipes after save:', savedRecipes);
+
       alert('Recipe saved to your collection!');
     } catch (error) {
       console.error('Failed to save recipe:', error);
