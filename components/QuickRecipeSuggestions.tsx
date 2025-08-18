@@ -134,7 +134,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
       {/* Action Buttons */}
       <div className="flex gap-3">
         <button
-          onClick={onCookThis}
+          onClick={() => {
+            console.log('🔍 COOK THIS BUTTON CLICKED for recipe:', recipe.name);
+            onCookThis();
+          }}
           disabled={isLoading}
           className="flex-1 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white px-4 py-3 rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -151,7 +154,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({
           )}
         </button>
         <button
-          onClick={onSaveRecipe}
+          onClick={() => {
+            console.log('🔍 SAVE BUTTON CLICKED for recipe:', recipe.name);
+            onSaveRecipe();
+          }}
           className="px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
         >
           <span>💾</span>
@@ -168,12 +174,22 @@ export default function QuickRecipeSuggestions({
   maxSuggestions = 4,
   showAsModal = false,
 }: QuickRecipeSuggestionsProps) {
+  console.log('🏗️ QuickRecipeSuggestions component mounted/rendered');
+  console.log('🏗️ Props:', {
+    onClose: !!onClose,
+    onRecipeSelected: !!onRecipeSelected,
+    maxSuggestions,
+    showAsModal,
+  });
+
   const router = useRouter();
   const { user } = useAuth();
   const [suggestions, setSuggestions] = useState<QuickRecipeSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cookingRecipeId, setCookingRecipeId] = useState<string | null>(null);
+
+  console.log('🏗️ Current state:', { suggestionsCount: suggestions.length, loading, error });
   const [options, setOptions] = useState<SuggestionRequest>({
     maxSuggestions,
     maxCookTime: 45,
@@ -464,7 +480,10 @@ export default function QuickRecipeSuggestions({
             🔧 Filters
           </button>
           <button
-            onClick={() => generateSuggestions()}
+            onClick={() => {
+              console.log('🔄 REFRESH BUTTON CLICKED');
+              generateSuggestions();
+            }}
             disabled={loading}
             className="px-4 py-2 text-pantry-600 border border-pantry-600 rounded-lg hover:bg-pantry-50 transition-colors text-sm font-medium"
           >
