@@ -329,7 +329,17 @@ export class RecipeService {
         return acc;
       }, []);
 
-      const filteredRecipes = uniqueRecipes.filter((r: any) => r.userId === userId);
+      // Filter recipes by userId, but handle anonymous users
+      let filteredRecipes;
+      if (userId === 'anonymous') {
+        // For anonymous users, return all recipes regardless of userId
+        filteredRecipes = uniqueRecipes;
+      } else {
+        // For authenticated users, filter by exact userId match
+        filteredRecipes = uniqueRecipes.filter((r: any) => r.userId === userId);
+      }
+
+      console.log(`Found ${filteredRecipes.length} recipes for userId: ${userId}`);
 
       return {
         success: true,

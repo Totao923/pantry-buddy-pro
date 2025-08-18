@@ -43,6 +43,10 @@ export default function RecipesBrowser() {
       try {
         let allRecipes: Recipe[] = [];
 
+        // Use consistent userId handling
+        const userId = user?.id || 'anonymous';
+        console.log('Loading recipes for userId:', userId);
+
         // Try to load from database first
         if (user?.id) {
           try {
@@ -76,35 +80,27 @@ export default function RecipesBrowser() {
               'Database error, falling back to localStorage:',
               error instanceof Error ? error.message : 'Unknown error'
             );
-            // Fallback to localStorage
-            const savedRecipes = localStorage.getItem('userRecipes');
-            const recentRecipes = localStorage.getItem('recentRecipes');
-
-            if (savedRecipes) {
-              const parsed = JSON.parse(savedRecipes);
-              allRecipes = [...allRecipes, ...parsed];
-              console.log(`Loaded ${parsed.length} recipes from userRecipes localStorage`);
-            }
-            if (recentRecipes) {
-              const parsed = JSON.parse(recentRecipes);
-              allRecipes = [...allRecipes, ...parsed];
-              console.log(`Loaded ${parsed.length} recipes from recentRecipes localStorage`);
-            }
-
-            if (allRecipes.length === 0) {
+            // Fallback to localStorage using RecipeService
+            console.log('Database failed, using RecipeService localStorage fallback');
+            const localStorageResult = await RecipeService.getSavedRecipes(userId);
+            if (localStorageResult.success && localStorageResult.data) {
+              allRecipes = [...allRecipes, ...localStorageResult.data];
+              console.log(
+                `Loaded ${localStorageResult.data.length} recipes from localStorage via RecipeService`
+              );
+            } else {
               console.log('No recipes found in localStorage either');
             }
           }
         } else {
-          // Not authenticated, use localStorage
-          const savedRecipes = localStorage.getItem('userRecipes');
-          const recentRecipes = localStorage.getItem('recentRecipes');
-
-          if (savedRecipes) {
-            allRecipes = [...allRecipes, ...JSON.parse(savedRecipes)];
-          }
-          if (recentRecipes) {
-            allRecipes = [...allRecipes, ...JSON.parse(recentRecipes)];
+          // Not authenticated, use localStorage with RecipeService
+          console.log(
+            'User not authenticated, using RecipeService localStorage for anonymous user'
+          );
+          const localStorageResult = await RecipeService.getSavedRecipes(userId);
+          if (localStorageResult.success && localStorageResult.data) {
+            allRecipes = [...allRecipes, ...localStorageResult.data];
+            console.log(`Loaded ${localStorageResult.data.length} recipes for anonymous user`);
           }
         }
 

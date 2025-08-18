@@ -265,13 +265,17 @@ export default function QuickRecipeSuggestions({
         },
       };
 
-      const saveResult = await RecipeService.saveRecipe(recipeData, user?.id || 'anonymous');
+      const userId = user?.id || 'anonymous';
+      console.log('Saving recipe with userId:', userId, 'Recipe:', recipe.name);
+
+      const saveResult = await RecipeService.saveRecipe(recipeData, userId);
 
       if (!saveResult.success) {
+        console.error('Recipe save failed:', saveResult.error);
         throw new Error(saveResult.error || 'Failed to save recipe');
       }
 
-      console.log('Recipe saved successfully:', recipe.name);
+      console.log('Recipe saved successfully:', recipe.name, 'UserId:', userId);
 
       if (onRecipeSelected) {
         onRecipeSelected(recipe);
@@ -350,13 +354,17 @@ export default function QuickRecipeSuggestions({
         },
       };
 
-      const saveResult = await RecipeService.saveRecipe(recipeData, user?.id || 'anonymous');
+      const userId = user?.id || 'anonymous';
+      console.log('Saving recipe with userId:', userId, 'Recipe:', recipe.name);
+
+      const saveResult = await RecipeService.saveRecipe(recipeData, userId);
 
       if (!saveResult.success) {
+        console.error('Recipe save failed:', saveResult.error);
         throw new Error(saveResult.error || 'Failed to save recipe');
       }
 
-      console.log('Recipe saved successfully:', recipe.name);
+      console.log('Recipe saved successfully:', recipe.name, 'UserId:', userId);
       alert('Recipe saved to your collection!');
     } catch (error) {
       console.error('Failed to save recipe:', error);
