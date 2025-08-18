@@ -482,7 +482,6 @@ Focus on practical, delicious recipes that maximize use of available ingredients
         ingredients: mainIngredients.slice(0, 4).map(ing => ({
           name: ing.name,
           amount: `${Math.ceil(parseFloat(ing.quantity || '1') / 4)} ${ing.unit || 'portion'}`,
-          pantryItem: true,
         })),
         instructions: [
           'Heat 2 tbsp oil in a large pan or wok',
@@ -505,7 +504,6 @@ Focus on practical, delicious recipes that maximize use of available ingredients
         ingredients: mainIngredients.slice(0, 5).map(ing => ({
           name: ing.name,
           amount: ing.quantity || '1 serving',
-          pantryItem: true,
         })),
         instructions: [
           `Prepare ${protein?.name || 'main protein'} by cooking until done`,
@@ -526,11 +524,9 @@ Focus on practical, delicious recipes that maximize use of available ingredients
         difficulty: 'Easy',
         servings: 4,
         ingredients: [
-          ...vegetables
-            .slice(0, 3)
-            .map(ing => ({ name: ing.name, amount: '1 cup chopped', pantryItem: true })),
-          { name: 'Water or Broth', amount: '4 cups', pantryItem: false },
-          { name: 'Salt', amount: 'to taste', pantryItem: true },
+          ...vegetables.slice(0, 3).map(ing => ({ name: ing.name, amount: '1 cup chopped' })),
+          { name: 'Water or Broth', amount: '4 cups' },
+          { name: 'Salt', amount: 'to taste' },
         ],
         instructions: [
           'Chop all vegetables into bite-sized pieces',
@@ -555,14 +551,12 @@ Focus on practical, delicious recipes that maximize use of available ingredients
           {
             name: 'Pasta',
             amount: '8 oz',
-            pantryItem: grains?.name.toLowerCase().includes('pasta'),
           },
           ...mainIngredients.slice(0, 3).map(ing => ({
             name: ing.name,
             amount: '1/2 cup',
-            pantryItem: true,
           })),
-          { name: 'Olive Oil', amount: '3 tbsp', pantryItem: true },
+          { name: 'Olive Oil', amount: '3 tbsp' },
         ],
         instructions: [
           'Cook pasta according to package directions',

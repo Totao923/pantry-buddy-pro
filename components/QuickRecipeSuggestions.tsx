@@ -7,6 +7,7 @@ import {
   SuggestionRequest,
 } from '../lib/services/quickSuggestionsService';
 import { RecipeService } from '../lib/services/recipeService';
+import { Recipe, CuisineType, DifficultyLevel } from '../types';
 
 interface QuickRecipeSuggestionsProps {
   onClose?: () => void;
@@ -215,26 +216,32 @@ export default function QuickRecipeSuggestions({
         quickSuggestionsService.trackSuggestionUsed(user.id, recipe);
       }
 
-      // Convert suggestion to recipe format and save
-      const recipeData = {
+      // Convert suggestion to proper Recipe format and save
+      const recipeData: Recipe = {
         id: recipe.id,
         title: recipe.name,
         description: `AI-generated recipe using your pantry ingredients`,
-        cuisine: recipe.cuisine.toLowerCase() as any,
+        cuisine: recipe.cuisine.toLowerCase() as CuisineType,
         servings: recipe.servings,
         prepTime: 10,
-        cookTime: parseInt(recipe.cookTime) || 30,
-        totalTime: (parseInt(recipe.cookTime) || 30) + 10,
-        difficulty: recipe.difficulty.toLowerCase() as any,
-        ingredients: recipe.ingredients.map((ing, index) => ({
-          name: ing.name,
-          amount: parseFloat(ing.amount.split(' ')[0]) || 1,
-          unit: ing.amount.split(' ').slice(1).join(' ') || 'serving',
-          optional: false,
-        })),
-        instructions: recipe.instructions.map((instruction, index) => ({
+        cookTime: parseInt(recipe.cookTime.replace(/\D/g, '')) || 30,
+        totalTime: (parseInt(recipe.cookTime.replace(/\D/g, '')) || 30) + 10,
+        difficulty: recipe.difficulty.toLowerCase() as DifficultyLevel,
+        ingredients: (recipe.ingredients || []).map(ing => {
+          const amountParts = (ing.amount || '1 serving').split(' ');
+          const amount = parseFloat(amountParts[0]) || 1;
+          const unit = amountParts.slice(1).join(' ') || 'serving';
+
+          return {
+            name: ing.name || 'Unknown ingredient',
+            amount,
+            unit,
+            optional: false,
+          };
+        }),
+        instructions: (recipe.instructions || []).map((instruction, index) => ({
           step: index + 1,
-          instruction,
+          instruction: instruction || `Step ${index + 1}`,
         })),
         tags: ['quick-suggestion', 'ai-generated'],
         dietaryInfo: {
@@ -246,9 +253,25 @@ export default function QuickRecipeSuggestions({
           isPaleo: false,
           allergens: [],
         },
+        nutritionInfo: {
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          fiber: 0,
+          sugar: 0,
+          sodium: 0,
+          cholesterol: 0,
+        },
       };
 
-      await RecipeService.saveRecipe(recipeData, user?.id || 'anonymous');
+      const saveResult = await RecipeService.saveRecipe(recipeData, user?.id || 'anonymous');
+
+      if (!saveResult.success) {
+        throw new Error(saveResult.error || 'Failed to save recipe');
+      }
+
+      console.log('Recipe saved successfully:', recipe.name);
 
       if (onRecipeSelected) {
         onRecipeSelected(recipe);
@@ -257,12 +280,13 @@ export default function QuickRecipeSuggestions({
       // Show success feedback and navigate to recipe detail page
       setCookingRecipeId(null);
 
-      // Navigate to the recipe detail page to show cooking instructions
-      router.push(`/dashboard/recipe/${recipe.id}`);
-
       if (showAsModal && onClose) {
         onClose();
       }
+
+      // Navigate to the recipe detail page to show cooking instructions
+      console.log('Navigating to recipe:', `/dashboard/recipe/${recipe.id}`);
+      await router.push(`/dashboard/recipe/${recipe.id}`);
     } catch (error) {
       console.error('Failed to save recipe:', error);
       setCookingRecipeId(null);
@@ -277,26 +301,32 @@ export default function QuickRecipeSuggestions({
         quickSuggestionsService.trackSuggestionUsed(user.id, recipe);
       }
 
-      // Convert suggestion to recipe format and save
-      const recipeData = {
+      // Convert suggestion to proper Recipe format and save
+      const recipeData: Recipe = {
         id: recipe.id,
         title: recipe.name,
         description: `AI-generated recipe using your pantry ingredients`,
-        cuisine: recipe.cuisine.toLowerCase() as any,
+        cuisine: recipe.cuisine.toLowerCase() as CuisineType,
         servings: recipe.servings,
         prepTime: 10,
-        cookTime: parseInt(recipe.cookTime) || 30,
-        totalTime: (parseInt(recipe.cookTime) || 30) + 10,
-        difficulty: recipe.difficulty.toLowerCase() as any,
-        ingredients: recipe.ingredients.map((ing, index) => ({
-          name: ing.name,
-          amount: parseFloat(ing.amount.split(' ')[0]) || 1,
-          unit: ing.amount.split(' ').slice(1).join(' ') || 'serving',
-          optional: false,
-        })),
-        instructions: recipe.instructions.map((instruction, index) => ({
+        cookTime: parseInt(recipe.cookTime.replace(/\D/g, '')) || 30,
+        totalTime: (parseInt(recipe.cookTime.replace(/\D/g, '')) || 30) + 10,
+        difficulty: recipe.difficulty.toLowerCase() as DifficultyLevel,
+        ingredients: (recipe.ingredients || []).map(ing => {
+          const amountParts = (ing.amount || '1 serving').split(' ');
+          const amount = parseFloat(amountParts[0]) || 1;
+          const unit = amountParts.slice(1).join(' ') || 'serving';
+
+          return {
+            name: ing.name || 'Unknown ingredient',
+            amount,
+            unit,
+            optional: false,
+          };
+        }),
+        instructions: (recipe.instructions || []).map((instruction, index) => ({
           step: index + 1,
-          instruction,
+          instruction: instruction || `Step ${index + 1}`,
         })),
         tags: ['quick-suggestion', 'ai-generated', 'saved'],
         dietaryInfo: {
@@ -308,9 +338,25 @@ export default function QuickRecipeSuggestions({
           isPaleo: false,
           allergens: [],
         },
+        nutritionInfo: {
+          calories: 0,
+          protein: 0,
+          carbs: 0,
+          fat: 0,
+          fiber: 0,
+          sugar: 0,
+          sodium: 0,
+          cholesterol: 0,
+        },
       };
 
-      await RecipeService.saveRecipe(recipeData, user?.id || 'anonymous');
+      const saveResult = await RecipeService.saveRecipe(recipeData, user?.id || 'anonymous');
+
+      if (!saveResult.success) {
+        throw new Error(saveResult.error || 'Failed to save recipe');
+      }
+
+      console.log('Recipe saved successfully:', recipe.name);
       alert('Recipe saved to your collection!');
     } catch (error) {
       console.error('Failed to save recipe:', error);
