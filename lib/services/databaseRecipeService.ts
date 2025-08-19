@@ -190,6 +190,16 @@ class DatabaseRecipeService {
           });
 
           if (error) {
+            // Log the raw Supabase error BEFORE handling
+            console.error('🚨 RAW SUPABASE UPDATE ERROR:', error);
+            console.error('Raw error type:', typeof error);
+            console.error('Raw error keys:', Object.keys(error));
+            console.error('Raw error values:', Object.values(error));
+            console.error('Raw error message:', error.message);
+            console.error('Raw error code:', error.code);
+            console.error('Raw error details:', error.details);
+            console.error('Raw error hint:', error.hint);
+
             const handled = handleSupabaseError(error, 'updating recipe');
             throw new Error(handled.message);
           }
@@ -200,6 +210,16 @@ class DatabaseRecipeService {
           });
 
           if (error) {
+            // Log the raw Supabase error BEFORE handling
+            console.error('🚨 RAW SUPABASE INSERT ERROR:', error);
+            console.error('Raw error type:', typeof error);
+            console.error('Raw error keys:', Object.keys(error));
+            console.error('Raw error values:', Object.values(error));
+            console.error('Raw error message:', error.message);
+            console.error('Raw error code:', error.code);
+            console.error('Raw error details:', error.details);
+            console.error('Raw error hint:', error.hint);
+
             const handled = handleSupabaseError(error, 'saving recipe');
             throw new Error(handled.message);
           }
@@ -211,6 +231,16 @@ class DatabaseRecipeService {
         });
 
         if (error) {
+          // Log the raw Supabase error BEFORE handling
+          console.error('🚨 RAW SUPABASE NEW INSERT ERROR:', error);
+          console.error('Raw error type:', typeof error);
+          console.error('Raw error keys:', Object.keys(error));
+          console.error('Raw error values:', Object.values(error));
+          console.error('Raw error message:', error.message);
+          console.error('Raw error code:', error.code);
+          console.error('Raw error details:', error.details);
+          console.error('Raw error hint:', error.hint);
+
           const handled = handleSupabaseError(error, 'saving recipe');
           throw new Error(handled.message);
         }
