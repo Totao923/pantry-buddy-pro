@@ -228,15 +228,39 @@ class DatabaseRecipeService {
 
       // Log more detailed error information for debugging
       if (error && typeof error === 'object') {
-        console.error('Supabase saving recipe error:', JSON.stringify(error, null, 2));
-        console.error('Error properties:', {
-          message: (error as any).message,
-          code: (error as any).code,
-          details: (error as any).details,
-          hint: (error as any).hint,
-          status: (error as any).status,
-          name: (error as any).name,
-        });
+        // Try multiple approaches to extract error information
+        console.error('Supabase saving recipe error details:');
+        console.error('Error toString:', error.toString());
+        console.error('Error constructor:', error.constructor.name);
+
+        // Check for common error properties
+        const errorInfo = {
+          message: (error as any).message || 'No message',
+          code: (error as any).code || 'No code',
+          details: (error as any).details || 'No details',
+          hint: (error as any).hint || 'No hint',
+          status: (error as any).status || 'No status',
+          statusCode: (error as any).statusCode || 'No statusCode',
+          name: (error as any).name || 'No name',
+          response: (error as any).response ? 'Has response object' : 'No response',
+          error: (error as any).error || 'No nested error',
+        };
+        console.error('Parsed error properties:', errorInfo);
+
+        // Also log all enumerable properties
+        console.error('All error keys:', Object.keys(error));
+        console.error('All error entries:', Object.entries(error));
+
+        // Check if it's a specific error type
+        if ((error as any).name === 'PostgrestError' || (error as any).code) {
+          console.error('This appears to be a Supabase/Postgrest error');
+          console.error('Full error object structure:', {
+            ...error,
+            // Force extraction of potentially hidden properties
+            stack: (error as any).stack,
+            cause: (error as any).cause,
+          });
+        }
       }
 
       return {

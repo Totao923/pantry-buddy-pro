@@ -984,6 +984,22 @@ class ReceiptService {
 
       if (receiptError) {
         console.error('Error saving receipt:', receiptError);
+
+        // Enhanced error logging for debugging
+        console.error('Receipt error details:');
+        console.error('Error toString:', receiptError.toString());
+        console.error('Error constructor:', receiptError.constructor.name);
+        console.error('Error properties:', {
+          message: (receiptError as any).message || 'No message',
+          code: (receiptError as any).code || 'No code',
+          details: (receiptError as any).details || 'No details',
+          hint: (receiptError as any).hint || 'No hint',
+          status: (receiptError as any).status || 'No status',
+          statusCode: (receiptError as any).statusCode || 'No statusCode',
+          name: (receiptError as any).name || 'No name',
+        });
+        console.error('All receipt error keys:', Object.keys(receiptError));
+
         // Handle authentication errors and other Supabase errors gracefully
         if (
           receiptError.code === 'PGRST301' ||
