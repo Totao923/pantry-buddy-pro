@@ -8,7 +8,7 @@ import QuickSuggestionsCard from '../../components/QuickSuggestionsCard';
 import ReceiptScanner from '../../components/ReceiptScanner';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import ReceiptReview, { ConfirmedReceiptItem } from '../../components/ReceiptReview';
-import { ingredientService } from '../../lib/services/ingredientService';
+import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
 import { receiptService, ExtractedReceiptData } from '../../lib/services/receiptService';
 import { barcodeService, ProductInfo } from '../../lib/services/barcodeService';
 import { useAuth } from '../../lib/auth/AuthProvider';
@@ -40,6 +40,7 @@ export default function PantryManagement() {
 
   const loadIngredients = async () => {
     try {
+      const ingredientService = await getIngredientService();
       const userIngredients = await ingredientService.getAllIngredients();
       setIngredients(userIngredients);
     } catch (error) {
@@ -81,6 +82,7 @@ export default function PantryManagement() {
 
   const handleAddIngredient = async (ingredient: Ingredient) => {
     try {
+      const ingredientService = await getIngredientService();
       const newIngredient = await ingredientService.createIngredient({
         name: ingredient.name,
         category: ingredient.category,
@@ -100,6 +102,7 @@ export default function PantryManagement() {
 
   const handleRemoveIngredient = async (id: string) => {
     try {
+      const ingredientService = await getIngredientService();
       await ingredientService.deleteIngredient(id);
       setIngredients(ingredients.filter(ing => ing.id !== id));
     } catch (error) {
@@ -109,6 +112,7 @@ export default function PantryManagement() {
 
   const handleUpdateIngredient = async (ingredient: Ingredient) => {
     try {
+      const ingredientService = await getIngredientService();
       const updatedIngredient = await ingredientService.updateIngredient(ingredient.id, {
         name: ingredient.name,
         category: ingredient.category,
@@ -133,6 +137,7 @@ export default function PantryManagement() {
       )
     ) {
       try {
+        const ingredientService = await getIngredientService();
         await ingredientService.clearAllIngredients();
         setIngredients([]);
       } catch (error) {
@@ -181,6 +186,7 @@ export default function PantryManagement() {
         };
 
         try {
+          const ingredientService = await getIngredientService();
           await ingredientService.createIngredient(pantryItem);
         } catch (error) {
           console.error('Failed to add item to pantry:', error);

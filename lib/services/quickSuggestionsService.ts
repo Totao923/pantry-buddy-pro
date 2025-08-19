@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Ingredient, IngredientCategory } from '../../types';
-import { ingredientService } from './ingredientService';
+import { getIngredientService } from './ingredientServiceFactory';
 import { aiService } from '../ai/aiService';
 
 export interface QuickRecipeSuggestion {
@@ -76,6 +76,7 @@ class QuickSuggestionsService {
 
       // Get current pantry inventory
       console.log('📦 Loading pantry inventory...');
+      const ingredientService = await getIngredientService();
       const pantryItems = await ingredientService.getAllIngredients();
 
       if (pantryItems.length < 3) {
@@ -609,6 +610,7 @@ Focus on practical, delicious recipes that maximize use of available ingredients
 
     try {
       // Try to get user's pantry for better fallback suggestions
+      const ingredientService = await getIngredientService();
       const pantryItems = await ingredientService.getAllIngredients();
       if (pantryItems && Array.isArray(pantryItems) && pantryItems.length >= 3) {
         // Convert to PrioritizedIngredient format
