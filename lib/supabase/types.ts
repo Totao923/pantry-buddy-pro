@@ -197,7 +197,7 @@ export interface Database {
           servings: number;
           prep_time: number;
           cook_time: number;
-          total_time: number;
+          total_time?: number; // Generated column - optional for inserts
           difficulty: string;
           ingredients: Json;
           instructions: Json;
