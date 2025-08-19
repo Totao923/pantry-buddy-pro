@@ -10,7 +10,7 @@ import { useAuth } from '../../lib/auth/AuthProvider';
 import { RecipeService } from '../../lib/services/recipeService';
 // Dynamic import for AdvancedRecipeEngine to reduce initial bundle size
 import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
-import { databaseRecipeService } from '../../lib/services/databaseRecipeService';
+// Removed direct databaseRecipeService import - using RecipeService instead
 import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
 import { Ingredient, Recipe, CuisineType } from '../../types';
 
@@ -349,28 +349,19 @@ export default function CreateRecipe() {
   const handleSaveRecipe = async () => {
     if (generatedRecipe) {
       try {
-        // Try to save to database first
-        if (await databaseRecipeService.isAvailable()) {
-          console.log('Saving recipe to database');
-          const saveResult = await databaseRecipeService.saveRecipe(
-            generatedRecipe,
-            user?.id || ''
-          );
+        // Use RecipeService for consistent saving behavior
+        const userId = user?.id || 'anonymous';
+        console.log('Create Recipe: Saving recipe using RecipeService for user:', userId);
 
-          if (saveResult.success) {
-            console.log('Recipe saved to database successfully');
-            router.push('/dashboard/recipes');
-            return;
-          }
+        const saveResult = await RecipeService.saveRecipe(generatedRecipe, userId);
+
+        if (saveResult.success) {
+          console.log('Create Recipe: Recipe saved successfully');
+          router.push('/dashboard/recipes');
+          return;
+        } else {
+          throw new Error(saveResult.error || 'Failed to save recipe');
         }
-
-        // Fallback to localStorage
-        console.log('Saving recipe to localStorage fallback');
-        const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
-        userRecipes.push(generatedRecipe);
-        localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
-
-        router.push('/dashboard/recipes');
       } catch (error) {
         console.error('Error saving recipe:', error);
         // Still fallback to localStorage on error

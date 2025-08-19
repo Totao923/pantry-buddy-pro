@@ -5,6 +5,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
 import RecipeBookManager from '../../components/RecipeBookManager';
 import { useAuth } from '../../lib/auth/AuthProvider';
+import { RecipeService } from '../../lib/services/recipeService';
 import { Recipe } from '../../types';
 
 export default function RecipeBooksPage() {
@@ -22,19 +23,21 @@ export default function RecipeBooksPage() {
   const loadSavedRecipes = async () => {
     setLoading(true);
     try {
-      // Load recipes from localStorage for now - replace with actual API call
-      const recentRecipes = JSON.parse(localStorage.getItem('recentRecipes') || '[]');
-      const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
+      // Use RecipeService to properly load from database or localStorage fallback
+      const userId = user?.id || 'anonymous';
+      console.log('Recipe Books: Loading saved recipes for user:', userId);
 
-      // Combine and deduplicate recipes
-      const allRecipes = [...recentRecipes, ...userRecipes];
-      const uniqueRecipes = allRecipes.filter(
-        (recipe, index, self) => index === self.findIndex(r => r.id === recipe.id)
-      );
-
-      setSavedRecipes(uniqueRecipes);
+      const result = await RecipeService.getSavedRecipes(userId);
+      if (result.success && result.data) {
+        console.log(`Recipe Books: Loaded ${result.data.length} recipes`);
+        setSavedRecipes(result.data);
+      } else {
+        console.error('Recipe Books: Failed to load recipes:', result.error);
+        setSavedRecipes([]);
+      }
     } catch (error) {
-      console.error('Failed to load saved recipes:', error);
+      console.error('Recipe Books: Failed to load saved recipes:', error);
+      setSavedRecipes([]);
     } finally {
       setLoading(false);
     }
