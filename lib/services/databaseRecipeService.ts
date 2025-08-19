@@ -119,7 +119,7 @@ class DatabaseRecipeService {
       servings: recipe.servings,
       prep_time: recipe.prepTime,
       cook_time: recipe.cookTime,
-      total_time: recipe.prepTime + recipe.cookTime,
+      // total_time is a generated column - DO NOT include it in insert
       difficulty: recipe.difficulty,
       ingredients: recipe.ingredients as any,
       instructions: recipe.instructions as any,
