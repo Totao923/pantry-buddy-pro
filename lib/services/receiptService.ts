@@ -984,17 +984,24 @@ class ReceiptService {
 
       if (receiptError) {
         console.error('Error saving receipt:', receiptError);
-        // Handle authentication errors gracefully
+        // Handle authentication errors and other Supabase errors gracefully
         if (
           receiptError.code === 'PGRST301' ||
+          receiptError.code === '401' ||
+          receiptError.status === 401 ||
           receiptError.message?.includes('401') ||
-          receiptError.message?.includes('JWT')
+          receiptError.message?.includes('JWT') ||
+          receiptError.message?.includes('authorization') ||
+          receiptError.message?.includes('unauthorized')
         ) {
-          console.log('Authentication error, will fall back to localStorage');
+          console.log('Authentication error detected, falling back to localStorage');
           // Force fallback to localStorage by throwing a specific error
           throw new Error('Authentication failed - using offline storage');
         }
-        throw new Error('Failed to save receipt data');
+
+        // For any other Supabase errors, also fall back gracefully
+        console.log('Database error detected, falling back to localStorage');
+        throw new Error('Database unavailable - using offline storage');
       }
 
       // Insert receipt items

@@ -100,10 +100,21 @@ class DatabaseRecipeService {
   }
 
   private convertRecipeToInsert(recipe: CreateRecipeRequest, userId: string): RecipeInsert {
+    // Ensure dietary_info is never null/undefined since it's required by schema
+    const defaultDietaryInfo = {
+      isVegetarian: false,
+      isVegan: false,
+      isGlutenFree: false,
+      isDairyFree: false,
+      isKeto: false,
+      isPaleo: false,
+      allergens: [],
+    };
+
     return {
       user_id: userId,
       title: recipe.title,
-      description: recipe.description,
+      description: recipe.description || null,
       cuisine: recipe.cuisine,
       servings: recipe.servings,
       prep_time: recipe.prepTime,
@@ -112,9 +123,10 @@ class DatabaseRecipeService {
       difficulty: recipe.difficulty,
       ingredients: recipe.ingredients as any,
       instructions: recipe.instructions as any,
-      tags: recipe.tags,
+      tags: recipe.tags || [],
       nutrition_info: recipe.nutritionInfo as any,
-      dietary_info: recipe.dietaryInfo as any,
+      dietary_info: (recipe.dietaryInfo || defaultDietaryInfo) as any,
+      reviews: 0, // Default reviews to 0
       ai_generated: recipe.aiGenerated || false,
       ai_provider: recipe.aiProvider,
       ai_model: recipe.aiModel,
@@ -135,7 +147,7 @@ class DatabaseRecipeService {
       // Convert Recipe to CreateRecipeRequest format
       const recipeData: CreateRecipeRequest = {
         title: recipe.title,
-        description: recipe.description,
+        description: recipe.description || undefined,
         cuisine: recipe.cuisine,
         servings: recipe.servings,
         prepTime: recipe.prepTime,
@@ -143,9 +155,17 @@ class DatabaseRecipeService {
         difficulty: recipe.difficulty,
         ingredients: recipe.ingredients,
         instructions: recipe.instructions,
-        tags: recipe.tags,
+        tags: recipe.tags || [],
         nutritionInfo: recipe.nutritionInfo,
-        dietaryInfo: recipe.dietaryInfo,
+        dietaryInfo: recipe.dietaryInfo || {
+          isVegetarian: false,
+          isVegan: false,
+          isGlutenFree: false,
+          isDairyFree: false,
+          isKeto: false,
+          isPaleo: false,
+          allergens: [],
+        },
         aiGenerated: recipe.tags?.includes('ai-generated') || false,
       };
 
