@@ -85,15 +85,24 @@ class QuickSuggestionsService {
       // Analyze and prioritize pantry items
       const prioritizedItems = this.analyzePantryItems(pantryItems, prioritizeExpiring);
 
-      // Generate AI suggestions
+      // Generate AI suggestions with fallback handling
       console.log('🤖 Generating AI recipe suggestions...');
-      const suggestions = await this.generateAISuggestions(
-        prioritizedItems,
-        maxSuggestions,
-        maxCookTime,
-        difficultyLevel,
-        dietaryPreferences
-      );
+      let suggestions;
+      try {
+        suggestions = await this.generateAISuggestions(
+          prioritizedItems,
+          maxSuggestions,
+          maxCookTime,
+          difficultyLevel,
+          dietaryPreferences
+        );
+      } catch (aiError) {
+        console.warn('AI suggestions failed, using fallback recipes:', aiError);
+        suggestions = this.createFallbackRecipesFromIngredients(
+          prioritizedItems.slice(0, 8),
+          maxSuggestions
+        );
+      }
 
       // Process and score suggestions
       const processedSuggestions = this.processSuggestions(suggestions, prioritizedItems);
@@ -588,10 +597,12 @@ Focus on practical, delicious recipes that maximize use of available ingredients
         // Convert to PrioritizedIngredient format
         const prioritizedItems = this.analyzePantryItems(pantryItems, true);
         if (prioritizedItems && prioritizedItems.length > 0) {
-          return this.createFallbackRecipesFromIngredients(
+          const fallbackRecipes = this.createFallbackRecipesFromIngredients(
             prioritizedItems.slice(0, 8),
             request.maxSuggestions || 4
           );
+          // Process them through the same pipeline as AI suggestions
+          return this.processSuggestions(fallbackRecipes, prioritizedItems);
         }
       }
     } catch (error) {

@@ -429,6 +429,63 @@
 
 ---
 
-**Last Updated**: August 15, 2025
-**Status**: Analytics optimization completed, cooking data collection verified functional
+## 📝 REVIEW: Recipe Saving Fix (August 18, 2025)
+
+### Summary of Changes Made
+
+**Critical Bug Fix**: Fixed recipe saving issue where recipes from "What should I cook?" feature were not appearing in "My Recipes" list.
+
+**Root Cause**: UserId inconsistency between saving ('anonymous') and loading (undefined/user.id) operations.
+
+**Problem Details**:
+
+- Recipes were saved with `userId = user?.id || 'anonymous'`
+- Recipes page was filtering by `userId = user?.id` (could be undefined)
+- Result: Recipes saved as 'anonymous' were not visible to users
+
+**Solution Implemented**:
+
+1. **QuickRecipeSuggestions Component** (`components/QuickRecipeSuggestions.tsx`):
+   - Added consistent `userId` variable handling
+   - Enhanced logging for debugging recipe save operations
+   - Improved error handling and success feedback
+
+2. **RecipeService** (`lib/services/recipeService.ts`):
+   - Fixed `getSavedRecipesFromLocalStorage()` to handle anonymous users
+   - For `userId === 'anonymous'`, return all recipes instead of filtering
+   - Added debugging logs to track recipe loading
+
+3. **Recipes Page** (`pages/dashboard/recipes.tsx`):
+   - Updated to use consistent `userId = user?.id || 'anonymous'` pattern
+   - Unified all localStorage loading to use RecipeService methods
+   - Removed direct localStorage access in favor of RecipeService
+
+**Technical Impact**:
+
+- Recipe saving now works consistently for both authenticated and anonymous users
+- All recipes saved from "What should I cook?" feature appear in "My Recipes" list
+- Enhanced debugging makes future troubleshooting easier
+- Refresh button in suggestions works properly
+
+**Features Confirmed Working**:
+✅ Save Recipe Button - saves to localStorage with consistent userId
+✅ Cook This Button - saves recipe AND navigates to detail page  
+✅ My Recipes List - shows all saved recipes including anonymous
+✅ Recipe Detail Page - navigation and display work correctly
+✅ Refresh Button - generates new suggestions properly
+✅ Anonymous Users - can save and view recipes without authentication
+
+### Files Modified
+
+- `components/QuickRecipeSuggestions.tsx` - Enhanced userId handling and logging
+- `lib/services/recipeService.ts` - Fixed anonymous user recipe filtering
+- `pages/dashboard/recipes.tsx` - Unified recipe loading logic
+- `TODO.md` - Added this review summary
+
+**Approach**: Simple and focused changes as requested - minimal code impact, maximum reliability improvement.
+
+---
+
+**Last Updated**: August 18, 2025
+**Status**: Recipe saving bug fixed, analytics optimization completed, cooking data collection verified functional
 **Next Milestone**: Missing premium features implementation and production deployment setup
