@@ -307,24 +307,41 @@ Focus on practical, delicious recipes that maximize use of available ingredients
 
       if (typeof response === 'string') {
         // Try multiple parsing strategies for string responses
-        // Strategy 1: Look for JSON array
+        // Strategy 1: Look for JSON array with improved cleaning
         const jsonArrayMatch = response.match(/\[[\s\S]*?\]/);
         if (jsonArrayMatch) {
           try {
-            recipesData = JSON.parse(jsonArrayMatch[0]);
+            // Clean up common JSON issues before parsing
+            let cleanJson = jsonArrayMatch[0]
+              .replace(/,(\s*[\]}])/g, '$1') // Remove trailing commas
+              .replace(/'/g, '"') // Replace single quotes with double quotes
+              .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote unquoted keys
+
+            recipesData = JSON.parse(cleanJson);
+            console.log('✅ Successfully parsed JSON array');
           } catch (e) {
             console.warn('Failed to parse matched JSON array:', e);
+            console.warn('Original array text:', jsonArrayMatch[0].substring(0, 200));
           }
         }
 
-        // Strategy 2: Look for multiple JSON objects
+        // Strategy 2: Look for multiple JSON objects with better cleaning
         if (!recipesData) {
           const jsonObjectMatches = response.match(/\{[\s\S]*?\}(?=\s*[,\]\}]|$)/g);
           if (jsonObjectMatches && jsonObjectMatches.length > 0) {
             try {
-              recipesData = jsonObjectMatches.map(match => JSON.parse(match));
+              recipesData = jsonObjectMatches.map(match => {
+                // Clean up each object
+                let cleanMatch = match
+                  .replace(/,(\s*})/g, '$1') // Remove trailing commas
+                  .replace(/'/g, '"') // Replace single quotes
+                  .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote keys
+                return JSON.parse(cleanMatch);
+              });
+              console.log('✅ Successfully parsed JSON objects');
             } catch (e) {
               console.warn('Failed to parse JSON objects:', e);
+              console.warn('Sample object:', jsonObjectMatches[0]?.substring(0, 200));
             }
           }
         }

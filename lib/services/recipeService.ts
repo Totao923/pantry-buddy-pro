@@ -250,6 +250,14 @@ export class RecipeService {
           }
         } catch (error) {
           console.warn('Database save failed for AI recipe, using localStorage:', error);
+          // Log more details about the database failure
+          if (error && typeof error === 'object') {
+            console.warn('Database error details:', {
+              message: (error as any).message,
+              code: (error as any).code,
+              status: (error as any).status,
+            });
+          }
           return await this.saveRecipeToLocalStorage(recipe, userId);
         }
       }

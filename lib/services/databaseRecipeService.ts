@@ -205,6 +205,18 @@ class DatabaseRecipeService {
       };
     } catch (error) {
       console.error('Error saving recipe:', error);
+
+      // Log more detailed error information for debugging
+      if (error && typeof error === 'object') {
+        console.error('Supabase saving recipe error:', {
+          message: error.message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+          status: (error as any).status,
+        });
+      }
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to save recipe',

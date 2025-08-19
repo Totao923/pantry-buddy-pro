@@ -194,12 +194,15 @@ export class AIService {
    */
   async initialize(): Promise<void> {
     const config = getAIConfig();
+    const isClientSide = typeof window !== 'undefined';
+
     console.log('🔍 AI Service Initialization:', {
       aiEnabled: isAIEnabled(),
       provider: config.provider,
       hasApiKey: !!config.apiKey,
       keyLength: config.apiKey?.length || 0,
       environment: process.env.NODE_ENV,
+      isClientSide,
     });
 
     if (!isAIEnabled()) {
@@ -208,16 +211,24 @@ export class AIService {
       return;
     }
 
+    // On client-side, don't initialize direct provider - use API routes instead
+    if (isClientSide) {
+      console.log('🌐 Client-side detected - will use API routes for AI calls');
+      this.isInitialized = true;
+      return;
+    }
+
+    // Server-side initialization only
     try {
       if (config.provider === 'anthropic') {
-        console.log('🔄 Loading Anthropic provider dynamically...');
+        console.log('🔄 Loading Anthropic provider dynamically (server-side)...');
         const { AnthropicProvider } = await import('./providers/anthropic');
         this.provider = new AnthropicProvider(config.apiKey);
       } else {
         throw new Error(`Unsupported AI provider: ${config.provider}`);
       }
 
-      // Test provider health
+      // Test provider health (server-side only)
       const isHealthy = await this.provider.isHealthy();
       if (!isHealthy) {
         console.warn('⚠️ AI provider health check failed - may fallback to mock engine');
@@ -276,8 +287,10 @@ export class AIService {
         }
       }
 
-      // Try AI generation first
-      if (this.provider) {
+      // Try AI generation - use API route on client-side, direct provider on server-side
+      const isClientSide = typeof window !== 'undefined';
+
+      if (isClientSide || this.provider) {
         try {
           const prompt = PromptEngine.generateRecipePrompt(params);
           console.log(
@@ -288,11 +301,37 @@ export class AIService {
             'ingredients'
           );
 
-          const response = await this.provider.generateRecipe(prompt, {
-            temperature: 0.7,
-            maxTokens: 1500, // Reduced for faster generation
-            timeout: 15000, // Reduced to 15 seconds
-          });
+          let response;
+
+          if (isClientSide) {
+            // Use API route for client-side calls
+            console.log('🌐 Using recipe generation API route');
+            const apiResponse = await fetch('/api/recipes/generate', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                ingredients: params.ingredients,
+                cuisine: params.cuisine,
+                servings: params.servings,
+                preferences: params.preferences,
+              }),
+            });
+
+            if (!apiResponse.ok) {
+              throw new Error(`Recipe API call failed: ${apiResponse.status}`);
+            }
+
+            response = await apiResponse.json();
+          } else {
+            // Use direct provider for server-side calls
+            response = await this.provider!.generateRecipe(prompt, {
+              temperature: 0.7,
+              maxTokens: 1500,
+              timeout: 15000,
+            });
+          }
 
           if (response.success && response.recipe) {
             // Validate recipe quality
