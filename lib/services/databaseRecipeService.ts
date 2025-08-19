@@ -209,7 +209,7 @@ class DatabaseRecipeService {
       // Log more detailed error information for debugging
       if (error && typeof error === 'object') {
         console.error('Supabase saving recipe error:', {
-          message: error.message,
+          message: (error as any).message,
           code: (error as any).code,
           details: (error as any).details,
           hint: (error as any).hint,
