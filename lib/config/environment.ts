@@ -57,18 +57,27 @@ class EnvironmentConfig {
   private loadConfig(): AppConfig {
     const provider = (process.env.AI_PROVIDER as any) || 'anthropic';
 
-    // Get API key based on provider
+    // Get API key based on provider - handle client vs server side
     let apiKey = '';
-    switch (provider) {
-      case 'openai':
-        apiKey = process.env.OPENAI_API_KEY || '';
-        break;
-      case 'anthropic':
-        apiKey = process.env.ANTHROPIC_API_KEY || '';
-        break;
-      case 'google':
-        apiKey = process.env.GOOGLE_API_KEY || '';
-        break;
+    const isServerSide = typeof window === 'undefined';
+
+    if (isServerSide) {
+      // Server-side: Use actual environment variables
+      switch (provider) {
+        case 'openai':
+          apiKey = process.env.OPENAI_API_KEY || '';
+          break;
+        case 'anthropic':
+          apiKey = process.env.ANTHROPIC_API_KEY || '';
+          break;
+        case 'google':
+          apiKey = process.env.GOOGLE_API_KEY || '';
+          break;
+      }
+    } else {
+      // Client-side: API keys should be handled via API routes
+      // Set a placeholder to indicate AI should be available via API
+      apiKey = 'client-side-api-proxy';
     }
 
     return {
@@ -97,8 +106,9 @@ class EnvironmentConfig {
           process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
       },
       features: {
-        enableAIRecipes:
-          process.env.ENABLE_AI_RECIPES === 'true' || (this.isProduction() && !!apiKey),
+        enableAIRecipes: isServerSide
+          ? process.env.ENABLE_AI_RECIPES === 'true' || (this.isProduction() && !!apiKey)
+          : process.env.NEXT_PUBLIC_ENABLE_AI_RECIPES === 'true' || true, // Enable AI on client by default, will use API routes
         aiFallbackToMock: process.env.AI_FALLBACK_TO_MOCK !== 'false',
         aiCacheEnabled: process.env.AI_CACHE_ENABLED !== 'false',
         enableAuth:

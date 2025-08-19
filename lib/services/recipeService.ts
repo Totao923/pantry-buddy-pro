@@ -234,11 +234,20 @@ export class RecipeService {
     userId: string
   ): Promise<RecipeServiceResponse<{ saved: boolean }>> {
     try {
-      // For AI-generated recipes with quick-suggestion tag, always use localStorage
-      // to avoid Supabase schema conflicts
+      // For AI-generated recipes, try Supabase but fall back gracefully
+      // (removing the bypass to allow proper database storage)
       if (recipe.tags?.includes('quick-suggestion') || recipe.tags?.includes('ai-generated')) {
-        console.log('AI-generated recipe detected, saving to localStorage directly');
-        return await this.saveRecipeToLocalStorage(recipe, userId);
+        console.log('AI-generated recipe detected, attempting database save with fallback');
+        try {
+          if (await databaseRecipeService.isAvailable()) {
+            // Generate a new ID for Supabase to avoid conflicts
+            const recipeForDb = { ...recipe, id: undefined };
+            return await databaseRecipeService.saveRecipe(recipeForDb, userId);
+          }
+        } catch (error) {
+          console.warn('Database save failed for AI recipe, using localStorage:', error);
+          return await this.saveRecipeToLocalStorage(recipe, userId);
+        }
       }
 
       // Try to use database service first for regular recipes

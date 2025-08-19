@@ -148,6 +148,34 @@ export class AIService {
       await this.initialize();
     }
 
+    // Check if we're on client-side and should use API route
+    if (typeof window !== 'undefined') {
+      try {
+        console.log('🌐 Using API route for AI content generation');
+        const response = await fetch('/api/ai/generate-content', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API call failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          return result.content;
+        } else {
+          throw new Error(result.error || 'API call unsuccessful');
+        }
+      } catch (error) {
+        console.error('API route failed, falling back to direct provider:', error);
+        // Fall through to direct provider call
+      }
+    }
+
     if (!this.provider) {
       console.warn('⚠️ No AI provider available for content generation');
       throw new Error('No AI provider available');
