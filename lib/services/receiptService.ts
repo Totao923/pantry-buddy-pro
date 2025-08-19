@@ -988,7 +988,7 @@ class ReceiptService {
         if (
           receiptError.code === 'PGRST301' ||
           receiptError.code === '401' ||
-          receiptError.status === 401 ||
+          (receiptError as any).status === 401 ||
           receiptError.message?.includes('401') ||
           receiptError.message?.includes('JWT') ||
           receiptError.message?.includes('authorization') ||
