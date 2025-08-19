@@ -989,7 +989,17 @@ class ReceiptService {
         console.error('Receipt error details:');
         console.error('Error toString:', receiptError.toString());
         console.error('Error constructor:', receiptError.constructor.name);
-        console.error('Error properties:', {
+
+        // Log each property individually
+        const errorKeys = Object.keys(receiptError);
+        console.error('Receipt error has', errorKeys.length, 'keys:', errorKeys);
+
+        errorKeys.forEach(key => {
+          console.error(`Receipt error.${key}:`, (receiptError as any)[key]);
+        });
+
+        // Also try to access common Supabase error properties
+        console.error('Error properties summary:', {
           message: (receiptError as any).message || 'No message',
           code: (receiptError as any).code || 'No code',
           details: (receiptError as any).details || 'No details',
@@ -998,7 +1008,6 @@ class ReceiptService {
           statusCode: (receiptError as any).statusCode || 'No statusCode',
           name: (receiptError as any).name || 'No name',
         });
-        console.error('All receipt error keys:', Object.keys(receiptError));
 
         // Handle authentication errors and other Supabase errors gracefully
         if (
