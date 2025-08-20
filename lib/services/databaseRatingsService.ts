@@ -12,8 +12,13 @@ class DatabaseRatingsService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
-  constructor() {
-    this.supabase = createSupabaseClient();
+  constructor(supabaseClient?: SupabaseClient) {
+    this.supabase = supabaseClient || createSupabaseClient();
+  }
+
+  // Method to set authenticated client
+  setSupabaseClient(client: SupabaseClient) {
+    this.supabase = client;
   }
 
   private async ensureAuthenticated(): Promise<string> {

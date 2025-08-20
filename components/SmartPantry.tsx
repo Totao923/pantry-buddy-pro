@@ -86,6 +86,20 @@ const SmartPantry = React.memo(function SmartPantry({
   const [categoryFilter, setCategoryFilter] = useState<IngredientCategory | 'all'>('all');
   const [showExpiringSoon, setShowExpiringSoon] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    category: IngredientCategory;
+    quantity: string;
+    unit: string;
+    expiryDate: string;
+  }>({
+    name: '',
+    category: 'other',
+    quantity: '',
+    unit: '',
+    expiryDate: '',
+  });
 
   // Use the ingredients hook to get loading and error states
   const { loading, error, searchIngredients, filterByCategory } = useIngredients();
@@ -261,6 +275,54 @@ const SmartPantry = React.memo(function SmartPantry({
       );
     }
     return true;
+  };
+
+  const startEditing = (ingredient: Ingredient) => {
+    setEditingId(ingredient.id);
+    setEditForm({
+      name: ingredient.name,
+      category: ingredient.category,
+      quantity: ingredient.quantity || '',
+      unit: ingredient.unit || '',
+      expiryDate: ingredient.expiryDate
+        ? new Date(ingredient.expiryDate).toISOString().split('T')[0]
+        : '',
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditForm({
+      name: '',
+      category: 'other',
+      quantity: '',
+      unit: '',
+      expiryDate: '',
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+
+    try {
+      const updatedIngredient: Ingredient = {
+        id: editingId,
+        name: editForm.name.trim(),
+        category: editForm.category,
+        quantity: editForm.quantity.trim() || undefined,
+        unit: editForm.unit.trim() || undefined,
+        expiryDate: editForm.expiryDate ? new Date(editForm.expiryDate) : undefined,
+        isVegetarian: isVegetarian(editForm.name, editForm.category),
+        isVegan: isVegan(editForm.name, editForm.category),
+        isProtein: editForm.category === 'protein',
+      };
+
+      onUpdateIngredient(updatedIngredient);
+      cancelEditing();
+    } catch (error) {
+      console.error('Failed to update ingredient:', error);
+      alert('Failed to update ingredient. Please try again.');
+    }
   };
 
   const filteredIngredients = useMemo(() => {
@@ -542,67 +604,214 @@ const SmartPantry = React.memo(function SmartPantry({
                         <tbody className="divide-y divide-gray-200">
                           {categoryIngredients.map(ingredient => (
                             <tr key={ingredient.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <div className="font-medium text-gray-900 capitalize">
-                                  {ingredient.name}
-                                </div>
-                                <div className="text-sm text-gray-500 capitalize">
-                                  {ingredient.category}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                {ingredient.quantity ? (
-                                  <span>
-                                    {ingredient.quantity} {ingredient.unit}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <div className="flex flex-wrap gap-1">
-                                  {ingredient.isVegan && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                      Vegan
-                                    </span>
-                                  )}
-                                  {ingredient.isProtein && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                      Protein
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                {ingredient.expiryDate ? (
-                                  <span>
-                                    {new Date(ingredient.expiryDate).toLocaleDateString()}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-center">
-                                <button
-                                  onClick={() => onRemoveIngredient(ingredient.id)}
-                                  className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 transition-colors"
-                                  title="Remove ingredient"
-                                >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              {editingId === ingredient.id ? (
+                                // Edit mode
+                                <>
+                                  <td className="px-4 py-3">
+                                    <div className="space-y-2">
+                                      <input
+                                        type="text"
+                                        value={editForm.name}
+                                        onChange={e =>
+                                          setEditForm({ ...editForm, name: e.target.value })
+                                        }
+                                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                                        placeholder="Ingredient name"
+                                      />
+                                      <select
+                                        value={editForm.category}
+                                        onChange={e =>
+                                          setEditForm({
+                                            ...editForm,
+                                            category: e.target.value as IngredientCategory,
+                                          })
+                                        }
+                                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                                      >
+                                        {Object.entries(categoryData).map(([key, data]) => (
+                                          <option key={key} value={key}>
+                                            {data.icon} {key.charAt(0).toUpperCase() + key.slice(1)}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex gap-1">
+                                      <input
+                                        type="text"
+                                        value={editForm.quantity}
+                                        onChange={e =>
+                                          setEditForm({ ...editForm, quantity: e.target.value })
+                                        }
+                                        className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                                        placeholder="Qty"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={editForm.unit}
+                                        onChange={e =>
+                                          setEditForm({ ...editForm, unit: e.target.value })
+                                        }
+                                        className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                                        placeholder="Unit"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="flex flex-wrap gap-1 text-xs">
+                                      {isVegan(editForm.name, editForm.category) && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-800">
+                                          Vegan
+                                        </span>
+                                      )}
+                                      {editForm.category === 'protein' && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-100 text-red-800">
+                                          Protein
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="date"
+                                      value={editForm.expiryDate}
+                                      onChange={e =>
+                                        setEditForm({ ...editForm, expiryDate: e.target.value })
+                                      }
+                                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
                                     />
-                                  </svg>
-                                </button>
-                              </td>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <button
+                                        onClick={saveEdit}
+                                        className="text-green-500 hover:text-green-700 p-1 rounded-lg hover:bg-green-50 transition-colors"
+                                        title="Save changes"
+                                      >
+                                        <svg
+                                          className="w-4 h-4"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M5 13l4 4L19 7"
+                                          />
+                                        </svg>
+                                      </button>
+                                      <button
+                                        onClick={cancelEditing}
+                                        className="text-gray-500 hover:text-gray-700 p-1 rounded-lg hover:bg-gray-50 transition-colors"
+                                        title="Cancel edit"
+                                      >
+                                        <svg
+                                          className="w-4 h-4"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                          />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </td>
+                                </>
+                              ) : (
+                                // View mode
+                                <>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="font-medium text-gray-900 capitalize">
+                                      {ingredient.name}
+                                    </div>
+                                    <div className="text-sm text-gray-500 capitalize">
+                                      {ingredient.category}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                    {ingredient.quantity ? (
+                                      <span>
+                                        {ingredient.quantity} {ingredient.unit}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <div className="flex flex-wrap gap-1">
+                                      {ingredient.isVegan && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                          Vegan
+                                        </span>
+                                      )}
+                                      {ingredient.isProtein && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                          Protein
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                    {ingredient.expiryDate ? (
+                                      <span>
+                                        {new Date(ingredient.expiryDate).toLocaleDateString()}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <button
+                                        onClick={() => startEditing(ingredient)}
+                                        className="text-blue-500 hover:text-blue-700 p-1 rounded-lg hover:bg-blue-50 transition-colors"
+                                        title="Edit ingredient"
+                                      >
+                                        <svg
+                                          className="w-4 h-4"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                          />
+                                        </svg>
+                                      </button>
+                                      <button
+                                        onClick={() => onRemoveIngredient(ingredient.id)}
+                                        className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 transition-colors"
+                                        title="Remove ingredient"
+                                      >
+                                        <svg
+                                          className="w-4 h-4"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                          />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </td>
+                                </>
+                              )}
                             </tr>
                           ))}
                         </tbody>

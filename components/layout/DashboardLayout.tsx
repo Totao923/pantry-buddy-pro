@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import QuickRecipeSuggestions from '../QuickRecipeSuggestions';
-import { ingredientService } from '../../lib/services/ingredientService';
+import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -20,7 +20,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   useEffect(() => {
     const loadPantryCount = async () => {
       try {
-        const pantryItems = await ingredientService.getAllIngredients();
+        const service = await getIngredientService();
+        const pantryItems = await service.getAllIngredients();
         setPantryItemCount(pantryItems.length);
       } catch (error) {
         console.error('Failed to load pantry count:', error);

@@ -7,6 +7,83 @@ interface RecipeBookManagerProps {
   savedRecipes: Recipe[];
 }
 
+interface RecipeSelectorProps {
+  recipes: Recipe[];
+  onConfirm: (selectedIds: string[]) => void;
+  onCancel: () => void;
+}
+
+function RecipeSelector({ recipes, onConfirm, onCancel }: RecipeSelectorProps) {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const toggleRecipe = (recipeId: string) => {
+    setSelectedIds(prev =>
+      prev.includes(recipeId) ? prev.filter(id => id !== recipeId) : [...prev, recipeId]
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+        <div className="p-6 border-b">
+          <h2 className="text-2xl font-bold text-gray-900">Select Recipes for Recipe Book</h2>
+          <p className="text-gray-600 mt-1">Choose which recipes to include in your recipe book</p>
+        </div>
+
+        <div className="p-6 overflow-y-auto max-h-96">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {recipes.map(recipe => (
+              <div
+                key={recipe.id}
+                className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+              >
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(recipe.id)}
+                    onChange={() => toggleRecipe(recipe.id)}
+                    className="mt-1 rounded text-pantry-600 focus:ring-pantry-500"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{recipe.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{recipe.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                      <span>🍽️ {recipe.servings} servings</span>
+                      <span>⏱️ {recipe.totalTime} min</span>
+                      <span>📊 {recipe.difficulty}</span>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-6 border-t bg-gray-50 flex justify-between items-center">
+          <p className="text-sm text-gray-600">
+            {selectedIds.length} recipe{selectedIds.length !== 1 ? 's' : ''} selected
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => onConfirm(selectedIds)}
+              disabled={selectedIds.length === 0}
+              className="px-6 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add {selectedIds.length} Recipe{selectedIds.length !== 1 ? 's' : ''}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const PDF_TEMPLATES: PDFTemplate[] = [
   {
     id: 'minimalist',
@@ -45,6 +122,8 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPDFExporter, setShowPDFExporter] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showRecipeSelector, setShowRecipeSelector] = useState(false);
+  const [bookToEdit, setBookToEdit] = useState<RecipeBook | null>(null);
 
   const isPremium = subscription?.tier === 'premium';
   const maxBooks = isPremium ? 50 : 1;
@@ -109,37 +188,105 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
   };
 
   const openBook = async (book: RecipeBook) => {
-    // Mock loading book with recipes - replace with actual API call
+    // Load the book with mock recipes for now - in a real app this would load from database
+    const recipesWithBookItems = savedRecipes.slice(0, 3).map(recipe => ({
+      ...recipe,
+      bookItem: {
+        id: `item-${recipe.id}`,
+        bookId: book.id,
+        recipeId: recipe.id,
+        order: 1,
+        section: 'Main Dishes',
+        addedAt: new Date(),
+      },
+    }));
+
     const bookWithRecipes: RecipeBookWithRecipes = {
       ...book,
       sections: [
         {
           name: 'Main Dishes',
-          recipes: savedRecipes.slice(0, 3).map(recipe => ({
-            ...recipe,
-            bookItem: {
-              id: `item-${recipe.id}`,
-              bookId: book.id,
-              recipeId: recipe.id,
-              order: 1,
-              section: 'Main Dishes',
-              addedAt: new Date(),
-            },
-          })),
+          recipes: recipesWithBookItems,
         },
       ],
-      recipes: savedRecipes.slice(0, 3).map(recipe => ({
+      recipes: recipesWithBookItems,
+    };
+
+    setSelectedBook(bookWithRecipes);
+  };
+
+  const addRecipesToBook = async (book: RecipeBook) => {
+    // Show recipe selection modal for adding recipes (keep current book selected)
+    setShowRecipeSelector(true);
+    setBookToEdit(book);
+  };
+
+  const createBookWithSelectedRecipes = (book: RecipeBook, selectedRecipeIds: string[]) => {
+    const selectedRecipes = savedRecipes.filter(recipe => selectedRecipeIds.includes(recipe.id));
+    const recipesWithBookItems = selectedRecipes.map(recipe => ({
+      ...recipe,
+      bookItem: {
+        id: `item-${recipe.id}`,
+        bookId: book.id,
+        recipeId: recipe.id,
+        order: 1,
+        section: 'Main Dishes',
+        addedAt: new Date(),
+      },
+    }));
+
+    const bookWithRecipes: RecipeBookWithRecipes = {
+      ...book,
+      sections: [
+        {
+          name: 'Main Dishes',
+          recipes: recipesWithBookItems,
+        },
+      ],
+      recipes: recipesWithBookItems,
+    };
+    return bookWithRecipes;
+  };
+
+  const handleRecipeSelection = (selectedIds: string[]) => {
+    if (bookToEdit && selectedBook) {
+      // Get the selected recipes to add
+      const selectedRecipes = savedRecipes.filter(recipe => selectedIds.includes(recipe.id));
+
+      // Convert to book items format
+      const newRecipeItems = selectedRecipes.map(recipe => ({
         ...recipe,
         bookItem: {
-          id: `item-${recipe.id}`,
-          bookId: book.id,
+          id: `item-${recipe.id}-${Date.now()}`,
+          bookId: bookToEdit.id,
           recipeId: recipe.id,
-          order: 1,
+          order: selectedBook.recipes.length + 1,
+          section: 'Main Dishes',
           addedAt: new Date(),
         },
-      })),
-    };
-    setSelectedBook(bookWithRecipes);
+      }));
+
+      // Merge with existing recipes (avoid duplicates)
+      const existingRecipeIds = new Set(selectedBook.recipes.map(r => r.id));
+      const recipesToAdd = newRecipeItems.filter(recipe => !existingRecipeIds.has(recipe.id));
+      const allRecipes = [...selectedBook.recipes, ...recipesToAdd];
+
+      // Update the book with merged recipes
+      const updatedBook: RecipeBookWithRecipes = {
+        ...selectedBook,
+        sections: [
+          {
+            name: 'Main Dishes',
+            recipes: allRecipes,
+          },
+        ],
+        recipes: allRecipes,
+      };
+
+      setSelectedBook(updatedBook);
+      setShowRecipeSelector(false);
+      setBookToEdit(null);
+    }
   };
 
   const CreateBookModal = () => {
@@ -250,6 +397,12 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
             </div>
             <div className="flex gap-2">
               <button
+                onClick={() => addRecipesToBook(selectedBook)}
+                className="px-4 py-2 text-green-600 border border-green-200 rounded-lg hover:bg-green-50 transition-colors flex items-center gap-2"
+              >
+                ➕ Add Recipes
+              </button>
+              <button
                 onClick={() => setShowPDFExporter(true)}
                 className="px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors flex items-center gap-2"
               >
@@ -312,6 +465,19 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
           <RecipeBookPDFExporter
             recipeBook={selectedBook}
             onClose={() => setShowPDFExporter(false)}
+            isPremiumUser={isPremium}
+          />
+        )}
+
+        {/* Recipe Selector Modal */}
+        {showRecipeSelector && bookToEdit && (
+          <RecipeSelector
+            recipes={savedRecipes}
+            onConfirm={handleRecipeSelection}
+            onCancel={() => {
+              setShowRecipeSelector(false);
+              setBookToEdit(null);
+            }}
           />
         )}
       </div>

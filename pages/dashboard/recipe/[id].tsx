@@ -15,25 +15,43 @@ import { databaseSettingsService } from '../../../lib/services/databaseSettingsS
 export default function RecipeDetail() {
   const router = useRouter();
   const { id } = router.query;
-  const { user } = useAuth();
+  const { user, supabaseClient } = useAuth();
+
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState<RecipeRating | null>(null);
   const [review, setReview] = useState<RecipeReview | null>(null);
 
+  // Set authenticated client and load recipe when ID is available (client optional for passed data)
   useEffect(() => {
     if (id && typeof id === 'string') {
+      // Set authenticated client if available
+      if (supabaseClient) {
+        databaseRecipeService.setSupabaseClient(supabaseClient);
+        databaseRatingsService.setSupabaseClient(supabaseClient);
+      }
+      // Load the recipe (will use passed data if available, otherwise try database)
       loadRecipe(id);
     }
-  }, [id]);
+  }, [id, supabaseClient, router.query.recipeData]);
 
   const loadRecipe = async (recipeId: string) => {
     try {
       let foundRecipe: Recipe | null = null;
 
-      // Try to load from database first if available
-      if (await databaseRecipeService.isAvailable()) {
+      // Check if recipe data was passed through router query first
+      if (router.query.recipeData && typeof router.query.recipeData === 'string') {
+        try {
+          console.log('Loading recipe from passed data');
+          foundRecipe = JSON.parse(router.query.recipeData);
+        } catch (parseError) {
+          console.warn('Failed to parse passed recipe data:', parseError);
+        }
+      }
+
+      // Try to load from database if no passed data or parsing failed
+      if (!foundRecipe && (await databaseRecipeService.isAvailable())) {
         console.log('Loading recipe from Supabase database');
         const result = await databaseRecipeService.getRecipeById(recipeId);
         if (result.success && result.data) {

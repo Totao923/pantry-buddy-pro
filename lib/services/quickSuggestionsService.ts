@@ -20,6 +20,16 @@ export interface QuickRecipeSuggestion {
   missingIngredients: string[]; // Ingredients user needs to buy
   priority: number; // Higher = better match with pantry
   confidence: number;
+  nutritionInfo?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: number;
+    sugar: number;
+    sodium: number;
+    cholesterol: number;
+  };
 }
 
 export interface SuggestionRequest {
@@ -29,6 +39,7 @@ export interface SuggestionRequest {
   difficultyLevel?: 'Easy' | 'Medium' | 'Both';
   prioritizeExpiring?: boolean;
   dietaryPreferences?: string[];
+  forceRefresh?: boolean;
 }
 
 interface PrioritizedIngredient extends Ingredient {
@@ -62,16 +73,23 @@ class QuickSuggestionsService {
       difficultyLevel = 'Both',
       prioritizeExpiring = true,
       dietaryPreferences = [],
+      forceRefresh = false,
     } = request;
 
     try {
-      // Check cache first
+      // Generate cache key for both caching and storing results
       const cacheKey = this.generateCacheKey(userId, request);
-      const cached = this.cache.get(cacheKey);
 
-      if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-        console.log('🚀 Returning cached quick suggestions');
-        return cached.suggestions;
+      // Check cache first (skip if forceRefresh is true)
+      if (!forceRefresh) {
+        const cached = this.cache.get(cacheKey);
+
+        if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+          console.log('🚀 Returning cached quick suggestions');
+          return cached.suggestions;
+        }
+      } else {
+        console.log('🔄 Force refresh requested, bypassing cache');
       }
 
       // Get current pantry inventory
@@ -259,10 +277,21 @@ FORMAT (JSON array):
   "servings": 4,
   "ingredients": [{"name": "ingredient", "amount": "1 cup", "pantryItem": true}],
   "instructions": ["Step 1", "Step 2"],
+  "nutritionInfo": {
+    "calories": 350,
+    "protein": 20,
+    "carbs": 30,
+    "fat": 15,
+    "fiber": 5,
+    "sugar": 8,
+    "sodium": 450,
+    "cholesterol": 25
+  },
   "confidence": 0.9
 }]
 
-Focus on practical, delicious recipes that maximize use of available ingredients.`;
+Focus on practical, delicious recipes that maximize use of available ingredients.
+IMPORTANT: Include accurate nutritional estimates per serving in the nutritionInfo field.`;
 
     try {
       // Use generateContent with enhanced parsing for multiple recipe suggestions
@@ -477,6 +506,7 @@ Focus on practical, delicious recipes that maximize use of available ingredients
           missingIngredients,
           priority,
           confidence: suggestion.confidence || 0.8,
+          nutritionInfo: suggestion.nutritionInfo || undefined,
         };
       })
       .filter(suggestion => suggestion.matchingIngredients.length >= this.MIN_PANTRY_MATCHES)
@@ -521,6 +551,16 @@ Focus on practical, delicious recipes that maximize use of available ingredients
         matchingIngredients: mainIngredients.slice(0, 4).map(ing => ing.name),
         missingIngredients: [],
         priority: 80,
+        nutritionInfo: {
+          calories: 280,
+          protein: 15,
+          carbs: 25,
+          fat: 12,
+          fiber: 4,
+          sugar: 8,
+          sodium: 450,
+          cholesterol: 0,
+        },
       },
       {
         name: `${protein?.name || mainIngredients[1]?.name || 'Pantry'} Bowl`,
@@ -543,6 +583,16 @@ Focus on practical, delicious recipes that maximize use of available ingredients
         matchingIngredients: mainIngredients.slice(0, 5).map(ing => ing.name),
         missingIngredients: [],
         priority: 75,
+        nutritionInfo: {
+          calories: 420,
+          protein: 22,
+          carbs: 35,
+          fat: 18,
+          fiber: 6,
+          sugar: 5,
+          sodium: 320,
+          cholesterol: 45,
+        },
       },
       {
         name: `Quick ${vegetables[0]?.name || 'Vegetable'} Soup`,
@@ -567,6 +617,16 @@ Focus on practical, delicious recipes that maximize use of available ingredients
         matchingIngredients: vegetables.slice(0, 3).map(ing => ing.name),
         missingIngredients: ['Water or Broth'],
         priority: 70,
+        nutritionInfo: {
+          calories: 150,
+          protein: 5,
+          carbs: 18,
+          fat: 4,
+          fiber: 8,
+          sugar: 12,
+          sodium: 680,
+          cholesterol: 0,
+        },
       },
       {
         name: `Simple ${mainIngredients[2]?.name || 'Pantry'} Pasta`,
@@ -597,6 +657,16 @@ Focus on practical, delicious recipes that maximize use of available ingredients
         matchingIngredients: mainIngredients.slice(0, 3).map(ing => ing.name),
         missingIngredients: grains?.name.toLowerCase().includes('pasta') ? [] : ['Pasta'],
         priority: 75,
+        nutritionInfo: {
+          calories: 380,
+          protein: 12,
+          carbs: 58,
+          fat: 14,
+          fiber: 3,
+          sugar: 4,
+          sodium: 420,
+          cholesterol: 0,
+        },
       },
     ];
 

@@ -18,6 +18,7 @@ interface AuthContextType {
   subscription: Subscription | null;
   session: Session | null;
   loading: boolean;
+  supabaseClient: any;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithProvider: (provider: 'google' | 'github') => Promise<{ error: any }>;
@@ -514,6 +515,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     subscription,
     session,
     loading,
+    supabaseClient: supabase,
     signUp,
     signIn,
     signInWithProvider,

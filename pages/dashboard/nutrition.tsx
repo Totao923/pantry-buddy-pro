@@ -4,38 +4,330 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
 import { AInutritionist } from '../../components/AInutritionist';
 import { useAuth } from '../../lib/auth/AuthProvider';
-import { ingredientService } from '../../lib/services/ingredientService';
+import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
+import { RecipeService } from '../../lib/services/recipeService';
 import { Ingredient, Recipe } from '../../types';
 import { Card } from '../../components/ui/Card';
 
-export default function NutritionDashboard() {
+interface NutritionDashboardProps {
+  ingredients?: Ingredient[];
+  recentRecipes?: Recipe[];
+}
+
+export default function NutritionDashboard({
+  ingredients: propIngredients = [],
+  recentRecipes: propRecentRecipes = [],
+}: NutritionDashboardProps = {}) {
   const { user } = useAuth();
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>(propIngredients);
+  const [recentRecipes, setRecentRecipes] = useState<Recipe[]>(propRecentRecipes);
   const [loading, setLoading] = useState(true);
+
+  const addSampleData = async () => {
+    try {
+      console.log('🧪 Adding sample ingredients and recipes...');
+
+      // Sample ingredients
+      const sampleIngredients: Ingredient[] = [
+        {
+          id: 'sample-1',
+          name: 'Chicken Breast',
+          category: 'protein',
+          quantity: '2',
+          unit: 'lbs',
+          expiryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
+          purchaseDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+          isProtein: true,
+          isVegetarian: false,
+          isVegan: false,
+          isGlutenFree: true,
+          isDairyFree: true,
+          usageFrequency: 3,
+        },
+        {
+          id: 'sample-2',
+          name: 'Spinach',
+          category: 'vegetables',
+          quantity: '1',
+          unit: 'bag',
+          expiryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+          purchaseDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+          isProtein: false,
+          isVegetarian: true,
+          isVegan: true,
+          isGlutenFree: true,
+          isDairyFree: true,
+          usageFrequency: 2,
+        },
+        {
+          id: 'sample-3',
+          name: 'Brown Rice',
+          category: 'grains',
+          quantity: '5',
+          unit: 'lbs',
+          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+          purchaseDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+          isProtein: false,
+          isVegetarian: true,
+          isVegan: true,
+          isGlutenFree: true,
+          isDairyFree: true,
+          usageFrequency: 5,
+        },
+        {
+          id: 'sample-4',
+          name: 'Greek Yogurt',
+          category: 'dairy',
+          quantity: '32',
+          unit: 'oz',
+          expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
+          purchaseDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+          isProtein: true,
+          isVegetarian: true,
+          isVegan: false,
+          isGlutenFree: true,
+          isDairyFree: false,
+          usageFrequency: 4,
+        },
+      ];
+
+      // Sample recipes
+      const sampleRecipes: Recipe[] = [
+        {
+          id: 'recipe-1',
+          title: 'Grilled Chicken with Spinach',
+          description: 'A healthy and delicious protein-rich meal',
+          cuisine: 'American',
+          servings: 4,
+          prepTime: 15,
+          cookTime: 20,
+          totalTime: 35,
+          difficulty: 'Easy',
+          ingredients: [
+            { name: 'Chicken Breast', amount: 1, unit: 'lb' },
+            { name: 'Spinach', amount: 2, unit: 'cups' },
+            { name: 'Olive Oil', amount: 2, unit: 'tbsp' },
+          ],
+          instructions: [
+            { step: 1, instruction: 'Season chicken breast with salt and pepper' },
+            {
+              step: 2,
+              instruction: 'Heat olive oil in a pan and cook chicken for 6-7 minutes per side',
+            },
+            { step: 3, instruction: 'Add spinach and cook until wilted' },
+            { step: 4, instruction: 'Serve hot' },
+          ],
+          nutritionInfo: {
+            calories: 285,
+            protein: 35,
+            carbs: 3,
+            fat: 14,
+            fiber: 2,
+            sugar: 1,
+            sodium: 320,
+            cholesterol: 85,
+          },
+          tags: ['healthy', 'high-protein', 'low-carb'],
+          rating: 4.5,
+          reviews: 12,
+          variations: [],
+        },
+        {
+          id: 'recipe-2',
+          title: 'Brown Rice Bowl with Yogurt',
+          description: 'A wholesome grain bowl with protein',
+          cuisine: 'Mediterranean',
+          servings: 2,
+          prepTime: 10,
+          cookTime: 25,
+          totalTime: 35,
+          difficulty: 'Easy',
+          ingredients: [
+            { name: 'Brown Rice', amount: 1, unit: 'cup' },
+            { name: 'Greek Yogurt', amount: 0.5, unit: 'cup' },
+            { name: 'Spinach', amount: 1, unit: 'cup' },
+          ],
+          instructions: [
+            { step: 1, instruction: 'Cook brown rice according to package instructions' },
+            { step: 2, instruction: 'Sauté spinach until wilted' },
+            { step: 3, instruction: 'Serve rice topped with spinach and yogurt' },
+          ],
+          nutritionInfo: {
+            calories: 320,
+            protein: 18,
+            carbs: 52,
+            fat: 6,
+            fiber: 4,
+            sugar: 8,
+            sodium: 180,
+            cholesterol: 15,
+          },
+          tags: ['vegetarian', 'healthy', 'fiber-rich'],
+          rating: 4.2,
+          reviews: 8,
+          variations: [],
+        },
+      ];
+
+      // Add to local storage for persistence
+      localStorage.setItem('sampleIngredients', JSON.stringify(sampleIngredients));
+      localStorage.setItem('recentRecipes', JSON.stringify(sampleRecipes));
+
+      // Update state
+      setIngredients(sampleIngredients);
+      setRecentRecipes(sampleRecipes);
+
+      console.log('✅ Sample data added successfully');
+    } catch (error) {
+      console.error('❌ Error adding sample data:', error);
+    }
+  };
+
+  // Sync props to state immediately when they change
+  useEffect(() => {
+    if (propIngredients.length > 0) {
+      console.log('🔄 Syncing ingredients from props:', propIngredients.length);
+      setIngredients(propIngredients);
+    }
+  }, [propIngredients]);
+
+  useEffect(() => {
+    if (propRecentRecipes.length > 0) {
+      console.log('🔄 Syncing recipes from props:', propRecentRecipes.length);
+      setRecentRecipes(propRecentRecipes);
+    }
+  }, [propRecentRecipes]);
 
   useEffect(() => {
     const loadNutritionData = async () => {
       try {
-        // Load ingredients
-        const userIngredients = await ingredientService.getAllIngredients();
-        setIngredients(userIngredients);
+        console.log('🍽️ Nutrition Dashboard: Initializing with data...', {
+          propIngredientsCount: propIngredients.length,
+          propRecipesCount: propRecentRecipes.length,
+          currentIngredientsCount: ingredients.length,
+          currentRecipesCount: recentRecipes.length,
+        });
 
-        // Load recent recipes from localStorage
-        const savedRecipes = localStorage.getItem('recentRecipes');
-        if (savedRecipes) {
-          const recipes = JSON.parse(savedRecipes);
-          setRecentRecipes(recipes.slice(0, 20)); // Show last 20 recipes for nutrition analysis
+        // If props were provided, use them directly (from parent dashboard)
+        if (propIngredients.length > 0) {
+          console.log('✅ Using ingredients passed from parent:', propIngredients.length);
+          setIngredients(propIngredients);
+        } else {
+          // Fallback: Load ingredients using service (for direct navigation)
+          const ingredientService = await getIngredientService();
+          const userIngredients = await ingredientService.getAllIngredients();
+          console.log('🥬 Nutrition Dashboard: Loaded ingredients from service:', {
+            count: userIngredients.length,
+            service: ingredientService.constructor.name,
+            sampleItems: userIngredients.slice(0, 3).map(ing => ({
+              id: ing.id,
+              name: ing.name,
+              category: ing.category,
+              quantity: ing.quantity,
+            })),
+          });
+          setIngredients(userIngredients);
+        }
+
+        // If props were provided, use them directly
+        if (propRecentRecipes.length > 0) {
+          console.log('✅ Using recipes passed from parent:', propRecentRecipes.length);
+          setRecentRecipes(propRecentRecipes);
+        } else {
+          // Fallback: Load recipes using RecipeService (more reliable than manual localStorage parsing)
+          console.log('🔍 Loading recipes using RecipeService...');
+          try {
+            if (user?.id) {
+              const recipeServiceResult = await RecipeService.getSavedRecipes(user.id);
+              if (recipeServiceResult.success && recipeServiceResult.data) {
+                console.log(`✅ RecipeService found ${recipeServiceResult.data.length} recipes`);
+                setRecentRecipes(recipeServiceResult.data.slice(0, 20)); // Show last 20 recipes for nutrition analysis
+              } else {
+                console.log(
+                  '❌ RecipeService failed or returned no recipes:',
+                  recipeServiceResult.error
+                );
+                // Fallback to manual localStorage search as last resort
+                await fallbackLoadRecipesFromStorage();
+              }
+            } else {
+              console.log('👤 No user ID available, falling back to localStorage search');
+              await fallbackLoadRecipesFromStorage();
+            }
+          } catch (error) {
+            console.error('❌ Error using RecipeService:', error);
+            await fallbackLoadRecipesFromStorage();
+          }
+        }
+
+        async function fallbackLoadRecipesFromStorage() {
+          console.log('🔍 Fallback: Searching for recipes in multiple storage locations...');
+
+          const storageKeys = ['recentRecipes', 'savedRecipes', 'userRecipes'];
+          let foundRecipes: Recipe[] = [];
+
+          for (const key of storageKeys) {
+            const savedData = localStorage.getItem(key);
+            console.log(
+              `🔍 Checking localStorage.${key}:`,
+              savedData ? `${savedData.length} chars` : 'null'
+            );
+            if (savedData) {
+              try {
+                const recipes = JSON.parse(savedData);
+                if (Array.isArray(recipes) && recipes.length > 0) {
+                  console.log(
+                    `🍲 Found ${recipes.length} recipes in localStorage.${key}:`,
+                    recipes
+                      .slice(0, 2)
+                      .map(r => ({ id: r.id, title: r.title, hasNutrition: !!r.nutritionInfo }))
+                  );
+                  foundRecipes = [...foundRecipes, ...recipes];
+                } else {
+                  console.log(
+                    `📭 localStorage.${key} is empty or not an array:`,
+                    typeof recipes,
+                    Array.isArray(recipes) ? `array with ${recipes.length} items` : 'not an array'
+                  );
+                }
+              } catch (error) {
+                console.log(`❌ Error parsing ${key}:`, error);
+              }
+            }
+          }
+
+          // Remove duplicates and sort by most recent
+          const uniqueRecipes = foundRecipes.filter(
+            (recipe, index, self) => index === self.findIndex(r => r.id === recipe.id)
+          );
+
+          if (uniqueRecipes.length > 0) {
+            console.log(`✅ Total unique recipes found: ${uniqueRecipes.length}`);
+            setRecentRecipes(uniqueRecipes.slice(0, 20)); // Show last 20 recipes for nutrition analysis
+          } else {
+            console.log('🍲 No recipes found in any localStorage location');
+          }
+        }
+
+        // Load sample data only if no real data is available
+        if (propIngredients.length === 0 && ingredients.length === 0) {
+          const sampleIngredients = localStorage.getItem('sampleIngredients');
+          if (sampleIngredients) {
+            console.log('📦 Nutrition Dashboard: Loading sample ingredients from localStorage');
+            const parsedSampleIngredients = JSON.parse(sampleIngredients);
+            setIngredients(parsedSampleIngredients);
+          }
         }
       } catch (error) {
-        console.error('Error loading nutrition data:', error);
+        console.error('❌ Nutrition Dashboard: Error loading nutrition data:', error);
       } finally {
         setLoading(false);
+        console.log('✅ Nutrition Dashboard: Loading complete');
       }
     };
 
     loadNutritionData();
-  }, []);
+  }, [propIngredients, propRecentRecipes, user?.id]);
 
   if (loading) {
     return (
@@ -68,7 +360,23 @@ export default function NutritionDashboard() {
                 AI-powered insights into your nutritional health and cooking patterns
               </p>
             </div>
-            <div className="text-5xl">🥗</div>
+            <div className="flex items-center gap-4">
+              {process.env.NODE_ENV === 'development' && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={addSampleData}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    🧪 Add Sample Data
+                  </button>
+                  <div className="text-sm text-gray-600 flex items-center">
+                    Recipes: {recentRecipes.length} | With nutrition:{' '}
+                    {recentRecipes.filter(r => r.nutritionInfo).length}
+                  </div>
+                </div>
+              )}
+              <div className="text-5xl">🥗</div>
+            </div>
           </div>
 
           {/* AI Nutritionist - Full Width */}
@@ -137,7 +445,32 @@ export default function NutritionDashboard() {
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <div className="text-4xl mb-2">📦</div>
-                    <p>Add ingredients to your pantry to see nutrition insights</p>
+                    <p className="mb-4">
+                      Your pantry is empty! Add ingredients to see nutrition insights.
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-gray-600">👇 Get started by adding some ingredients:</p>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                          🥩 Proteins
+                        </span>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                          🥬 Vegetables
+                        </span>
+                        <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">
+                          🍎 Fruits
+                        </span>
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
+                          🌾 Grains
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => (window.location.href = '/dashboard/pantry')}
+                      className="mt-4 px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm"
+                    >
+                      Add Ingredients to Pantry
+                    </button>
                   </div>
                 )}
               </div>
@@ -147,31 +480,128 @@ export default function NutritionDashboard() {
             <Card className="p-6">
               <h3 className="text-xl font-semibold mb-4">📊 Recent Recipe Nutrition</h3>
               <div className="space-y-4">
-                {recentRecipes.filter(recipe => recipe.nutritionInfo).length > 0 ? (
+                {/* Debug info in development */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs bg-gray-100 p-2 rounded mb-4">
+                    <strong>Debug:</strong> Total recipes: {recentRecipes.length}, With nutrition:{' '}
+                    {recentRecipes.filter(recipe => recipe.nutritionInfo).length}
+                    {recentRecipes.length > 0 && (
+                      <div className="mt-1">
+                        Sample recipes:{' '}
+                        {recentRecipes
+                          .slice(0, 3)
+                          .map(r => r.title)
+                          .join(', ')}
+                      </div>
+                    )}
+                    {recentRecipes.length > 0 && (
+                      <div className="mt-2">
+                        <strong>Recipe structure sample:</strong>
+                        <pre className="text-xs bg-gray-50 p-1 mt-1 overflow-x-auto">
+                          {JSON.stringify(
+                            {
+                              title: recentRecipes[0]?.title,
+                              hasNutritionInfo: !!recentRecipes[0]?.nutritionInfo,
+                              nutritionKeys: recentRecipes[0]?.nutritionInfo
+                                ? Object.keys(recentRecipes[0].nutritionInfo)
+                                : 'none',
+                              sampleNutrition: recentRecipes[0]?.nutritionInfo
+                                ? {
+                                    calories: recentRecipes[0].nutritionInfo.calories,
+                                    protein: recentRecipes[0].nutritionInfo.protein,
+                                  }
+                                : 'none',
+                            },
+                            null,
+                            2
+                          )}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {recentRecipes.length > 0 ? (
                   <>
-                    <div className="text-sm text-gray-600 mb-3">
-                      Showing nutrition data from{' '}
-                      {recentRecipes.filter(recipe => recipe.nutritionInfo).length} recipes
-                    </div>
-                    {recentRecipes
-                      .filter(recipe => recipe.nutritionInfo)
-                      .slice(0, 5)
-                      .map(recipe => (
-                        <div key={recipe.id} className="border rounded-lg p-3">
-                          <div className="font-medium text-sm mb-2">{recipe.title}</div>
-                          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                            <div>Calories: {recipe.nutritionInfo?.calories || 0}</div>
-                            <div>Protein: {recipe.nutritionInfo?.protein || 0}g</div>
-                            <div>Carbs: {recipe.nutritionInfo?.carbs || 0}g</div>
-                            <div>Fat: {recipe.nutritionInfo?.fat || 0}g</div>
-                          </div>
+                    {recentRecipes.filter(recipe => recipe.nutritionInfo).length > 0 ? (
+                      <>
+                        <div className="text-sm text-gray-600 mb-3">
+                          Showing nutrition data from{' '}
+                          {recentRecipes.filter(recipe => recipe.nutritionInfo).length} of{' '}
+                          {recentRecipes.length} recipes
                         </div>
-                      ))}
+                        {recentRecipes
+                          .filter(recipe => recipe.nutritionInfo)
+                          .slice(0, 5)
+                          .map(recipe => (
+                            <div
+                              key={recipe.id}
+                              className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="font-medium text-sm">{recipe.title}</div>
+                                <div className="text-xs text-gray-500">{recipe.cuisine}</div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-2">
+                                <div>🔥 Calories: {recipe.nutritionInfo?.calories || 0}</div>
+                                <div>🥩 Protein: {recipe.nutritionInfo?.protein || 0}g</div>
+                                <div>🌾 Carbs: {recipe.nutritionInfo?.carbs || 0}g</div>
+                                <div>🥑 Fat: {recipe.nutritionInfo?.fat || 0}g</div>
+                              </div>
+                              {recipe.nutritionInfo?.fiber && recipe.nutritionInfo?.sodium && (
+                                <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                                  <div>🌿 Fiber: {recipe.nutritionInfo.fiber}g</div>
+                                  <div>🧂 Sodium: {recipe.nutritionInfo.sodium}mg</div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                      </>
+                    ) : (
+                      <div className="text-center py-6 text-gray-500">
+                        <div className="text-3xl mb-2">📝</div>
+                        <p className="mb-2">
+                          You have {recentRecipes.length} recipes but none with nutrition data.
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Generate new AI recipes to get detailed nutrition information.
+                        </p>
+                        <button
+                          onClick={() => (window.location.href = '/dashboard/create-recipe')}
+                          className="mt-3 px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm"
+                        >
+                          Generate AI Recipe with Nutrition
+                        </button>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <div className="text-4xl mb-2">📈</div>
-                    <p>Create recipes with nutrition info to see your history</p>
+                    <p className="mb-4">No recent recipes with nutrition data found.</p>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-gray-600">Start tracking nutrition by:</p>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xs">🤖</span>
+                          <span>Generate AI recipes with nutrition info</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xs">📝</span>
+                          <span>Create custom recipes with nutrition data</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-xs">🍳</span>
+                          <span>Track cooking sessions</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => (window.location.href = '/dashboard/recipes')}
+                      className="mt-4 px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm"
+                    >
+                      Create Your First Recipe
+                    </button>
                   </div>
                 )}
               </div>

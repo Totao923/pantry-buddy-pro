@@ -15,7 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export default function Receipts() {
   const router = useRouter();
-  const { user, subscription } = useAuth();
+  const { user, subscription, supabaseClient } = useAuth();
   const [activeTab, setActiveTab] = useState<'scan' | 'history' | 'analytics'>('scan');
   const [showScanner, setShowScanner] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
@@ -34,7 +34,7 @@ export default function Receipts() {
     if (!user) return;
 
     try {
-      const userReceipts = await receiptService.getUserReceipts(user.id);
+      const userReceipts = await receiptService.getUserReceipts(user.id, supabaseClient);
       setReceipts(userReceipts);
     } catch (error) {
       console.error('Failed to load receipts:', error);
@@ -67,7 +67,7 @@ export default function Receipts() {
 
     try {
       // Save receipt data
-      await receiptService.saveReceiptData(currentReceipt, user.id);
+      await receiptService.saveReceiptData(currentReceipt, user.id, supabaseClient);
 
       // Add confirmed items to pantry
       for (const item of confirmedItems) {

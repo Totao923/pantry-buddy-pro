@@ -16,7 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Ingredient, IngredientCategory } from '../../types';
 
 export default function PantryManagement() {
-  const { user } = useAuth();
+  const { user, supabaseClient } = useAuth();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
@@ -154,7 +154,7 @@ export default function PantryManagement() {
 
     try {
       // Save receipt data
-      await receiptService.saveReceiptData(currentReceipt, user.id);
+      await receiptService.saveReceiptData(currentReceipt, user.id, supabaseClient);
 
       // Add confirmed items to pantry
       for (const item of confirmedItems) {

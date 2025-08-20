@@ -11,6 +11,8 @@ export interface Ingredient {
   isProtein?: boolean;
   isVegetarian?: boolean;
   isVegan?: boolean;
+  isGlutenFree?: boolean;
+  isDairyFree?: boolean;
 }
 
 export type IngredientCategory =

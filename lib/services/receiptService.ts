@@ -945,7 +945,11 @@ class ReceiptService {
   }
 
   // Save receipt data to database
-  async saveReceiptData(receiptData: ExtractedReceiptData, userId: string): Promise<void> {
+  async saveReceiptData(
+    receiptData: ExtractedReceiptData,
+    userId: string,
+    supabaseClient?: any
+  ): Promise<void> {
     try {
       // Try to save to new receipt_history table first
       if (await databaseSettingsService.isAvailable()) {
@@ -963,8 +967,8 @@ class ReceiptService {
         }
       }
 
-      // Fallback to legacy receipts table
-      const supabase = getSupabaseClient();
+      // Fallback to legacy receipts table - use authenticated client if provided
+      const supabase = supabaseClient || getSupabaseClient();
 
       // Insert receipt record
       const { data: receipt, error: receiptError } = await supabase
@@ -1068,9 +1072,9 @@ class ReceiptService {
   }
 
   // Get user's receipt history
-  async getUserReceipts(userId: string): Promise<ExtractedReceiptData[]> {
+  async getUserReceipts(userId: string, supabaseClient?: any): Promise<ExtractedReceiptData[]> {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = supabaseClient || getSupabaseClient();
 
       // Get receipts with their items
       const { data: receipts, error } = await supabase

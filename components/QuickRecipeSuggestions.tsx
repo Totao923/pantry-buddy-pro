@@ -183,7 +183,14 @@ export default function QuickRecipeSuggestions({
   });
 
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, supabaseClient } = useAuth();
+
+  // Set authenticated client on RecipeService
+  React.useEffect(() => {
+    if (supabaseClient) {
+      RecipeService.setSupabaseClient(supabaseClient);
+    }
+  }, [supabaseClient]);
   const [suggestions, setSuggestions] = useState<QuickRecipeSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -199,8 +206,16 @@ export default function QuickRecipeSuggestions({
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const generateSuggestions = async (customOptions?: Partial<SuggestionRequest>) => {
-    console.log('🔄 DEBUG: generateSuggestions called with options:', customOptions);
+  const generateSuggestions = async (
+    customOptions?: Partial<SuggestionRequest>,
+    forceRefresh?: boolean
+  ) => {
+    console.log(
+      '🔄 DEBUG: generateSuggestions called with options:',
+      customOptions,
+      'forceRefresh:',
+      forceRefresh
+    );
     console.log(
       '🔄 DEBUG: Current state - loading:',
       loading,
@@ -212,7 +227,7 @@ export default function QuickRecipeSuggestions({
     setError(null);
 
     try {
-      const requestOptions = { ...options, ...customOptions, userId: user?.id };
+      const requestOptions = { ...options, ...customOptions, userId: user?.id, forceRefresh };
       console.log('🔄 DEBUG: Request options:', requestOptions);
 
       const newSuggestions = await quickSuggestionsService.getQuickSuggestions(requestOptions);
@@ -236,6 +251,11 @@ export default function QuickRecipeSuggestions({
       setLoading(false);
     }
   };
+
+  // Load suggestions on mount
+  useEffect(() => {
+    generateSuggestions();
+  }, []);
 
   const handleCookThis = async (recipe: QuickRecipeSuggestion) => {
     try {
@@ -283,7 +303,7 @@ export default function QuickRecipeSuggestions({
           isPaleo: false,
           allergens: [],
         },
-        nutritionInfo: {
+        nutritionInfo: recipe.nutritionInfo || {
           calories: 0,
           protein: 0,
           carbs: 0,
@@ -320,7 +340,10 @@ export default function QuickRecipeSuggestions({
 
       // Navigate to the recipe detail page to show cooking instructions
       console.log('Navigating to recipe:', `/dashboard/recipe/${recipe.id}`);
-      await router.push(`/dashboard/recipe/${recipe.id}`);
+      await router.push({
+        pathname: `/dashboard/recipe/${recipe.id}`,
+        query: { recipeData: JSON.stringify(recipeData) },
+      });
     } catch (error) {
       console.error('Failed to save recipe:', error);
       setCookingRecipeId(null);
@@ -377,7 +400,7 @@ export default function QuickRecipeSuggestions({
           isPaleo: false,
           allergens: [],
         },
-        nutritionInfo: {
+        nutritionInfo: recipe.nutritionInfo || {
           calories: 0,
           protein: 0,
           carbs: 0,
@@ -482,7 +505,7 @@ export default function QuickRecipeSuggestions({
           <button
             onClick={() => {
               console.log('🔄 REFRESH BUTTON CLICKED');
-              generateSuggestions();
+              generateSuggestions({}, true);
             }}
             disabled={loading}
             className="px-4 py-2 text-pantry-600 border border-pantry-600 rounded-lg hover:bg-pantry-50 transition-colors text-sm font-medium"
@@ -630,7 +653,7 @@ export default function QuickRecipeSuggestions({
       {/* Get More Suggestions */}
       <div className="text-center">
         <button
-          onClick={() => generateSuggestions()}
+          onClick={() => generateSuggestions({}, true)}
           disabled={loading}
           className="px-6 py-3 text-pantry-600 border border-pantry-300 rounded-xl hover:bg-pantry-50 transition-colors font-medium"
         >

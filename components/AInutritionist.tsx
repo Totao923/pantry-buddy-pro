@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+// Global flag to prevent multiple simultaneous analysis requests
+let globalAnalysisInProgress = false;
+let globalAnalysisCount = 0;
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { LoadingSkeleton } from './ui/LoadingSkeleton';
@@ -74,52 +78,205 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
   recentRecipes = [],
   className = '',
 }) => {
-  const { user, profile, subscription } = useAuth();
+  const { user, profile, subscription, session } = useAuth();
   const [analysis, setAnalysis] = useState<NutritionAnalysis | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<HealthGoal>(HEALTH_GOALS[2]); // Default to maintenance
   const [loading, setLoading] = useState(false);
   const [weeklyReport, setWeeklyReport] = useState<any>(null);
+  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastAnalysisParamsRef = useRef<string>('');
+  const isAnalysisInProgressRef = useRef<boolean>(false);
+  const componentMountedRef = useRef<boolean>(true);
 
-  const analyzeNutrition = React.useCallback(async () => {
+  const analyzeNutrition = useCallback(async () => {
+    if (!componentMountedRef.current) {
+      console.log('🔒 AI Nutritionist: Component unmounted, skipping analysis');
+      return;
+    }
+
+    if (!session?.access_token) {
+      console.log('🔒 AI Nutritionist: No session token available, skipping analysis');
+      return;
+    }
+
+    // Global check to prevent any analysis when one is running
+    if (globalAnalysisInProgress) {
+      console.log('🔒 AI Nutritionist: Global analysis in progress, skipping');
+      return;
+    }
+
+    const analysisKey = `${ingredients.length}-${selectedGoal.id}-${session?.access_token ? 'auth' : 'no-auth'}`;
+    const cacheKey = `nutrition-analysis-${analysisKey}`;
+
+    // Check cache first
+    const cachedAnalysis = localStorage.getItem(cacheKey);
+    const cacheTimestamp = localStorage.getItem(`${cacheKey}-timestamp`);
+    const now = Date.now();
+    const cacheAge = cacheTimestamp ? now - parseInt(cacheTimestamp) : Infinity;
+
+    // Use cache if less than 10 minutes old (increased from 5)
+    if (cachedAnalysis && cacheAge < 10 * 60 * 1000) {
+      console.log(
+        '📦 AI Nutritionist: Using cached analysis, age:',
+        Math.round(cacheAge / 1000),
+        's'
+      );
+      try {
+        setAnalysis(JSON.parse(cachedAnalysis));
+        return;
+      } catch (error) {
+        console.log('❌ Failed to parse cached analysis, will fetch new');
+      }
+    }
+
+    // Set global flag to prevent other instances
+    globalAnalysisInProgress = true;
+    globalAnalysisCount++;
     setLoading(true);
+
+    console.log(
+      '🚀 AI Nutritionist: Starting analysis',
+      globalAnalysisCount,
+      'for key:',
+      analysisKey
+    );
+
     try {
+      const requestData = {
+        ingredients,
+        recentRecipes,
+        healthGoal: selectedGoal,
+        userProfile: { ...profile, subscription },
+      };
+
+      console.log('🤖 AI Nutritionist: Sending data to API:', {
+        ingredientsCount: ingredients.length,
+        recentRecipesCount: recentRecipes.length,
+        healthGoal: selectedGoal.name,
+        subscription: subscription?.tier,
+        hasSession: !!session,
+        hasAccessToken: !!session?.access_token,
+        user: user ? { id: user.id, email: user.email } : null,
+      });
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authentication header if session is available
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch('/api/nutrition/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ingredients,
-          recentRecipes,
-          healthGoal: selectedGoal,
-          userProfile: { ...profile, subscription },
-        }),
+        headers,
+        body: JSON.stringify(requestData),
       });
 
       if (response.ok) {
         const result = await response.json();
-        setAnalysis(result);
+        console.log('✅ AI Nutritionist: Received analysis result:', result);
+
+        // Cache the result
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(result));
+          localStorage.setItem(`${cacheKey}-timestamp`, now.toString());
+          console.log('📦 AI Nutritionist: Cached analysis result');
+        } catch (error) {
+          console.log('⚠️ Failed to cache analysis result:', error);
+        }
+
+        if (componentMountedRef.current) {
+          setAnalysis(result);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('❌ AI Nutritionist: API error:', errorData);
       }
     } catch (error) {
-      console.error('Error analyzing nutrition:', error);
+      console.error('❌ AI Nutritionist: Request error:', error);
     } finally {
-      setLoading(false);
+      globalAnalysisInProgress = false;
+      if (componentMountedRef.current) {
+        setLoading(false);
+      }
+      console.log('✅ AI Nutritionist: Analysis completed, global flag cleared');
     }
-  }, [ingredients, recentRecipes, selectedGoal, profile, subscription]);
+  }, [ingredients.length, selectedGoal.id, session?.access_token]);
 
+  // Single useEffect with much longer debounce and strict deduplication
   useEffect(() => {
-    if (ingredients.length > 0) {
-      analyzeNutrition();
+    // Clear any existing timeout
+    if (analysisTimeoutRef.current) {
+      clearTimeout(analysisTimeoutRef.current);
     }
-  }, [ingredients, selectedGoal, analyzeNutrition]);
+
+    // Create a unique key for this analysis request
+    const analysisKey = `${ingredients.length}-${selectedGoal.id}-${session?.access_token ? 'auth' : 'no-auth'}`;
+
+    // Skip if same parameters as last analysis
+    if (analysisKey === lastAnalysisParamsRef.current) {
+      console.log(
+        '🔄 AI Nutritionist: Skipping duplicate analysis with same parameters:',
+        analysisKey
+      );
+      return;
+    }
+
+    // Check minimum requirements
+    if (ingredients.length === 0 || !session?.access_token) {
+      console.log(
+        '🔄 AI Nutritionist: Missing requirements - ingredients:',
+        ingredients.length,
+        'auth:',
+        !!session?.access_token
+      );
+      return;
+    }
+
+    // Much longer debounce to prevent rapid calls
+    analysisTimeoutRef.current = setTimeout(() => {
+      if (componentMountedRef.current && analysisKey !== lastAnalysisParamsRef.current) {
+        console.log('🔄 AI Nutritionist: Triggering debounced analysis:', analysisKey);
+        lastAnalysisParamsRef.current = analysisKey;
+        analyzeNutrition();
+      }
+    }, 3000); // 3 second debounce
+
+    // Cleanup timeout on dependency change or unmount
+    return () => {
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+    };
+  }, [ingredients.length, selectedGoal.id, session?.access_token, analyzeNutrition]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    componentMountedRef.current = true;
+    return () => {
+      componentMountedRef.current = false;
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const generateWeeklyReport = async () => {
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authentication header if session is available
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch('/api/nutrition/weekly-report', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           userId: user?.id,
           healthGoal: selectedGoal,
@@ -153,7 +310,18 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
     return 'border-l-green-500';
   };
 
-  if (!user || !subscription || subscription.tier === 'free') {
+  console.log('🔍 AI Nutritionist: Auth status check:', {
+    hasUser: !!user,
+    hasSubscription: !!subscription,
+    subscriptionTier: subscription?.tier,
+    ingredientsCount: ingredients.length,
+  });
+
+  // Temporary: Allow testing of nutrition features in development
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const hasPremiumAccess = subscription?.tier === 'premium' || isDevelopment;
+
+  if (!user || !subscription || (!hasPremiumAccess && subscription.tier === 'free')) {
     return (
       <Card className={`p-6 ${className}`}>
         <div className="text-center">
@@ -161,9 +329,23 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
           <p className="text-gray-600 mb-4">
             Get personalized nutrition analysis and health recommendations
           </p>
+
+          {/* Show basic pantry stats even for free users */}
+          {ingredients.length > 0 && (
+            <div className="bg-blue-50 p-4 rounded-lg mb-4">
+              <h4 className="font-medium mb-2">Your Pantry Overview</h4>
+              <div className="text-sm text-gray-700 space-y-1">
+                <div>📦 {ingredients.length} ingredients in your pantry</div>
+                <div>🥩 {ingredients.filter(ing => ing.isProtein).length} protein sources</div>
+                <div>🥬 {ingredients.filter(ing => ing.isVegetarian).length} vegetarian items</div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 rounded-lg mb-4">
             <p className="text-sm text-gray-700">
-              Premium feature: Upgrade to access AI-powered nutrition insights
+              Premium feature: Upgrade to access AI-powered nutrition insights, meal planning, and
+              personalized recommendations
             </p>
           </div>
           <Button

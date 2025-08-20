@@ -44,6 +44,11 @@ interface RecipeServiceResponse<T = Recipe> {
 export class RecipeService {
   private static readonly BASE_URL = '/api/recipes';
 
+  // Method to set authenticated Supabase client on database service
+  static setSupabaseClient(client: any) {
+    databaseRecipeService.setSupabaseClient(client);
+  }
+
   /**
    * Generate a new recipe based on ingredients and preferences
    */

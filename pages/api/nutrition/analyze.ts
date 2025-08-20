@@ -41,8 +41,36 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { ingredients, recentRecipes, healthGoal, userProfile }: AnalyzeRequest = req.body;
 
-    // Check if user has premium access
-    if (!userProfile?.subscription || userProfile.subscription === 'free') {
+    console.log('🔍 Nutrition API: Received request:', {
+      ingredientsCount: ingredients?.length || 0,
+      recentRecipesCount: recentRecipes?.length || 0,
+      healthGoal: healthGoal?.name,
+      userSubscription: userProfile?.subscription?.tier,
+      sampleIngredientData: ingredients?.slice(0, 2).map(ing => ({
+        name: ing.name,
+        category: ing.category,
+        hasRequiredFields: {
+          expiryDate: !!ing.expiryDate,
+          purchaseDate: !!ing.purchaseDate,
+          quantity: !!ing.quantity,
+          isProtein: !!ing.isProtein,
+          isVegetarian: !!ing.isVegetarian,
+          isVegan: !!ing.isVegan,
+          isGlutenFree: !!ing.isGlutenFree,
+          isDairyFree: !!ing.isDairyFree,
+        },
+      })),
+    });
+
+    // Check if user has premium access (allow development mode)
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const hasPremiumAccess = userProfile?.subscription?.tier === 'premium' || isDevelopment;
+
+    if (
+      !userProfile?.subscription ||
+      (!hasPremiumAccess && userProfile.subscription.tier === 'free')
+    ) {
+      console.log('❌ Nutrition API: Premium subscription required');
       return res.status(403).json({ error: 'Premium subscription required' });
     }
 
@@ -68,7 +96,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 function calculateCurrentNutrition(
   ingredients: Ingredient[],
   recentRecipes: Recipe[]
-): NutritionInfo {
+): NutritionInfo & { ingredientAnalysis: any } {
   // Calculate nutrition from recent recipes (last 7 days worth)
   const totalNutrition: NutritionInfo = {
     calories: 0,
@@ -103,16 +131,66 @@ function calculateCurrentNutrition(
     );
   });
 
-  return totalNutrition;
+  // Analyze pantry ingredients for nutritional potential
+  const ingredientAnalysis = analyzeIngredientNutrition(ingredients);
+
+  return { ...totalNutrition, ingredientAnalysis };
+}
+
+function analyzeIngredientNutrition(ingredients: Ingredient[]) {
+  const now = new Date();
+
+  const analysis = {
+    proteinSources: ingredients.filter(ing => ing.isProtein || ing.category === 'protein'),
+    expiringItems: ingredients.filter(ing => {
+      if (!ing.expiryDate) return false;
+      const daysUntilExpiry = Math.ceil(
+        (new Date(ing.expiryDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return daysUntilExpiry <= 3 && daysUntilExpiry >= 0;
+    }),
+    freshItems: ingredients.filter(ing => {
+      if (!ing.purchaseDate) return false;
+      const daysSincePurchase = Math.ceil(
+        (now.getTime() - new Date(ing.purchaseDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return daysSincePurchase <= 2;
+    }),
+    lowStockItems: ingredients.filter(ing => {
+      const quantity = parseFloat(ing.quantity || '0');
+      return quantity <= 1;
+    }),
+    categoryDistribution: ingredients.reduce(
+      (acc, ing) => {
+        acc[ing.category] = (acc[ing.category] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    ),
+    dietaryFlags: {
+      vegetarian: ingredients.filter(ing => ing.isVegetarian).length,
+      vegan: ingredients.filter(ing => ing.isVegan).length,
+      glutenFree: ingredients.filter(ing => ing.isGlutenFree).length,
+      dairyFree: ingredients.filter(ing => ing.isDairyFree).length,
+    },
+    totalItems: ingredients.length,
+    averageUsageFrequency:
+      ingredients.reduce((sum, ing) => sum + (ing.usageFrequency || 0), 0) /
+      Math.max(1, ingredients.length),
+  };
+
+  return analysis;
 }
 
 async function generateAInutritionAnalysis(
   ingredients: Ingredient[],
   recentRecipes: Recipe[],
   healthGoal: any,
-  currentNutrition: NutritionInfo,
+  currentNutrition: NutritionInfo & { ingredientAnalysis: any },
   userProfile: any
 ): Promise<NutritionAnalysis> {
+  const { ingredientAnalysis, ...nutritionData } = currentNutrition;
+
   const prompt = `As an expert AI nutritionist, analyze the following user's nutritional status and provide personalized recommendations.
 
 USER PROFILE:
@@ -120,22 +198,56 @@ USER PROFILE:
 - Target Calories: ${healthGoal.targetCalories || 2000}
 - Protein Multiplier: ${healthGoal.proteinMultiplier || 1.0}
 - Restrictions: ${healthGoal.restrictions?.join(', ') || 'None'}
+- Subscription: ${userProfile?.subscription?.tier || 'free'}
 
-CURRENT PANTRY INGREDIENTS:
-${ingredients.map(ing => `- ${ing.name} (${ing.category}${ing.isProtein ? ', protein source' : ''}${ing.isVegetarian ? ', vegetarian' : ''}${ing.isVegan ? ', vegan' : ''})`).join('\n')}
+PANTRY ANALYSIS (${ingredientAnalysis.totalItems} items):
+- Protein Sources Available: ${ingredientAnalysis.proteinSources.map(p => p.name).join(', ') || 'None'}
+- Expiring Soon (≤3 days): ${ingredientAnalysis.expiringItems.map(e => `${e.name} (${Math.ceil((new Date(e.expiryDate!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days)`).join(', ') || 'None'}
+- Fresh Items (≤2 days old): ${ingredientAnalysis.freshItems.map(f => f.name).join(', ') || 'None'}
+- Low Stock Items: ${ingredientAnalysis.lowStockItems.map(l => l.name).join(', ') || 'None'}
+- Category Distribution: ${Object.entries(ingredientAnalysis.categoryDistribution)
+    .map(([cat, count]) => `${cat}: ${count}`)
+    .join(', ')}
+- Dietary Preferences: Vegetarian=${ingredientAnalysis.dietaryFlags.vegetarian}, Vegan=${ingredientAnalysis.dietaryFlags.vegan}, Gluten-Free=${ingredientAnalysis.dietaryFlags.glutenFree}, Dairy-Free=${ingredientAnalysis.dietaryFlags.dairyFree}
+- Average Usage Frequency: ${ingredientAnalysis.averageUsageFrequency.toFixed(1)} uses/week
+
+DETAILED PANTRY INGREDIENTS:
+${ingredients
+  .map(ing => {
+    const expiryInfo = ing.expiryDate
+      ? ` (expires ${Math.ceil((new Date(ing.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days)`
+      : '';
+    const quantityInfo = ing.quantity ? ` - ${ing.quantity} ${ing.unit || 'units'}` : '';
+    const dietaryFlags = [
+      ing.isProtein && 'protein',
+      ing.isVegetarian && 'vegetarian',
+      ing.isVegan && 'vegan',
+      ing.isGlutenFree && 'gluten-free',
+      ing.isDairyFree && 'dairy-free',
+    ]
+      .filter(Boolean)
+      .join(', ');
+    return `- ${ing.name} (${ing.category}${quantityInfo}${expiryInfo}${dietaryFlags ? ` - ${dietaryFlags}` : ''})`;
+  })
+  .join('\n')}
 
 CURRENT DAILY NUTRITION AVERAGES:
-- Calories: ${currentNutrition.calories}
-- Protein: ${currentNutrition.protein}g
-- Carbs: ${currentNutrition.carbs}g
-- Fat: ${currentNutrition.fat}g
-- Fiber: ${currentNutrition.fiber}g
-- Sodium: ${currentNutrition.sodium}mg
+- Calories: ${nutritionData.calories}
+- Protein: ${nutritionData.protein}g
+- Carbs: ${nutritionData.carbs}g
+- Fat: ${nutritionData.fat}g
+- Fiber: ${nutritionData.fiber}g
+- Sugar: ${nutritionData.sugar}g
+- Sodium: ${nutritionData.sodium}mg
+- Cholesterol: ${nutritionData.cholesterol}mg
 
-RECENT RECIPES (${recentRecipes.length}):
+RECENT RECIPES (${recentRecipes.length} in last 7 days):
 ${recentRecipes
   .slice(0, 5)
-  .map(recipe => `- ${recipe.title} (${recipe.cuisine}, ${recipe.difficulty})`)
+  .map(
+    recipe =>
+      `- ${recipe.title} (${recipe.cuisine}, ${recipe.difficulty}${recipe.nutritionInfo ? ` - ${recipe.nutritionInfo.calories} cal` : ''})`
+  )
   .join('\n')}
 
 Please provide a comprehensive nutrition analysis in the following JSON format:
@@ -181,9 +293,19 @@ Please provide a comprehensive nutrition analysis in the following JSON format:
 Focus on:
 1. Alignment with the user's specific health goal
 2. Nutritional gaps that can be filled with available ingredients
-3. Practical, actionable recommendations
-4. Balance between nutrition and enjoyability
-5. Consider dietary restrictions and preferences from ingredients`;
+3. Expiring ingredient utilization to prevent waste
+4. Practical, actionable recommendations based on actual pantry contents
+5. Balance between nutrition and enjoyability
+6. Consider dietary restrictions and preferences from ingredients
+7. Stock level considerations for shopping recommendations
+8. Usage frequency patterns to suggest variety
+
+CRITICAL ANALYSIS POINTS:
+- Prioritize expiring items: ${currentNutrition.ingredientAnalysis.expiringItems.map(e => e.name).join(', ') || 'None'}
+- Address low stock items for meal planning
+- Leverage fresh ingredients for maximum nutritional value
+- Consider category gaps in pantry for balanced nutrition
+- Account for actual quantities available for portion planning`;
 
   try {
     const response = await aiService.generateContent(prompt);
@@ -205,53 +327,72 @@ Focus on:
 }
 
 function generateFallbackAnalysis(
-  currentNutrition: NutritionInfo,
+  currentNutrition: NutritionInfo & { ingredientAnalysis: any },
   healthGoal: any,
   ingredients: Ingredient[]
 ): NutritionAnalysis {
+  const { ingredientAnalysis, ...nutritionData } = currentNutrition;
   const targetCalories = healthGoal.targetCalories || 2000;
   const targetProtein = (targetCalories * 0.15) / 4; // 15% of calories from protein
   const targetCarbs = (targetCalories * 0.5) / 4; // 50% of calories from carbs
   const targetFats = (targetCalories * 0.35) / 9; // 35% of calories from fat
 
   const proteinStatus =
-    currentNutrition.protein < targetProtein * 0.8
+    nutritionData.protein < targetProtein * 0.8
       ? 'low'
-      : currentNutrition.protein > targetProtein * 1.2
+      : nutritionData.protein > targetProtein * 1.2
         ? 'high'
         : 'good';
   const carbStatus =
-    currentNutrition.carbs < targetCarbs * 0.8
+    nutritionData.carbs < targetCarbs * 0.8
       ? 'low'
-      : currentNutrition.carbs > targetCarbs * 1.2
+      : nutritionData.carbs > targetCarbs * 1.2
         ? 'high'
         : 'good';
   const fatStatus =
-    currentNutrition.fat < targetFats * 0.8
+    nutritionData.fat < targetFats * 0.8
       ? 'low'
-      : currentNutrition.fat > targetFats * 1.2
+      : nutritionData.fat > targetFats * 1.2
         ? 'high'
         : 'good';
 
-  // Calculate overall score
-  const calorieScore = Math.max(0, 100 - Math.abs(currentNutrition.calories - targetCalories) / 10);
+  // Calculate overall score with ingredient analysis
+  const calorieScore = Math.max(0, 100 - Math.abs(nutritionData.calories - targetCalories) / 10);
   const macroScore =
     (proteinStatus === 'good' ? 25 : 15) +
     (carbStatus === 'good' ? 25 : 15) +
     (fatStatus === 'good' ? 25 : 15);
-  const overallScore = Math.round((calorieScore + macroScore) / 2);
 
-  // Generate basic recommendations
+  // Bonus for pantry diversity and freshness
+  const diversityBonus = Math.min(
+    15,
+    Object.keys(ingredientAnalysis.categoryDistribution).length * 2
+  );
+  const freshnessBonus = Math.min(10, ingredientAnalysis.freshItems.length * 2);
+  const overallScore = Math.round(
+    (calorieScore + macroScore + diversityBonus + freshnessBonus) / 2
+  );
+
+  // Generate enhanced recommendations based on ingredient analysis
   const recommendations = [];
 
+  // Prioritize expiring items
+  if (ingredientAnalysis.expiringItems.length > 0) {
+    recommendations.push({
+      type: 'recipe' as const,
+      title: `Use expiring ingredients: ${ingredientAnalysis.expiringItems.map(e => e.name).join(', ')}`,
+      description: `These ingredients are expiring soon. Create meals to prevent waste and maximize nutrition.`,
+      priority: 'high' as const,
+      action: 'Generate Quick Recipe',
+    });
+  }
+
   if (proteinStatus === 'low') {
-    const proteinIngredients = ingredients.filter(ing => ing.isProtein);
-    if (proteinIngredients.length > 0) {
+    if (ingredientAnalysis.proteinSources.length > 0) {
       recommendations.push({
         type: 'recipe' as const,
-        title: `Create protein-rich meals with your ${proteinIngredients[0].name}`,
-        description:
-          'Your protein intake is below target. Use your protein sources more frequently.',
+        title: `Create protein-rich meals with your ${ingredientAnalysis.proteinSources[0].name}`,
+        description: `Your protein intake is below target. You have ${ingredientAnalysis.proteinSources.length} protein sources available.`,
         priority: 'high' as const,
         action: 'Generate Protein Recipe',
       });
@@ -259,43 +400,96 @@ function generateFallbackAnalysis(
       recommendations.push({
         type: 'ingredient' as const,
         title: 'Add lean protein sources',
-        description: 'Consider adding chicken, fish, tofu, or legumes to your pantry.',
+        description:
+          'Your pantry lacks protein sources. Consider adding chicken, fish, tofu, or legumes.',
         priority: 'high' as const,
         action: 'Add to Shopping List',
       });
     }
   }
 
-  if (currentNutrition.fiber < 25) {
+  // Low stock recommendations
+  if (ingredientAnalysis.lowStockItems.length > 0) {
     recommendations.push({
       type: 'ingredient' as const,
-      title: 'Increase fiber intake',
-      description: 'Add more vegetables, fruits, and whole grains to meet daily fiber needs.',
+      title: `Restock low items: ${ingredientAnalysis.lowStockItems.map(l => l.name).join(', ')}`,
+      description: 'These items are running low and may affect your meal planning.',
       priority: 'medium' as const,
-      action: 'Find High-Fiber Recipes',
+      action: 'Add to Shopping List',
     });
   }
+
+  if (nutritionData.fiber < 25) {
+    const fiberSources = ingredients.filter(ing =>
+      ['vegetables', 'fruits', 'grains', 'legumes'].includes(ing.category)
+    );
+    recommendations.push({
+      type: fiberSources.length > 0 ? ('recipe' as const) : ('ingredient' as const),
+      title: fiberSources.length > 0 ? 'Create high-fiber meals' : 'Increase fiber intake',
+      description:
+        fiberSources.length > 0
+          ? `Use your ${fiberSources
+              .slice(0, 3)
+              .map(f => f.name)
+              .join(', ')} to boost fiber intake.`
+          : 'Add more vegetables, fruits, and whole grains to meet daily fiber needs.',
+      priority: 'medium' as const,
+      action: fiberSources.length > 0 ? 'Find High-Fiber Recipes' : 'Add to Shopping List',
+    });
+  }
+
+  // Category balance recommendations
+  const categoryCount = Object.keys(ingredientAnalysis.categoryDistribution).length;
+  if (categoryCount < 4) {
+    const missingCategories = ['proteins', 'vegetables', 'fruits', 'grains', 'dairy'].filter(
+      cat => !ingredientAnalysis.categoryDistribution[cat]
+    );
+    if (missingCategories.length > 0) {
+      recommendations.push({
+        type: 'ingredient' as const,
+        title: `Diversify your pantry`,
+        description: `Consider adding ${missingCategories.slice(0, 2).join(' and ')} for better nutritional balance.`,
+        priority: 'low' as const,
+        action: 'Add to Shopping List',
+      });
+    }
+  }
+
+  // Enhanced micronutrient gap analysis
+  const micronutrientGaps = [];
+  if (nutritionData.fiber < 25) micronutrientGaps.push('Fiber');
+  if (nutritionData.sodium > 2300) micronutrientGaps.push('High Sodium');
+  if (ingredientAnalysis.categoryDistribution.vegetables < 3)
+    micronutrientGaps.push('Vitamin C', 'Folate');
+  if (
+    ingredientAnalysis.categoryDistribution.dairy < 1 &&
+    !ingredientAnalysis.dietaryFlags.dairyFree
+  )
+    micronutrientGaps.push('Calcium');
+  if (ingredientAnalysis.proteinSources.length < 2) micronutrientGaps.push('B12', 'Iron');
+  if (!ingredientAnalysis.categoryDistribution.fruits)
+    micronutrientGaps.push('Vitamin A', 'Potassium');
 
   return {
     overallScore,
     macronutrientBalance: {
       protein: {
-        current: currentNutrition.protein,
+        current: nutritionData.protein,
         recommended: Math.round(targetProtein),
         status: proteinStatus,
       },
       carbs: {
-        current: currentNutrition.carbs,
+        current: nutritionData.carbs,
         recommended: Math.round(targetCarbs),
         status: carbStatus,
       },
       fats: {
-        current: currentNutrition.fat,
+        current: nutritionData.fat,
         recommended: Math.round(targetFats),
         status: fatStatus,
       },
     },
-    micronutrientGaps: currentNutrition.fiber < 25 ? ['Fiber', 'Vitamin D', 'Iron'] : ['Vitamin D'],
+    micronutrientGaps,
     recommendations,
   };
 }

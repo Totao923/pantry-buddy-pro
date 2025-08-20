@@ -10,15 +10,24 @@ import { Recipe } from '../../types';
 
 export default function RecipeBooksPage() {
   const router = useRouter();
-  const { user, subscription } = useAuth();
+  const { user, subscription, supabaseClient } = useAuth();
+
+  // Set authenticated client on RecipeService
+  useEffect(() => {
+    if (supabaseClient) {
+      RecipeService.setSupabaseClient(supabaseClient);
+    }
+  }, [supabaseClient]);
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isPremium = subscription?.tier === 'premium';
 
   useEffect(() => {
-    loadSavedRecipes();
-  }, []);
+    if (supabaseClient) {
+      loadSavedRecipes();
+    }
+  }, [supabaseClient, user]);
 
   const loadSavedRecipes = async () => {
     setLoading(true);
