@@ -201,10 +201,10 @@ USER PROFILE:
 - Subscription: ${userProfile?.subscription?.tier || 'free'}
 
 PANTRY ANALYSIS (${ingredientAnalysis.totalItems} items):
-- Protein Sources Available: ${ingredientAnalysis.proteinSources.map(p => p.name).join(', ') || 'None'}
-- Expiring Soon (≤3 days): ${ingredientAnalysis.expiringItems.map(e => `${e.name} (${Math.ceil((new Date(e.expiryDate!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days)`).join(', ') || 'None'}
-- Fresh Items (≤2 days old): ${ingredientAnalysis.freshItems.map(f => f.name).join(', ') || 'None'}
-- Low Stock Items: ${ingredientAnalysis.lowStockItems.map(l => l.name).join(', ') || 'None'}
+- Protein Sources Available: ${ingredientAnalysis.proteinSources.map((p: Ingredient) => p.name).join(', ') || 'None'}
+- Expiring Soon (≤3 days): ${ingredientAnalysis.expiringItems.map((e: Ingredient) => `${e.name} (${Math.ceil((new Date(e.expiryDate!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days)`).join(', ') || 'None'}
+- Fresh Items (≤2 days old): ${ingredientAnalysis.freshItems.map((f: Ingredient) => f.name).join(', ') || 'None'}
+- Low Stock Items: ${ingredientAnalysis.lowStockItems.map((l: Ingredient) => l.name).join(', ') || 'None'}
 - Category Distribution: ${Object.entries(ingredientAnalysis.categoryDistribution)
     .map(([cat, count]) => `${cat}: ${count}`)
     .join(', ')}
@@ -301,7 +301,7 @@ Focus on:
 8. Usage frequency patterns to suggest variety
 
 CRITICAL ANALYSIS POINTS:
-- Prioritize expiring items: ${currentNutrition.ingredientAnalysis.expiringItems.map(e => e.name).join(', ') || 'None'}
+- Prioritize expiring items: ${currentNutrition.ingredientAnalysis.expiringItems.map((e: Ingredient) => e.name).join(', ') || 'None'}
 - Address low stock items for meal planning
 - Leverage fresh ingredients for maximum nutritional value
 - Consider category gaps in pantry for balanced nutrition
@@ -380,7 +380,7 @@ function generateFallbackAnalysis(
   if (ingredientAnalysis.expiringItems.length > 0) {
     recommendations.push({
       type: 'recipe' as const,
-      title: `Use expiring ingredients: ${ingredientAnalysis.expiringItems.map(e => e.name).join(', ')}`,
+      title: `Use expiring ingredients: ${ingredientAnalysis.expiringItems.map((e: Ingredient) => e.name).join(', ')}`,
       description: `These ingredients are expiring soon. Create meals to prevent waste and maximize nutrition.`,
       priority: 'high' as const,
       action: 'Generate Quick Recipe',
@@ -412,7 +412,7 @@ function generateFallbackAnalysis(
   if (ingredientAnalysis.lowStockItems.length > 0) {
     recommendations.push({
       type: 'ingredient' as const,
-      title: `Restock low items: ${ingredientAnalysis.lowStockItems.map(l => l.name).join(', ')}`,
+      title: `Restock low items: ${ingredientAnalysis.lowStockItems.map((l: Ingredient) => l.name).join(', ')}`,
       description: 'These items are running low and may affect your meal planning.',
       priority: 'medium' as const,
       action: 'Add to Shopping List',
@@ -430,7 +430,7 @@ function generateFallbackAnalysis(
         fiberSources.length > 0
           ? `Use your ${fiberSources
               .slice(0, 3)
-              .map(f => f.name)
+              .map((f: Ingredient) => f.name)
               .join(', ')} to boost fiber intake.`
           : 'Add more vegetables, fruits, and whole grains to meet daily fiber needs.',
       priority: 'medium' as const,
