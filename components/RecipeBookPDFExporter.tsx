@@ -509,10 +509,10 @@ export function RecipeBookPDFExporter({
       pdf.setFontSize(templateConfig.subtitleSize + 4);
       pdf.setFont(templateConfig.titleFont, 'bold');
       pdf.text('Table of Contents', margin, currentY);
-      currentY += templateConfig.spacing === 'generous' ? 20 : 15;
+      currentY += selectedTemplate === 'elegant' ? 20 : 15;
 
       // Add decorative line under title for certain templates
-      if (templateConfig.decorations) {
+      if (selectedTemplate === 'elegant') {
         pdf.setLineWidth(0.3);
         pdf.setDrawColor(
           templateConfig.secondaryColor[0],
@@ -533,7 +533,7 @@ export function RecipeBookPDFExporter({
 
       recipeBook.recipes.forEach((recipe, index) => {
         const spacing =
-          templateConfig.spacing === 'compact' ? 6 : templateConfig.spacing === 'generous' ? 8 : 7;
+          selectedTemplate === 'professional' ? 6 : selectedTemplate === 'elegant' ? 8 : 7;
         pdf.text(`${index + 1}. ${recipe.title}`, margin + 5, currentY);
         currentY += spacing;
         if (currentY > pageHeight - margin) {
@@ -556,10 +556,10 @@ export function RecipeBookPDFExporter({
         pdf.setFontSize(templateConfig.subtitleSize + 2);
         pdf.setFont(templateConfig.titleFont, 'bold');
         pdf.text(`${recipeIndex + 1}. ${recipe.title}`, margin, currentY);
-        currentY += templateConfig.spacing === 'generous' ? 15 : 10;
+        currentY += selectedTemplate === 'elegant' ? 15 : 10;
 
         // Add decorative elements for recipe titles
-        if (templateConfig.decorations) {
+        if (selectedTemplate === 'elegant') {
           pdf.setLineWidth(0.2);
           pdf.setDrawColor(
             templateConfig.secondaryColor[0],
@@ -581,7 +581,7 @@ export function RecipeBookPDFExporter({
           );
           const descLines = pdf.splitTextToSize(recipe.description, contentWidth);
           pdf.text(descLines, margin, currentY);
-          currentY += descLines.length * 5 + (templateConfig.spacing === 'generous' ? 12 : 8);
+          currentY += descLines.length * 5 + (selectedTemplate === 'elegant' ? 12 : 8);
         }
 
         // Recipe info with template styling
@@ -620,7 +620,7 @@ export function RecipeBookPDFExporter({
           templateConfig.primaryColor[2]
         );
         pdf.text('Ingredients', margin, currentY);
-        currentY += templateConfig.spacing === 'generous' ? 12 : 8;
+        currentY += selectedTemplate === 'elegant' ? 12 : 8;
 
         pdf.setFontSize(templateConfig.bodySize);
         pdf.setFont(templateConfig.bodyFont, 'normal');
@@ -641,7 +641,7 @@ export function RecipeBookPDFExporter({
           }
         });
 
-        currentY += templateConfig.spacing === 'generous' ? 12 : 8;
+        currentY += selectedTemplate === 'elegant' ? 12 : 8;
 
         // Instructions section with template styling
         pdf.setFontSize(templateConfig.subtitleSize);
@@ -652,7 +652,7 @@ export function RecipeBookPDFExporter({
           templateConfig.primaryColor[2]
         );
         pdf.text('Instructions', margin, currentY);
-        currentY += templateConfig.spacing === 'generous' ? 12 : 8;
+        currentY += selectedTemplate === 'elegant' ? 12 : 8;
 
         pdf.setFontSize(templateConfig.bodySize);
         pdf.setFont(templateConfig.bodyFont, 'normal');
@@ -664,19 +664,14 @@ export function RecipeBookPDFExporter({
 
         recipe.instructions.forEach(instruction => {
           const stepSpacing =
-            templateConfig.spacing === 'compact'
-              ? 4
-              : templateConfig.spacing === 'generous'
-                ? 6
-                : 5;
+            selectedTemplate === 'professional' ? 4 : selectedTemplate === 'elegant' ? 6 : 5;
           const instText =
             selectedTemplate === 'elegant'
               ? `${instruction.step}. ${instruction.instruction}`
               : `${instruction.step}. ${instruction.instruction}`;
           const instLines = pdf.splitTextToSize(instText, contentWidth);
           pdf.text(instLines, margin, currentY);
-          currentY +=
-            instLines.length * stepSpacing + (templateConfig.spacing === 'generous' ? 8 : 5);
+          currentY += instLines.length * stepSpacing + (selectedTemplate === 'elegant' ? 8 : 5);
 
           if (currentY > pageHeight - 30) {
             pdf.addPage();
