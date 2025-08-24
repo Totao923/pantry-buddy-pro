@@ -150,6 +150,10 @@ export default function RecipesBrowser() {
     // Filter and sort recipes
     let filtered = [...recipes];
 
+    // First, filter out deleted recipes
+    const deletedRecipes = JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
+    filtered = filtered.filter(recipe => !deletedRecipes.includes(recipe.id));
+
     // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter(
