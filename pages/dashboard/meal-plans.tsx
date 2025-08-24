@@ -7,7 +7,7 @@ import AuthGuard from '../../components/auth/AuthGuard';
 import MealPlanner from '../../components/MealPlanner';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { aiService } from '../../lib/ai/aiService';
-import { ingredientService } from '../../lib/services/ingredientService';
+import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
 import { MealPlanService } from '../../lib/services/mealPlanService';
 import { Recipe, MealPlan, Ingredient, PlannedMeal } from '../../types';
 import {
@@ -36,7 +36,7 @@ interface WeekDay {
 }
 
 export default function MealPlans() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [currentWeek, setCurrentWeek] = useState<WeekDay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +93,7 @@ export default function MealPlans() {
         setMealPlans(plans);
 
         // Load available ingredients
+        const ingredientService = await getIngredientService();
         const ingredients = await ingredientService.getAllIngredients();
         setAvailableIngredients(ingredients);
 
@@ -367,44 +368,41 @@ export default function MealPlans() {
 
     setGeneratingPlan(true);
     try {
-      const mealTypes = ['breakfast', 'lunch', 'dinner'];
-      const weekWithMeals = [...currentWeek];
+      console.log('🍳 Generating AI meal plan with ingredients:', availableIngredients.length);
 
-      // Generate meals for each day of the week
-      for (let dayIndex = 0; dayIndex < weekWithMeals.length; dayIndex++) {
-        for (const mealType of mealTypes) {
-          try {
-            // Use available ingredients for meal generation
-            const response = await aiService.generateRecipe(
-              {
-                ingredients: availableIngredients.slice(0, 8), // Use up to 8 ingredients
-                cuisine: 'any',
-                servings: 2,
-                preferences: {
-                  maxTime: mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60,
-                  difficulty: 'Easy',
-                },
-              },
-              user.id
-            );
+      // Call the dedicated meal plan generation API
+      const response = await fetch('/api/meal-plans/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ingredients: availableIngredients,
+          userId: user.id,
+          preferences: {
+            difficulty: 'Easy',
+          },
+        }),
+      });
 
-            if (response.success && response.recipe) {
-              (weekWithMeals[dayIndex].meals as any)[mealType] = response.recipe;
-            }
-          } catch (error) {
-            console.error(`Error generating ${mealType} for day ${dayIndex}:`, error);
-          }
-        }
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
       }
 
-      // Update the current week with generated meals
-      setCurrentWeek(weekWithMeals);
+      const result = await response.json();
+
+      if (result.success && result.weekPlan) {
+        console.log('✅ AI meal plan generated successfully');
+        setCurrentWeek(result.weekPlan);
+      } else {
+        throw new Error(result.error || 'Failed to generate meal plan');
+      }
 
       // Convert week structure to PlannedMeal format
       const plannedMeals: any[] = [];
       const startDate = new Date();
 
-      weekWithMeals.forEach((day, dayIndex) => {
+      result.weekPlan.forEach((day: any, dayIndex: number) => {
         const mealDate = new Date(startDate);
         mealDate.setDate(startDate.getDate() + dayIndex);
 
@@ -780,7 +778,15 @@ export default function MealPlans() {
                     Let AI create a balanced meal plan based on your preferences and pantry items.
                   </p>
                   <button
-                    onClick={generateAIMealPlan}
+                    onClick={() => {
+                      console.log('🔍 AI Button Debug:', {
+                        generatingPlan,
+                        availableIngredientsLength: availableIngredients.length,
+                        availableIngredients: availableIngredients.slice(0, 3),
+                        isDisabled: generatingPlan || availableIngredients.length === 0,
+                      });
+                      generateAIMealPlan();
+                    }}
                     disabled={generatingPlan || availableIngredients.length === 0}
                     className="w-full px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -795,7 +801,18 @@ export default function MealPlans() {
                     Generate a shopping list based on your planned meals and current pantry.
                   </p>
                   <button
-                    onClick={generateShoppingList}
+                    onClick={() => {
+                      const hasNoMeals = currentWeek.every(
+                        day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner
+                      );
+                      console.log('🔍 Shopping List Button Debug:', {
+                        currentWeekLength: currentWeek.length,
+                        hasNoMeals,
+                        firstDayMeals: currentWeek[0]?.meals,
+                        isDisabled: hasNoMeals,
+                      });
+                      generateShoppingList();
+                    }}
                     disabled={currentWeek.every(
                       day => !day.meals.breakfast && !day.meals.lunch && !day.meals.dinner
                     )}

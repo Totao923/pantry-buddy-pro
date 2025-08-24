@@ -71,7 +71,7 @@ export default function Dashboard() {
         const ingredientService = await getIngredientService();
         const [ingredientsResult, recipesResult] = await Promise.allSettled([
           ingredientService.getAllIngredients(),
-          loadRecipesFromStorage(),
+          loadRecipesFromService(),
         ]);
 
         // Handle ingredients result
@@ -101,21 +101,54 @@ export default function Dashboard() {
       }
     };
 
-    const loadRecipesFromStorage = () => {
-      return new Promise<Recipe[]>(resolve => {
-        try {
-          const savedRecipes = localStorage.getItem('recentRecipes');
-          if (savedRecipes) {
-            const recipes = JSON.parse(savedRecipes);
-            resolve(recipes.slice(0, 6));
-          } else {
-            resolve([]);
+    const loadRecipesFromService = async () => {
+      try {
+        let allRecipes: Recipe[] = [];
+        const userId = user?.id || 'anonymous';
+
+        // Try to load from database first (same logic as My Recipes)
+        if (user?.id) {
+          try {
+            const dbAvailable = await databaseSettingsService.isAvailable();
+            if (dbAvailable) {
+              const savedResult = await RecipeService.getSavedRecipes(user.id);
+              if (savedResult.success && savedResult.data) {
+                allRecipes = [...allRecipes, ...savedResult.data];
+              }
+
+              const recentItems = await databaseSettingsService.getRecentItems('recipe', 3);
+              if (recentItems.length > 0) {
+                const recentRecipes = recentItems.map(item => item.data);
+                allRecipes = [...allRecipes, ...recentRecipes];
+              }
+            } else {
+              throw new Error('Database not available');
+            }
+          } catch (error) {
+            // Fallback to localStorage using RecipeService
+            const localStorageResult = await RecipeService.getSavedRecipes(userId);
+            if (localStorageResult.success && localStorageResult.data) {
+              allRecipes = [...allRecipes, ...localStorageResult.data];
+            }
           }
-        } catch (error) {
-          console.log('❌ Error parsing recipes:', error);
-          resolve([]);
+        } else {
+          // Anonymous user - use localStorage
+          const localStorageResult = await RecipeService.getSavedRecipes(userId);
+          if (localStorageResult.success && localStorageResult.data) {
+            allRecipes = [...allRecipes, ...localStorageResult.data];
+          }
         }
-      });
+
+        // Remove duplicates and limit to 6 for dashboard
+        const uniqueRecipes = allRecipes.filter(
+          (recipe, index, self) => index === self.findIndex(r => r.id === recipe.id)
+        );
+
+        return uniqueRecipes.slice(0, 3);
+      } catch (error) {
+        console.error('Error loading recipes:', error);
+        return [];
+      }
     };
 
     loadDashboardData();
