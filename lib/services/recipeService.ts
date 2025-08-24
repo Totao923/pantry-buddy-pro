@@ -352,6 +352,7 @@ export class RecipeService {
     try {
       const savedRecipes = JSON.parse(localStorage.getItem('savedRecipes') || '[]');
       const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
+      const deletedRecipes = JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
 
       // Combine both sources and deduplicate by ID
       const allRecipes = [...savedRecipes, ...userRecipes];
@@ -362,17 +363,24 @@ export class RecipeService {
         return acc;
       }, []);
 
+      // Filter out deleted recipes first
+      const nonDeletedRecipes = uniqueRecipes.filter(
+        (recipe: any) => !deletedRecipes.includes(recipe.id)
+      );
+
       // Filter recipes by userId, but handle anonymous users
       let filteredRecipes;
       if (userId === 'anonymous') {
         // For anonymous users, return all recipes regardless of userId
-        filteredRecipes = uniqueRecipes;
+        filteredRecipes = nonDeletedRecipes;
       } else {
         // For authenticated users, filter by exact userId match
-        filteredRecipes = uniqueRecipes.filter((r: any) => r.userId === userId);
+        filteredRecipes = nonDeletedRecipes.filter((r: any) => r.userId === userId);
       }
 
-      console.log(`Found ${filteredRecipes.length} recipes for userId: ${userId}`);
+      console.log(
+        `Found ${filteredRecipes.length} recipes for userId: ${userId} (${deletedRecipes.length} deleted recipes filtered out)`
+      );
 
       return {
         success: true,
@@ -382,6 +390,74 @@ export class RecipeService {
       return {
         success: false,
         error: 'Failed to load saved recipes from local storage',
+      };
+    }
+  }
+
+  /**
+   * Delete a recipe from both database and localStorage
+   */
+  static async deleteRecipe(
+    recipeId: string,
+    userId: string
+  ): Promise<RecipeServiceResponse<boolean>> {
+    try {
+      console.log(`Deleting recipe ${recipeId} for user ${userId}`);
+
+      // Try to delete from database first if available
+      if (await databaseRecipeService.isAvailable()) {
+        try {
+          console.log('Attempting database deletion');
+          // Note: Database deletion would go here when databaseRecipeService.deleteRecipe is implemented
+          // For now, we'll just log this
+          console.log(
+            'Database deletion not yet implemented, proceeding with localStorage cleanup'
+          );
+        } catch (error) {
+          console.log('Database deletion failed, continuing with localStorage cleanup');
+        }
+      }
+
+      // Remove from localStorage (all storage keys that might contain recipes)
+      const storageKeys = ['savedRecipes', 'userRecipes', 'recentRecipes'];
+      for (const key of storageKeys) {
+        const storedData = localStorage.getItem(key);
+        if (storedData) {
+          try {
+            const recipes = JSON.parse(storedData);
+            if (Array.isArray(recipes)) {
+              const filteredRecipes = recipes.filter((recipe: Recipe) => recipe.id !== recipeId);
+              localStorage.setItem(key, JSON.stringify(filteredRecipes));
+              console.log(`Removed recipe ${recipeId} from ${key}`);
+            }
+          } catch (error) {
+            console.log(`Error processing ${key}:`, error);
+          }
+        }
+      }
+
+      // Maintain a list of deleted recipes to prevent them from reappearing
+      const deletedRecipes = JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
+      if (!deletedRecipes.includes(recipeId)) {
+        deletedRecipes.push(recipeId);
+        localStorage.setItem('deletedRecipes', JSON.stringify(deletedRecipes));
+        console.log(`Added recipe ${recipeId} to deleted recipes list`);
+      }
+
+      // Remove from favorites
+      const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+      const updatedFavorites = favorites.filter((id: string) => id !== recipeId);
+      localStorage.setItem('favoriteRecipes', JSON.stringify(updatedFavorites));
+
+      return {
+        success: true,
+        data: true,
+      };
+    } catch (error) {
+      console.error('Error deleting recipe:', error);
+      return {
+        success: false,
+        error: 'Failed to delete recipe',
       };
     }
   }

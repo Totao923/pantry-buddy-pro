@@ -116,8 +116,18 @@ export default function RecipesBrowser() {
           (recipe, index, self) => index === self.findIndex(r => r.id === recipe.id)
         );
 
-        setRecipes(uniqueRecipes);
-        setFilteredRecipes(uniqueRecipes);
+        // Filter out deleted recipes
+        const deletedRecipes = JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
+        const nonDeletedRecipes = uniqueRecipes.filter(
+          recipe => !deletedRecipes.includes(recipe.id)
+        );
+
+        console.log(
+          `Filtered out ${uniqueRecipes.length - nonDeletedRecipes.length} deleted recipes`
+        );
+
+        setRecipes(nonDeletedRecipes);
+        setFilteredRecipes(nonDeletedRecipes);
       } catch (error) {
         console.error('Error loading recipes:', error);
       } finally {
@@ -215,40 +225,12 @@ export default function RecipesBrowser() {
     try {
       const userId = user?.id || 'anonymous';
 
-      // Remove from database if user is authenticated
-      if (user?.id) {
-        try {
-          const dbAvailable = await databaseSettingsService.isAvailable();
-          if (dbAvailable) {
-            // Note: RecipeService doesn't have a delete method yet, so we'll handle localStorage for now
-            console.log('Database deletion would happen here when implemented');
-          }
-        } catch (error) {
-          console.log('Database deletion failed, continuing with localStorage cleanup');
-        }
-      }
+      // Use RecipeService.deleteRecipe method for proper deletion
+      const result = await RecipeService.deleteRecipe(recipeId, userId);
 
-      // Remove from localStorage
-      const storageKeys = ['savedRecipes', 'userRecipes', 'recentRecipes'];
-      for (const key of storageKeys) {
-        const storedData = localStorage.getItem(key);
-        if (storedData) {
-          try {
-            const recipes = JSON.parse(storedData);
-            if (Array.isArray(recipes)) {
-              const filteredRecipes = recipes.filter((recipe: Recipe) => recipe.id !== recipeId);
-              localStorage.setItem(key, JSON.stringify(filteredRecipes));
-            }
-          } catch (error) {
-            console.log(`Error processing ${key}:`, error);
-          }
-        }
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete recipe');
       }
-
-      // Remove from favorites
-      const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
-      const updatedFavorites = favorites.filter((id: string) => id !== recipeId);
-      localStorage.setItem('favoriteRecipes', JSON.stringify(updatedFavorites));
 
       // Update local state
       const updatedRecipes = recipes.filter(recipe => recipe.id !== recipeId);
@@ -271,7 +253,8 @@ export default function RecipesBrowser() {
           }
 
           if (filter === 'favorites') {
-            include = include && updatedFavorites.includes(recipe.id);
+            const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+            include = include && favorites.includes(recipe.id);
           }
 
           return include;
