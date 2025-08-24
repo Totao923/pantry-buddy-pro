@@ -1,13 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { aiService } from '../../../lib/ai/aiService';
-import { Ingredient, Recipe } from '../../../types';
+import { Ingredient, Recipe, DifficultyLevel } from '../../../types';
 
 interface GenerateMealPlanRequest {
   ingredients: Ingredient[];
   userId: string;
   preferences?: {
     maxTime?: number;
-    difficulty?: string;
+    difficulty?: DifficultyLevel;
   };
 }
 
