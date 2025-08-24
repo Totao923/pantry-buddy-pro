@@ -117,10 +117,6 @@ async function generateMealPlanHandler(
               preferences: {
                 maxTime,
                 difficulty: preferences?.difficulty || 'Easy',
-                // Add meal-specific preferences for variety
-                mealType: mealType,
-                dayOfWeek: dayNames[dayIndex],
-                avoidRepeat: true,
               },
             },
             userId
