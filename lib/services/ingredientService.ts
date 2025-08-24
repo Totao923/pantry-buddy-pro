@@ -266,6 +266,105 @@ class IngredientService {
     }
   }
 
+  async deductIngredientsForRecipe(
+    recipeIngredients: any[],
+    servingsCooked: number = 1
+  ): Promise<{ success: boolean; deductions: any[]; insufficientItems: any[] }> {
+    try {
+      console.log(`Deducting ingredients for recipe (${servingsCooked} servings)`);
+
+      const currentIngredients = await this.getAllIngredients();
+      const deductions: any[] = [];
+      const insufficientItems: any[] = [];
+
+      for (const recipeIngredient of recipeIngredients) {
+        const requiredAmount = recipeIngredient.amount * servingsCooked;
+        console.log(
+          `Looking for ${requiredAmount} ${recipeIngredient.unit} of ${recipeIngredient.name}`
+        );
+
+        // Find matching ingredient in pantry (case-insensitive)
+        const pantryIngredient = currentIngredients.find(
+          ing =>
+            ing.name.toLowerCase().includes(recipeIngredient.name.toLowerCase()) ||
+            recipeIngredient.name.toLowerCase().includes(ing.name.toLowerCase())
+        );
+
+        if (pantryIngredient) {
+          const currentQuantity = parseFloat(pantryIngredient.quantity || '0');
+          console.log(
+            `Found ${pantryIngredient.name} with quantity ${currentQuantity} ${pantryIngredient.unit}`
+          );
+
+          if (currentQuantity >= requiredAmount) {
+            // Sufficient quantity - deduct the amount
+            const newQuantity = currentQuantity - requiredAmount;
+
+            await this.updateIngredient(pantryIngredient.id, {
+              quantity: newQuantity.toString(),
+              name: pantryIngredient.name,
+              category: pantryIngredient.category,
+              unit: pantryIngredient.unit,
+              expiryDate: pantryIngredient.expiryDate?.toString(),
+              isProtein: pantryIngredient.isProtein || false,
+              isVegetarian: pantryIngredient.isVegetarian || false,
+              isVegan: pantryIngredient.isVegan || false,
+            });
+
+            deductions.push({
+              ingredient: pantryIngredient.name,
+              deducted: requiredAmount,
+              unit: recipeIngredient.unit,
+              remaining: newQuantity,
+            });
+
+            console.log(
+              `✅ Deducted ${requiredAmount} ${recipeIngredient.unit} of ${pantryIngredient.name}, ${newQuantity} remaining`
+            );
+          } else {
+            // Insufficient quantity
+            insufficientItems.push({
+              ingredient: recipeIngredient.name,
+              required: requiredAmount,
+              available: currentQuantity,
+              unit: recipeIngredient.unit,
+            });
+
+            console.log(
+              `❌ Insufficient ${pantryIngredient.name}: need ${requiredAmount}, have ${currentQuantity}`
+            );
+          }
+        } else {
+          // Ingredient not found in pantry
+          insufficientItems.push({
+            ingredient: recipeIngredient.name,
+            required: requiredAmount,
+            available: 0,
+            unit: recipeIngredient.unit,
+          });
+
+          console.log(`❌ Ingredient not found in pantry: ${recipeIngredient.name}`);
+        }
+      }
+
+      // Clear cache to ensure fresh data on next load
+      this.clearCache();
+
+      return {
+        success: true,
+        deductions,
+        insufficientItems,
+      };
+    } catch (error) {
+      console.error('Error deducting ingredients:', error);
+      return {
+        success: false,
+        deductions: [],
+        insufficientItems: [],
+      };
+    }
+  }
+
   // Cache management
   clearCache(): void {
     this.cache.clear();

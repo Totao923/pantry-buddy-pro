@@ -194,13 +194,67 @@ export default function RecipeDetail() {
     }
   };
 
-  const handleStartCooking = () => {
-    if (recipe) {
-      // Track cooking session (placeholder for future implementation)
+  const handleStartCooking = async () => {
+    if (!recipe) return;
+
+    try {
       console.log('Starting cooking session for:', recipe.title);
 
-      // For now, just show success message
-      alert(`🍳 Happy cooking! Enjoy making ${recipe.title}!`);
+      // First, check if we have enough ingredients in pantry
+      const { getIngredientService } = await import(
+        '../../../lib/services/ingredientServiceFactory'
+      );
+      const pantryService = await getIngredientService();
+
+      // Prompt user about servings and confirm ingredient deduction
+      const servingsInput = prompt(
+        `How many servings are you cooking? (Recipe makes ${recipe.servings} servings)`,
+        recipe.servings.toString()
+      );
+      if (!servingsInput) return; // User cancelled
+
+      const servingsCooked = parseInt(servingsInput) || recipe.servings;
+
+      const confirmDeduction = confirm(
+        `This will deduct ingredients from your pantry inventory for ${servingsCooked} serving(s). Make sure your pantry quantities are accurate before proceeding. Continue?`
+      );
+      if (!confirmDeduction) return; // User cancelled
+
+      // Deduct ingredients from pantry
+      const deductionResult = await pantryService.deductIngredientsForRecipe(
+        recipe.ingredients,
+        servingsCooked
+      );
+
+      if (deductionResult.insufficientItems.length > 0) {
+        const insufficientList = deductionResult.insufficientItems
+          .map(
+            item => `${item.ingredient}: need ${item.required} ${item.unit}, have ${item.available}`
+          )
+          .join('\n');
+
+        alert(
+          `⚠️ Insufficient ingredients in pantry:\n\n${insufficientList}\n\nPlease update your pantry quantities or add missing ingredients before cooking.`
+        );
+        return;
+      }
+
+      // If successful, show deduction summary
+      if (deductionResult.deductions.length > 0) {
+        const deductionSummary = deductionResult.deductions
+          .map(d => `${d.ingredient}: used ${d.deducted} ${d.unit}, ${d.remaining} remaining`)
+          .join('\n');
+
+        alert(
+          `🍳 Cooking started! Ingredients deducted from pantry:\n\n${deductionSummary}\n\nEnjoy cooking ${recipe.title}!`
+        );
+      }
+
+      // Track cooking session
+      console.log('Cooking session started successfully');
+    } catch (error) {
+      console.error('Error starting cooking session:', error);
+      alert('Failed to start cooking session. Please try again.');
     }
   };
 
