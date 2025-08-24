@@ -250,7 +250,7 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
         clearTimeout(analysisTimeoutRef.current);
       }
     };
-  }, [ingredients.length, selectedGoal.id, session?.access_token, analyzeNutrition]);
+  }, [ingredients.length, selectedGoal.id, session?.access_token]);
 
   // Cleanup on unmount
   useEffect(() => {

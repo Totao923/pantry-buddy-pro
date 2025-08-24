@@ -3,6 +3,28 @@ import { aiService } from '../../../lib/ai/aiService';
 import { withAuth } from '../../../lib/middleware/auth';
 import { Ingredient, Recipe, NutritionInfo } from '../../../types';
 
+// Simple in-memory cache to prevent duplicate expensive API calls
+const analysisCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Clean up expired cache entries periodically
+const cleanupCache = () => {
+  const now = Date.now();
+  const entriesRemoved = [];
+  for (const [key, value] of analysisCache.entries()) {
+    if (now - value.timestamp > CACHE_DURATION) {
+      analysisCache.delete(key);
+      entriesRemoved.push(key);
+    }
+  }
+  if (entriesRemoved.length > 0) {
+    console.log(`🧹 Cache cleanup: Removed ${entriesRemoved.length} expired entries`);
+  }
+};
+
+// Run cleanup every 10 minutes
+setInterval(cleanupCache, 10 * 60 * 1000);
+
 interface AnalyzeRequest {
   ingredients: Ingredient[];
   recentRecipes: Recipe[];
@@ -41,11 +63,27 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { ingredients, recentRecipes, healthGoal, userProfile }: AnalyzeRequest = req.body;
 
+    // Create cache key based on request parameters to prevent duplicate expensive calls
+    const cacheKey = JSON.stringify({
+      ingredientsCount: ingredients?.length || 0,
+      ingredientNames: ingredients?.map(i => i.name).sort(),
+      healthGoal: healthGoal?.name,
+      userId: userProfile?.id,
+    });
+
+    // Check cache first to prevent expensive API calls
+    const cached = analysisCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log('🔍 Nutrition API: Returning cached result, avoiding duplicate API call');
+      return res.status(200).json(cached.data);
+    }
+
     console.log('🔍 Nutrition API: Received request:', {
       ingredientsCount: ingredients?.length || 0,
       recentRecipesCount: recentRecipes?.length || 0,
       healthGoal: healthGoal?.name,
       userSubscription: userProfile?.subscription?.tier,
+      cacheKey: cacheKey.substring(0, 100) + '...', // Log truncated cache key
       sampleIngredientData: ingredients?.slice(0, 2).map(ing => ({
         name: ing.name,
         category: ing.category,
@@ -84,6 +122,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       healthGoal,
       currentNutrition,
       userProfile
+    );
+
+    // Cache the result to prevent duplicate expensive API calls
+    analysisCache.set(cacheKey, {
+      data: aiAnalysis,
+      timestamp: Date.now(),
+    });
+
+    console.log(
+      '🔍 Nutrition API: Cached result for future requests, cache size:',
+      analysisCache.size
     );
 
     res.status(200).json(aiAnalysis);
