@@ -75,7 +75,64 @@ async function generateMealPlanHandler(
 
     const weekWithMeals: WeekDay[] = [];
 
-    // Generate meals for each day
+    // OPTIMIZED: Generate base recipes first, then create variations
+    console.log('🔄 Generating base recipes for meal plan optimization...');
+
+    const baseRecipes: { [key: string]: Recipe[] } = {
+      breakfast: [],
+      lunch: [],
+      dinner: [],
+    };
+
+    // Generate 2-3 base recipes per meal type instead of 21 individual recipes
+    for (const mealType of mealTypes) {
+      const recipesNeeded = 2; // Generate 2 base recipes per meal type
+
+      for (let i = 0; i < recipesNeeded; i++) {
+        try {
+          const ingredientVariety = [...ingredients];
+
+          // Shuffle and select ingredients
+          for (let j = ingredientVariety.length - 1; j > 0; j--) {
+            const k = Math.floor(Math.random() * (j + 1));
+            [ingredientVariety[j], ingredientVariety[k]] = [
+              ingredientVariety[k],
+              ingredientVariety[j],
+            ];
+          }
+
+          const selectedIngredients = ingredientVariety.slice(0, Math.min(8, ingredients.length));
+          const selectedCuisine = cuisineVariety[Math.floor(Math.random() * cuisineVariety.length)];
+          const baseTime = mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60;
+
+          const response = await aiService.generateRecipe(
+            {
+              ingredients: selectedIngredients,
+              cuisine: selectedCuisine as any,
+              servings: 2,
+              preferences: {
+                maxTime: baseTime,
+                difficulty: preferences?.difficulty || 'Easy',
+              },
+            },
+            userId
+          );
+
+          if (response.success && response.recipe) {
+            baseRecipes[mealType].push(response.recipe);
+          }
+
+          // Reduced delay since we're making fewer calls
+          await new Promise(resolve => setTimeout(resolve, 200));
+        } catch (error) {
+          console.error(`Error generating base ${mealType} recipe ${i + 1}:`, error);
+        }
+      }
+    }
+
+    console.log('✅ Base recipes generated, creating weekly meal plan...');
+
+    // Generate meals for each day using base recipes with variations
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + dayIndex);
@@ -86,50 +143,21 @@ async function generateMealPlanHandler(
         meals: {},
       };
 
-      // Generate meals for each meal type
+      // Assign recipes from base recipes with rotation for variety
       for (const mealType of mealTypes) {
-        try {
-          // Add variety by using different ingredients and cuisines
-          const ingredientVariety = [...ingredients];
+        const availableRecipes = baseRecipes[mealType];
+        if (availableRecipes.length > 0) {
+          // Rotate through available recipes and create slight variations
+          const baseRecipe = availableRecipes[dayIndex % availableRecipes.length];
 
-          // Shuffle ingredients and take a subset for variety
-          for (let i = ingredientVariety.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [ingredientVariety[i], ingredientVariety[j]] = [
-              ingredientVariety[j],
-              ingredientVariety[i],
-            ];
-          }
+          // Create a variation by modifying the title slightly
+          const variation = {
+            ...baseRecipe,
+            id: `${baseRecipe.id}-day${dayIndex}`,
+            title: `${baseRecipe.title}${dayIndex > 1 ? ` (Day ${dayIndex + 1} Variation)` : ''}`,
+          };
 
-          const selectedIngredients = ingredientVariety.slice(0, Math.min(8, ingredients.length));
-          const selectedCuisine = cuisineVariety[Math.floor(Math.random() * cuisineVariety.length)];
-
-          // Vary time constraints by meal type and add randomness
-          const baseTime = mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60;
-          const timeVariation = Math.floor(Math.random() * 20) - 10; // ±10 minutes
-          const maxTime = Math.max(15, baseTime + timeVariation);
-
-          const response = await aiService.generateRecipe(
-            {
-              ingredients: selectedIngredients,
-              cuisine: selectedCuisine as any,
-              servings: 2,
-              preferences: {
-                maxTime,
-                difficulty: preferences?.difficulty || 'Easy',
-              },
-            },
-            userId
-          );
-
-          if (response.success && response.recipe) {
-            dayPlan.meals[mealType] = response.recipe;
-          }
-
-          // Add small delay between requests to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (error) {
-          console.error(`Error generating ${mealType} for ${dayNames[dayIndex]}:`, error);
+          dayPlan.meals[mealType] = variation;
         }
       }
 

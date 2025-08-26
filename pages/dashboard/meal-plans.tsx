@@ -368,7 +368,10 @@ export default function MealPlans() {
     try {
       console.log('🍳 Generating AI meal plan with ingredients:', availableIngredients.length);
 
-      // Call the dedicated meal plan generation API
+      // Call the dedicated meal plan generation API with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
       const response = await fetch('/api/meal-plans/generate', {
         method: 'POST',
         headers: {
@@ -381,7 +384,10 @@ export default function MealPlans() {
             difficulty: 'Easy',
           },
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`API call failed: ${response.status}`);
@@ -440,9 +446,17 @@ export default function MealPlans() {
       const updatedPlans = [...mealPlans, newMealPlan];
       setMealPlans(updatedPlans);
       localStorage.setItem('userMealPlans', JSON.stringify(updatedPlans));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating AI meal plan:', error);
-      alert('Failed to generate meal plan. Please try again.');
+
+      let errorMessage = 'Failed to generate meal plan. Please try again.';
+      if (error.name === 'AbortError') {
+        errorMessage = 'Meal plan generation timed out. Please try again or use fewer ingredients.';
+      } else if (error.message?.includes('504')) {
+        errorMessage = 'Server is busy generating recipes. Please try again in a moment.';
+      }
+
+      alert(errorMessage);
     } finally {
       setGeneratingPlan(false);
     }
