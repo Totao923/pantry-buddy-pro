@@ -9,7 +9,7 @@ import { useIngredients } from '../contexts/IngredientsProvider';
 // Dynamic imports for heavy components to improve initial load time
 import dynamic from 'next/dynamic';
 
-const AInutritionist = dynamic(
+const AInutritionistComponent = dynamic(
   () => import('../components/AInutritionist').then(mod => ({ default: mod.AInutritionist })),
   {
     loading: () => (
@@ -299,7 +299,7 @@ export default function Dashboard() {
           </div>
 
           {/* AI Nutritionist Section */}
-          <AInutritionist
+          <AInutritionistComponent
             ingredients={ingredients}
             recentRecipes={recentRecipes}
             className="mb-8"

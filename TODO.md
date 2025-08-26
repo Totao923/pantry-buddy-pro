@@ -79,6 +79,7 @@
 - **✅ Fixed DashboardLayout API Conflicts**: Replaced separate `getAllIngredients()` call with shared context
 - **✅ Resolved TypeScript Compilation Errors**: Added optional chaining for safe property access in nutrition data
 - **✅ Cleared Webpack Cache Issues**: Resolved ENOENT pack.gz errors by clearing .next/cache and restarting dev server
+- **✅ Fixed Dashboard Routing Error**: Corrected dynamic import of AInutritionist component to properly handle named export, eliminating "Abort fetching component" error
 
 ### Performance Test Results:
 
