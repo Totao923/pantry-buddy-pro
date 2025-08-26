@@ -105,7 +105,7 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
       return;
     }
 
-    const analysisKey = `${ingredients.length}-${selectedGoal.id}-${session?.access_token ? 'auth' : 'no-auth'}`;
+    const analysisKey = `${ingredients.length}-${recentRecipes.length}-${selectedGoal.id}-${session?.access_token ? 'auth' : 'no-auth'}`;
     const cacheKey = `nutrition-analysis-${analysisKey}`;
 
     // Check cache first
@@ -203,54 +203,7 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
       }
       console.log('✅ AI Nutritionist: Analysis completed, global flag cleared');
     }
-  }, [ingredients.length, selectedGoal.id, session?.access_token]);
-
-  // Single useEffect with much longer debounce and strict deduplication
-  useEffect(() => {
-    // Clear any existing timeout
-    if (analysisTimeoutRef.current) {
-      clearTimeout(analysisTimeoutRef.current);
-    }
-
-    // Create a unique key for this analysis request
-    const analysisKey = `${ingredients.length}-${selectedGoal.id}-${session?.access_token ? 'auth' : 'no-auth'}`;
-
-    // Skip if same parameters as last analysis
-    if (analysisKey === lastAnalysisParamsRef.current) {
-      console.log(
-        '🔄 AI Nutritionist: Skipping duplicate analysis with same parameters:',
-        analysisKey
-      );
-      return;
-    }
-
-    // Check minimum requirements
-    if (ingredients.length === 0 || !session?.access_token) {
-      console.log(
-        '🔄 AI Nutritionist: Missing requirements - ingredients:',
-        ingredients.length,
-        'auth:',
-        !!session?.access_token
-      );
-      return;
-    }
-
-    // Much longer debounce to prevent rapid calls
-    analysisTimeoutRef.current = setTimeout(() => {
-      if (componentMountedRef.current && analysisKey !== lastAnalysisParamsRef.current) {
-        console.log('🔄 AI Nutritionist: Triggering debounced analysis:', analysisKey);
-        lastAnalysisParamsRef.current = analysisKey;
-        analyzeNutrition();
-      }
-    }, 3000); // 3 second debounce
-
-    // Cleanup timeout on dependency change or unmount
-    return () => {
-      if (analysisTimeoutRef.current) {
-        clearTimeout(analysisTimeoutRef.current);
-      }
-    };
-  }, [ingredients.length, selectedGoal.id, session?.access_token]);
+  }, [ingredients.length, recentRecipes.length, selectedGoal.id, session?.access_token]);
 
   // Cleanup on unmount
   useEffect(() => {

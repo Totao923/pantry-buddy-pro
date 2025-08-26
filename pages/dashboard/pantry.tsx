@@ -9,6 +9,7 @@ import ReceiptScanner from '../../components/ReceiptScanner';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import ReceiptReview, { ConfirmedReceiptItem } from '../../components/ReceiptReview';
 import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
+import type { CreateIngredientRequest } from '../../lib/services/ingredientService';
 import { receiptService, ExtractedReceiptData } from '../../lib/services/receiptService';
 import { barcodeService, ProductInfo } from '../../lib/services/barcodeService';
 import { useAuth } from '../../lib/auth/AuthProvider';
@@ -93,6 +94,8 @@ export default function PantryManagement() {
         isProtein: ingredient.isProtein,
         isVegetarian: ingredient.isVegetarian,
         isVegan: ingredient.isVegan,
+        price: ingredient.price,
+        priceSource: ingredient.priceSource || 'estimated',
       });
       setIngredients([...ingredients, newIngredient]);
     } catch (error) {
@@ -158,24 +161,20 @@ export default function PantryManagement() {
 
       // Add confirmed items to pantry
       for (const item of confirmedItems) {
+        if (!item.addToPantry) continue;
+
         const expirationDate = new Date();
         expirationDate.setDate(expirationDate.getDate() + item.expirationDays);
 
-        const pantryItem = {
-          id: uuidv4(),
+        // Convert receipt item to ingredient request format
+        const ingredientRequest: CreateIngredientRequest = {
           name: item.name,
           category: item.category!,
-          currentQuantity: item.quantity,
-          originalQuantity: item.quantity,
+          quantity: item.quantity.toString(),
           unit: item.unit,
-          location: item.storageLocation,
-          price: item.price,
-          brand: item.brand,
-          purchaseDate: currentReceipt.receiptDate,
           expiryDate: expirationDate.toISOString(),
-          isRunningLow: false,
-          usageFrequency: 0,
-          autoReorderLevel: Math.max(1, Math.floor(item.quantity * 0.2)),
+          price: item.price,
+          priceSource: 'receipt',
           isVegetarian:
             item.category !== 'protein' ||
             ['tofu', 'beans', 'eggs'].some(v => item.name.toLowerCase().includes(v)),
@@ -187,7 +186,7 @@ export default function PantryManagement() {
 
         try {
           const ingredientService = await getIngredientService();
-          await ingredientService.createIngredient(pantryItem);
+          await ingredientService.createIngredient(ingredientRequest);
         } catch (error) {
           console.error('Failed to add item to pantry:', error);
         }

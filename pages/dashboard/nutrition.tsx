@@ -207,14 +207,14 @@ export default function NutritionDashboard({
       console.log('🔄 Syncing ingredients from props:', propIngredients.length);
       setIngredients(propIngredients);
     }
-  }, [propIngredients]);
+  }, [propIngredients.length]);
 
   useEffect(() => {
     if (propRecentRecipes.length > 0) {
       console.log('🔄 Syncing recipes from props:', propRecentRecipes.length);
       setRecentRecipes(propRecentRecipes);
     }
-  }, [propRecentRecipes]);
+  }, [propRecentRecipes.length]);
 
   useEffect(() => {
     const loadNutritionData = async () => {
@@ -252,24 +252,28 @@ export default function NutritionDashboard({
           console.log('✅ Using recipes passed from parent:', propRecentRecipes.length);
           setRecentRecipes(propRecentRecipes);
         } else {
-          // Fallback: Load recipes using RecipeService (more reliable than manual localStorage parsing)
+          // Fallback: Load recipes using RecipeService with deleted recipe filtering
           console.log('🔍 Loading recipes using RecipeService...');
           try {
-            if (user?.id) {
-              const recipeServiceResult = await RecipeService.getSavedRecipes(user.id);
-              if (recipeServiceResult.success && recipeServiceResult.data) {
-                console.log(`✅ RecipeService found ${recipeServiceResult.data.length} recipes`);
-                setRecentRecipes(recipeServiceResult.data.slice(0, 20)); // Show last 20 recipes for nutrition analysis
-              } else {
-                console.log(
-                  '❌ RecipeService failed or returned no recipes:',
-                  recipeServiceResult.error
-                );
-                // Fallback to manual localStorage search as last resort
-                await fallbackLoadRecipesFromStorage();
-              }
+            const userId = user?.id || 'anonymous';
+            const recipeServiceResult = await RecipeService.getSavedRecipes(userId);
+            if (recipeServiceResult.success && recipeServiceResult.data) {
+              // Filter out deleted recipes using the same logic as recipes page
+              const deletedRecipes = JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
+              const nonDeletedRecipes = recipeServiceResult.data.filter(
+                recipe => !deletedRecipes.includes(recipe.id)
+              );
+
+              console.log(
+                `✅ RecipeService found ${recipeServiceResult.data.length} recipes, ${nonDeletedRecipes.length} after filtering deleted`
+              );
+              setRecentRecipes(nonDeletedRecipes.slice(0, 20)); // Show last 20 recipes for nutrition analysis
             } else {
-              console.log('👤 No user ID available, falling back to localStorage search');
+              console.log(
+                '❌ RecipeService failed or returned no recipes:',
+                recipeServiceResult.error
+              );
+              // Fallback to manual localStorage search as last resort
               await fallbackLoadRecipesFromStorage();
             }
           } catch (error) {
@@ -314,16 +318,24 @@ export default function NutritionDashboard({
             }
           }
 
-          // Remove duplicates and sort by most recent
+          // Remove duplicates and filter out deleted recipes
           const uniqueRecipes = foundRecipes.filter(
             (recipe, index, self) => index === self.findIndex(r => r.id === recipe.id)
           );
 
-          if (uniqueRecipes.length > 0) {
-            console.log(`✅ Total unique recipes found: ${uniqueRecipes.length}`);
-            setRecentRecipes(uniqueRecipes.slice(0, 20)); // Show last 20 recipes for nutrition analysis
+          // Filter out deleted recipes using the same logic as recipes page
+          const deletedRecipes = JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
+          const nonDeletedRecipes = uniqueRecipes.filter(
+            recipe => !deletedRecipes.includes(recipe.id)
+          );
+
+          if (nonDeletedRecipes.length > 0) {
+            console.log(
+              `✅ Total unique recipes found: ${uniqueRecipes.length}, ${nonDeletedRecipes.length} after filtering deleted`
+            );
+            setRecentRecipes(nonDeletedRecipes.slice(0, 20)); // Show last 20 recipes for nutrition analysis
           } else {
-            console.log('🍲 No recipes found in any localStorage location');
+            console.log('🍲 No recipes found in any localStorage location after filtering deleted');
           }
         }
 
@@ -345,7 +357,7 @@ export default function NutritionDashboard({
     };
 
     loadNutritionData();
-  }, [propIngredients, propRecentRecipes, user?.id]);
+  }, [propIngredients.length, propRecentRecipes.length, user?.id]);
 
   if (loading) {
     return (
@@ -498,8 +510,8 @@ export default function NutritionDashboard({
             <Card className="p-6">
               <h3 className="text-xl font-semibold mb-4">📊 Recent Recipe Nutrition</h3>
               <div className="space-y-4">
-                {/* Debug info in development */}
-                {process.env.NODE_ENV === 'development' && (
+                {/* Debug info - development only (hidden from users) */}
+                {false && process.env.NODE_ENV === 'development' && (
                   <div className="text-xs bg-gray-100 p-2 rounded mb-4">
                     <strong>Debug:</strong> Total recipes: {recentRecipes.length}, With nutrition:{' '}
                     {recentRecipes.filter(recipe => recipe.nutritionInfo).length}
@@ -515,25 +527,18 @@ export default function NutritionDashboard({
                     {recentRecipes.length > 0 && (
                       <div className="mt-2">
                         <strong>Recipe structure sample:</strong>
-                        <pre className="text-xs bg-gray-50 p-1 mt-1 overflow-x-auto">
-                          {JSON.stringify(
-                            {
-                              title: recentRecipes[0]?.title,
-                              hasNutritionInfo: !!recentRecipes[0]?.nutritionInfo,
-                              nutritionKeys: recentRecipes[0]?.nutritionInfo
-                                ? Object.keys(recentRecipes[0].nutritionInfo)
-                                : 'none',
-                              sampleNutrition: recentRecipes[0]?.nutritionInfo
-                                ? {
-                                    calories: recentRecipes[0].nutritionInfo.calories,
-                                    protein: recentRecipes[0].nutritionInfo.protein,
-                                  }
-                                : 'none',
-                            },
-                            null,
-                            2
+                        <div className="text-xs bg-gray-50 p-2 mt-1 rounded border">
+                          <div>Title: {recentRecipes[0]?.title}</div>
+                          <div>
+                            Has Nutrition: {!!recentRecipes[0]?.nutritionInfo ? 'Yes' : 'No'}
+                          </div>
+                          {recentRecipes[0]?.nutritionInfo && (
+                            <div>
+                              Sample: {recentRecipes[0].nutritionInfo?.calories} cal,{' '}
+                              {recentRecipes[0].nutritionInfo?.protein}g protein
+                            </div>
                           )}
-                        </pre>
+                        </div>
                       </div>
                     )}
                   </div>

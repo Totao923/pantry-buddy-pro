@@ -346,6 +346,14 @@ class CookingSessionService {
         if (error.code === 'PGRST116') {
           return null;
         }
+        // Handle 406 Not Acceptable error (table might not exist or be accessible)
+        if (error.code === 'PGRST202' || error.message?.includes('406')) {
+          console.warn(
+            'user_cooking_preferences table not accessible, returning null:',
+            error.message
+          );
+          return null;
+        }
         const handled = handleSupabaseError(error, 'getting user cooking preferences');
         throw new Error(handled.message);
       }

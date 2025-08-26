@@ -10,6 +10,8 @@ export interface CreateIngredientRequest {
   isProtein?: boolean;
   isVegetarian?: boolean;
   isVegan?: boolean;
+  price?: number;
+  priceSource?: 'receipt' | 'estimated';
 }
 
 export interface UpdateIngredientRequest {
@@ -22,6 +24,8 @@ export interface UpdateIngredientRequest {
   isProtein?: boolean;
   isVegetarian?: boolean;
   isVegan?: boolean;
+  price?: number;
+  priceSource?: 'receipt' | 'estimated';
 }
 
 export interface IngredientsResponse {
@@ -75,6 +79,12 @@ class IngredientService {
 
   async createIngredient(ingredientData: CreateIngredientRequest): Promise<Ingredient> {
     try {
+      // Estimate price if not provided
+      const price =
+        ingredientData.price ?? this.estimatePrice(ingredientData.name, ingredientData.category);
+      const priceSource =
+        ingredientData.priceSource ?? (ingredientData.price ? 'receipt' : 'estimated');
+
       // Create ingredient with mock ID for demo mode
       const ingredient: Ingredient = {
         id: `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -87,6 +97,8 @@ class IngredientService {
         isProtein: ingredientData.isProtein ?? false,
         isVegetarian: ingredientData.isVegetarian ?? true,
         isVegan: ingredientData.isVegan ?? true,
+        price,
+        priceSource,
       };
 
       // Add to in-memory storage
@@ -363,6 +375,46 @@ class IngredientService {
         insufficientItems: [],
       };
     }
+  }
+
+  // Price estimation based on item name and category
+  estimatePrice(itemName: string, category: IngredientCategory): number {
+    const name = itemName.toLowerCase();
+
+    // Category-based base pricing
+    const categoryValues: Record<IngredientCategory, number> = {
+      protein: 8.0,
+      vegetables: 3.0,
+      fruits: 4.0,
+      dairy: 5.0,
+      grains: 6.0,
+      oils: 7.0,
+      spices: 2.0,
+      herbs: 3.0,
+      pantry: 4.0,
+      other: 3.0,
+    };
+
+    let basePrice = categoryValues[category] || 3.0;
+
+    // Adjust for premium/organic keywords
+    if (name.includes('organic') || name.includes('premium')) {
+      basePrice *= 1.5;
+    }
+
+    // Specific item adjustments
+    if (name.includes('bread') || name.includes('milk')) return Math.max(basePrice, 3.49);
+    if (name.includes('meat') || name.includes('chicken') || name.includes('beef')) {
+      return Math.max(basePrice, 12.99);
+    }
+    if (name.includes('fish') || name.includes('salmon')) return Math.max(basePrice, 15.99);
+    if (name.includes('cheese')) return Math.max(basePrice, 6.99);
+    if (name.includes('olive oil')) return Math.max(basePrice, 9.99);
+    if (name.includes('cereal') || name.includes('pasta') || name.includes('rice')) {
+      return Math.max(basePrice, 5.49);
+    }
+
+    return basePrice;
   }
 
   // Cache management

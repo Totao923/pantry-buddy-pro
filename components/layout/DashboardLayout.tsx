@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth/AuthProvider';
+import { useIngredients } from '../../contexts/IngredientsProvider';
 import QuickRecipeSuggestions from '../QuickRecipeSuggestions';
-import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -12,24 +12,12 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [pantryItemCount, setPantryItemCount] = useState<number>(0);
   const { user, signOut, subscription } = useAuth();
+  const { ingredients } = useIngredients(); // Use shared ingredients context
   const router = useRouter();
 
-  // Load pantry count for What Should I Cook button
-  useEffect(() => {
-    const loadPantryCount = async () => {
-      try {
-        const service = await getIngredientService();
-        const pantryItems = await service.getAllIngredients();
-        setPantryItemCount(pantryItems.length);
-      } catch (error) {
-        console.error('Failed to load pantry count:', error);
-      }
-    };
-
-    loadPantryCount();
-  }, []);
+  // Use ingredients from context instead of separate API call
+  const pantryItemCount = ingredients.length;
 
   const navigationItems = [
     {

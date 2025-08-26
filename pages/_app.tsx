@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app';
 import { AuthProvider } from '../lib/auth/AuthProvider';
+import { IngredientsProvider } from '../contexts/IngredientsProvider';
 import '../styles/globals.css';
 import { useEffect } from 'react';
 
@@ -12,7 +13,9 @@ export default function App({ Component, pageProps }: AppProps) {
   // Always wrap in AuthProvider to avoid context errors
   return (
     <AuthProvider>
-      <Component {...pageProps} />
+      <IngredientsProvider>
+        <Component {...pageProps} />
+      </IngredientsProvider>
     </AuthProvider>
   );
 }

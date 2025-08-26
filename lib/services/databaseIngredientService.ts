@@ -17,6 +17,8 @@ export interface CreateIngredientRequest {
   isProtein?: boolean;
   isVegetarian?: boolean;
   isVegan?: boolean;
+  price?: number;
+  priceSource?: 'receipt' | 'estimated';
 }
 
 export interface UpdateIngredientRequest {
@@ -29,6 +31,8 @@ export interface UpdateIngredientRequest {
   isProtein?: boolean;
   isVegetarian?: boolean;
   isVegan?: boolean;
+  price?: number;
+  priceSource?: 'receipt' | 'estimated';
 }
 
 export interface IngredientSuggestion {
@@ -80,6 +84,8 @@ class DatabaseIngredientService {
       isProtein: item.is_protein,
       isVegetarian: item.is_vegetarian,
       isVegan: item.is_vegan,
+      price: (item as any).price || undefined,
+      priceSource: (item as any).price_source || undefined,
     };
   }
 
@@ -98,7 +104,9 @@ class DatabaseIngredientService {
       is_protein: ingredient.isProtein ?? false,
       is_vegetarian: ingredient.isVegetarian ?? true,
       is_vegan: ingredient.isVegan ?? true,
-    };
+      price: ingredient.price || null,
+      price_source: ingredient.priceSource || null,
+    } as any;
   }
 
   async getAllIngredients(): Promise<Ingredient[]> {

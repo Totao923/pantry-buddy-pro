@@ -13,6 +13,8 @@ export interface Ingredient {
   isVegan?: boolean;
   isGlutenFree?: boolean;
   isDairyFree?: boolean;
+  price?: number;
+  priceSource?: 'receipt' | 'estimated';
 }
 
 export type IngredientCategory =

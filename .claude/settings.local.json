@@ -40,7 +40,9 @@
       "Bash(./stripe --version)",
       "Bash(./stripe login)",
       "Bash(./stripe listen --forward-to localhost:3001/api/stripe/webhook)",
-      "Bash(./stripe trigger customer.subscription.created)"
+      "Bash(./stripe trigger customer.subscription.created)",
+      "Bash(kill:*)",
+      "Bash(PORT=3000 npm run dev)"
     ],
     "deny": []
   }

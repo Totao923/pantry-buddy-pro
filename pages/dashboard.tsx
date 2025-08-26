@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import AuthGuard from '../components/auth/AuthGuard';
 import { useAuth } from '../lib/auth/AuthProvider';
-import { getIngredientService } from '../lib/services/ingredientServiceFactory';
+import { useIngredients } from '../contexts/IngredientsProvider';
 // Dynamic imports for heavy components to improve initial load time
 import dynamic from 'next/dynamic';
 
@@ -46,57 +46,23 @@ import { Ingredient, Recipe } from '../types';
 export default function Dashboard() {
   // Force deployment update v1.0.1
   const { user, loading: authLoading } = useAuth();
+  const { ingredients } = useIngredients();
   const router = useRouter();
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Removed emergency timeout - rely on proper loading state management
 
-  console.log(
-    '🔍 Dashboard: Component render, authLoading:',
-    authLoading,
-    'user:',
-    user?.id || 'none',
-    'loading:',
-    loading
-  );
-
   useEffect(() => {
-    console.log('📍 Dashboard: Loading dashboard data...');
-
     const loadDashboardData = async () => {
       try {
-        // Load data in parallel for better performance
-        const ingredientService = await getIngredientService();
-        const [ingredientsResult, recipesResult] = await Promise.allSettled([
-          ingredientService.getAllIngredients(),
-          loadRecipesFromService(),
-        ]);
-
-        // Handle ingredients result
-        if (ingredientsResult.status === 'fulfilled') {
-          console.log('✅ Dashboard: Loaded ingredients:', ingredientsResult.value.length);
-          setIngredients(ingredientsResult.value);
-        } else {
-          console.log('❌ Error loading ingredients:', ingredientsResult.reason);
-          setIngredients([]);
-        }
-
-        // Handle recipes result
-        if (recipesResult.status === 'fulfilled') {
-          console.log('✅ Dashboard: Loaded recipes:', recipesResult.value.length);
-          setRecentRecipes(recipesResult.value);
-        } else {
-          console.log('❌ Error loading recipes:', recipesResult.reason);
-          setRecentRecipes([]);
-        }
+        // Only load recipes now - ingredients come from context
+        const recipes = await loadRecipesFromService();
+        setRecentRecipes(recipes);
       } catch (error) {
-        console.error('❌ Dashboard: Unexpected error:', error);
-        setIngredients([]);
+        console.error('Dashboard: Unexpected error loading recipes:', error);
         setRecentRecipes([]);
       } finally {
-        console.log('🏁 Dashboard: Loading complete');
         setLoading(false);
       }
     };

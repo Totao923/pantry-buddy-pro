@@ -7,7 +7,7 @@ import AuthGuard from '../../components/auth/AuthGuard';
 import MealPlanner from '../../components/MealPlanner';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { aiService } from '../../lib/ai/aiService';
-import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
+import { useIngredients } from '../../contexts/IngredientsProvider';
 import { MealPlanService } from '../../lib/services/mealPlanService';
 import { Recipe, MealPlan, Ingredient, PlannedMeal } from '../../types';
 import {
@@ -37,13 +37,13 @@ interface WeekDay {
 
 export default function MealPlans() {
   const { user, session } = useAuth();
+  const { ingredients: availableIngredients } = useIngredients();
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [currentWeek, setCurrentWeek] = useState<WeekDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState(0); // 0 = current week, 1 = next week, etc.
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
-  const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [newPlanWeek, setNewPlanWeek] = useState<WeekDay[]>([]);
@@ -92,10 +92,8 @@ export default function MealPlans() {
         const plans = await MealPlanService.getMealPlans(user.id);
         setMealPlans(plans);
 
-        // Load available ingredients
-        const ingredientService = await getIngredientService();
-        const ingredients = await ingredientService.getAllIngredients();
-        setAvailableIngredients(ingredients);
+        // Ingredients now loaded from context
+        console.log('✅ Meal Plans: Using ingredients from context:', availableIngredients.length);
 
         // Load available recipes from localStorage (will be replaced with API call later)
         const savedRecipes = localStorage.getItem('recentRecipes');
