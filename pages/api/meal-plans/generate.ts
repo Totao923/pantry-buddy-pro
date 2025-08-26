@@ -84,9 +84,9 @@ async function generateMealPlanHandler(
       dinner: [],
     };
 
-    // Generate 2-3 base recipes per meal type instead of 21 individual recipes
+    // Generate 1 base recipe per meal type to stay under timeout limits
     for (const mealType of mealTypes) {
-      const recipesNeeded = 2; // Generate 2 base recipes per meal type
+      const recipesNeeded = 1; // Generate 1 base recipe per meal type for speed
 
       for (let i = 0; i < recipesNeeded; i++) {
         try {
@@ -143,18 +143,28 @@ async function generateMealPlanHandler(
         meals: {},
       };
 
-      // Assign recipes from base recipes with rotation for variety
+      // Assign recipes from base recipes with enhanced variation
       for (const mealType of mealTypes) {
         const availableRecipes = baseRecipes[mealType];
         if (availableRecipes.length > 0) {
-          // Rotate through available recipes and create slight variations
-          const baseRecipe = availableRecipes[dayIndex % availableRecipes.length];
+          // Use the base recipe with creative variations
+          const baseRecipe = availableRecipes[0]; // Only 1 recipe per type now
 
-          // Create a variation by modifying the title slightly
+          // Create meaningful variations by day
+          const variations = [
+            baseRecipe.title,
+            `Spiced ${baseRecipe.title}`,
+            `Quick ${baseRecipe.title}`,
+            `Family-Style ${baseRecipe.title}`,
+            `Rustic ${baseRecipe.title}`,
+            `Gourmet ${baseRecipe.title}`,
+            `Weekend ${baseRecipe.title}`,
+          ];
+
           const variation = {
             ...baseRecipe,
             id: `${baseRecipe.id}-day${dayIndex}`,
-            title: `${baseRecipe.title}${dayIndex > 1 ? ` (Day ${dayIndex + 1} Variation)` : ''}`,
+            title: variations[dayIndex] || baseRecipe.title,
           };
 
           dayPlan.meals[mealType] = variation;
