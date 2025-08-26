@@ -10,24 +10,37 @@ export default function AuthCallback() {
       try {
         const supabase = createSupabaseClient();
 
+        // Handle the auth callback
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession();
 
+        // Check for URL parameters to understand the auth flow
+        const { type, access_token, refresh_token } = router.query;
+
+        console.log('Auth callback:', { type, hasSession: !!session, error });
+
         if (error) {
           console.error('Auth callback error:', error);
-          // Redirect to home with error
-          router.push('/?auth=error');
+          // Redirect to home with specific error message
+          router.push(`/?auth=error&message=${encodeURIComponent(error.message)}`);
           return;
         }
 
-        if (session) {
-          // Successfully authenticated, redirect to dashboard
+        // Handle different auth flow types
+        if (type === 'signup' || type === 'invite') {
+          // Email confirmation successful
+          router.push('/dashboard?welcome=true');
+        } else if (type === 'recovery') {
+          // Password reset flow
+          router.push('/dashboard/settings?reset=true');
+        } else if (session) {
+          // Regular auth flow with active session
           router.push('/dashboard');
         } else {
-          // No session, redirect to home
-          router.push('/');
+          // No session but no error - likely email not confirmed yet
+          router.push('/?auth=check-email');
         }
       } catch (error) {
         console.error('Error in auth callback:', error);

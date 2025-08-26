@@ -272,6 +272,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             name: metadata.name || '',
             ...metadata,
           },
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback`,
         },
       });
 
@@ -396,7 +397,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback`,
         },
       });
 
@@ -439,7 +440,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback`,
       });
 
       if (!error) {

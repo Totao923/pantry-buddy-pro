@@ -81,6 +81,7 @@
 - **✅ Cleared Webpack Cache Issues**: Resolved ENOENT pack.gz errors by clearing .next/cache and restarting dev server
 - **✅ Fixed Dashboard Routing Error**: Corrected dynamic import of AInutritionist component to properly handle named export, eliminating "Abort fetching component" error
 - **✅ Fixed Meal Plan API Timeout**: Optimized from 21 sequential AI calls to 3 calls (1 per meal type), reduced generation time from 4+ minutes to ~30 seconds (87% faster), added 2-minute client timeout and enhanced recipe variations
+- **✅ Fixed Email Confirmation Redirect**: Added missing `emailRedirectTo` option to signUp method, enhanced auth callback to handle different flow types (signup, recovery), fixed password reset redirect to use existing callback route
 
 ### Performance Test Results:
 
