@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserCookingPreferences } from '../../lib/services/cookingSessionService';
+import { useAuth } from '../../lib/auth/AuthProvider';
 
 interface CookingStatsProps {
   className?: string;
@@ -15,20 +16,42 @@ interface CookingStatsData {
 export default function CookingStats({ className = '', compact = false }: CookingStatsProps) {
   const [stats, setStats] = useState<CookingStatsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { session } = useAuth();
 
   useEffect(() => {
-    loadCookingStats();
-  }, []);
+    if (session) {
+      loadCookingStats();
+    } else {
+      setLoading(false);
+    }
+  }, [session]);
 
   const loadCookingStats = async () => {
     try {
-      const response = await fetch('/api/cooking-sessions/stats?type=user');
+      if (!session?.access_token) {
+        console.log('No session available for loading cooking stats');
+        setStats(null);
+        return;
+      }
+
+      const response = await fetch('/api/cooking-sessions/stats?type=user', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (response.ok) {
         const data = await response.json();
+        console.log('CookingStats loaded:', data.data);
         setStats(data.data);
+      } else {
+        console.error('Failed to load cooking stats:', response.status);
+        setStats(null);
       }
     } catch (error) {
       console.error('Error loading cooking stats:', error);
+      setStats(null);
     } finally {
       setLoading(false);
     }
