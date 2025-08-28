@@ -41,6 +41,7 @@ const CookingHistory = dynamic(() => import('../components/cooking/CookingHistor
 });
 import { RecipeService } from '../lib/services/recipeService';
 import { databaseSettingsService } from '../lib/services/databaseSettingsService';
+import { cookingSessionService } from '../lib/services/cookingSessionService';
 import { Ingredient, Recipe } from '../types';
 
 export default function Dashboard() {
@@ -50,6 +51,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
   const [totalRecipesCount, setTotalRecipesCount] = useState<number>(0);
+  const [cookedToday, setCookedToday] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   // Removed emergency timeout - rely on proper loading state management
@@ -65,6 +67,27 @@ export default function Dashboard() {
 
         // Set limited recipes for display (max 3 for better UX)
         setRecentRecipes(allRecipes.slice(0, 3));
+
+        // Load cooking data if user is authenticated
+        if (user) {
+          try {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const todaySessions = await cookingSessionService.getUserRecentCookingActivity(1);
+            const todayCount = todaySessions.filter(session => {
+              const sessionDate = new Date(session.cooked_at);
+              return sessionDate >= today && sessionDate < tomorrow;
+            }).length;
+
+            setCookedToday(todayCount);
+          } catch (cookingError) {
+            console.warn('Failed to load cooking stats:', cookingError);
+            setCookedToday(0);
+          }
+        }
       } catch (error) {
         console.error('Dashboard: Unexpected error loading recipes:', error);
         setRecentRecipes([]);
@@ -125,16 +148,16 @@ export default function Dashboard() {
     };
 
     loadDashboardData();
-  }, []);
+  }, [user]);
 
   const stats = useMemo(
     () => ({
       totalIngredients: ingredients.length,
       totalRecipes: totalRecipesCount, // Use total count, not display count
-      cookedToday: 0, // Placeholder for future implementation
+      cookedToday: cookedToday, // Real cooking data from API
       weeklyGoal: 5, // Placeholder for user preferences
     }),
-    [ingredients.length, totalRecipesCount]
+    [ingredients.length, totalRecipesCount, cookedToday]
   );
 
   const quickActions = useMemo(
