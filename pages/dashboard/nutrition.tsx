@@ -192,8 +192,27 @@ export default function NutritionDashboard({
       localStorage.setItem('sampleIngredients', JSON.stringify(sampleIngredients));
       localStorage.setItem('recentRecipes', JSON.stringify(sampleRecipes));
 
-      // Update state
-      setIngredients(sampleIngredients);
+      // Add sample ingredients to the service (they will appear via global context)
+      for (const ingredient of sampleIngredients) {
+        try {
+          await ingredientService.createIngredient({
+            name: ingredient.name,
+            category: ingredient.category,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
+            expiryDate: ingredient.expiryDate?.toISOString(),
+            isProtein: ingredient.isProtein,
+            isVegetarian: ingredient.isVegetarian,
+            isVegan: ingredient.isVegan,
+            price: ingredient.price,
+            priceSource: ingredient.priceSource || 'estimated',
+          });
+        } catch (error) {
+          console.error('Failed to add sample ingredient:', ingredient.name, error);
+        }
+      }
+
+      // Update recipes state
       setRecentRecipes(sampleRecipes);
 
       console.log('✅ Sample data added successfully');
