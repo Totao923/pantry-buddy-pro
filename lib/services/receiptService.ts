@@ -426,7 +426,7 @@ class ReceiptService {
     ];
 
     // Only treat 'total' as end if it has a dollar amount or comes after items
-    const hasTotalWithAmount = line.match(/total.*\$\d+\.\d{2}/i);
+    const hasTotalWithAmount = !!line.match(/total.*\$\d+\.\d{2}/i);
     const isSimpleTotal = line.toLowerCase().trim() === 'total' && line.includes('$');
 
     const lowerLine = line.toLowerCase();
