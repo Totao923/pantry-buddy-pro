@@ -8,8 +8,9 @@ import QuickSuggestionsCard from '../../components/QuickSuggestionsCard';
 import ReceiptScanner from '../../components/ReceiptScanner';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import ReceiptReview, { ConfirmedReceiptItem } from '../../components/ReceiptReview';
-import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
+import { ingredientService } from '../../lib/services/ingredientService';
 import type { CreateIngredientRequest } from '../../lib/services/ingredientService';
+import { useIngredients } from '../../contexts/IngredientsProvider';
 import { receiptService, ExtractedReceiptData } from '../../lib/services/receiptService';
 import { barcodeService, ProductInfo } from '../../lib/services/barcodeService';
 import { useAuth } from '../../lib/auth/AuthProvider';
@@ -17,9 +18,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { Ingredient, IngredientCategory } from '../../types';
 
 export default function PantryManagement() {
+  console.log('🏠 PANTRY COMPONENT: Initializing...');
   const { user, supabaseClient } = useAuth();
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { ingredients, loading: contextLoading, refetch } = useIngredients();
+  const [loading, setLoading] = useState(false);
+
+  console.log('🏠 PANTRY COMPONENT: Initial state - ingredients count:', ingredients.length);
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showReceiptReview, setShowReceiptReview] = useState(false);
@@ -32,24 +36,8 @@ export default function PantryManagement() {
   });
 
   useEffect(() => {
-    loadIngredients();
-  }, []);
-
-  useEffect(() => {
     calculateStats();
   }, [ingredients]);
-
-  const loadIngredients = async () => {
-    try {
-      const ingredientService = await getIngredientService();
-      const userIngredients = await ingredientService.getAllIngredients();
-      setIngredients(userIngredients);
-    } catch (error) {
-      console.error('Error loading ingredients:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const calculateStats = () => {
     const total = ingredients.length;
@@ -83,7 +71,6 @@ export default function PantryManagement() {
 
   const handleAddIngredient = async (ingredient: Ingredient) => {
     try {
-      const ingredientService = await getIngredientService();
       const newIngredient = await ingredientService.createIngredient({
         name: ingredient.name,
         category: ingredient.category,
@@ -97,7 +84,10 @@ export default function PantryManagement() {
         price: ingredient.price,
         priceSource: ingredient.priceSource || 'estimated',
       });
-      setIngredients([...ingredients, newIngredient]);
+
+      // Refresh the global context so all components get updated data
+      await refetch();
+      console.log('✅ Ingredient added, context refreshed');
     } catch (error) {
       console.error('Error adding ingredient:', error);
     }
@@ -105,9 +95,10 @@ export default function PantryManagement() {
 
   const handleRemoveIngredient = async (id: string) => {
     try {
-      const ingredientService = await getIngredientService();
       await ingredientService.deleteIngredient(id);
-      setIngredients(ingredients.filter(ing => ing.id !== id));
+      // Refresh the global context so all components get updated data
+      await refetch();
+      console.log('✅ Ingredient removed, context refreshed');
     } catch (error) {
       console.error('Error removing ingredient:', error);
     }
@@ -115,7 +106,6 @@ export default function PantryManagement() {
 
   const handleUpdateIngredient = async (ingredient: Ingredient) => {
     try {
-      const ingredientService = await getIngredientService();
       const updatedIngredient = await ingredientService.updateIngredient(ingredient.id, {
         name: ingredient.name,
         category: ingredient.category,
@@ -127,7 +117,9 @@ export default function PantryManagement() {
         isVegetarian: ingredient.isVegetarian,
         isVegan: ingredient.isVegan,
       });
-      setIngredients(ingredients.map(ing => (ing.id === ingredient.id ? updatedIngredient : ing)));
+      // Refresh the global context so all components get updated data
+      await refetch();
+      console.log('✅ Ingredient updated, context refreshed');
     } catch (error) {
       console.error('Error updating ingredient:', error);
     }
@@ -140,9 +132,10 @@ export default function PantryManagement() {
       )
     ) {
       try {
-        const ingredientService = await getIngredientService();
         await ingredientService.clearAllIngredients();
-        setIngredients([]);
+        // Refresh the global context so all components get updated data
+        await refetch();
+        console.log('✅ All ingredients cleared, context refreshed');
       } catch (error) {
         console.error('Error clearing ingredients:', error);
       }
@@ -150,55 +143,18 @@ export default function PantryManagement() {
   };
 
   const handleReceiptConfirmed = async (confirmedItems: ConfirmedReceiptItem[]) => {
-    if (!currentReceipt || !user) return;
+    console.log('📋 handleReceiptConfirmed called with', confirmedItems.length, 'items');
 
-    setLoading(true);
-    setError(null);
-
+    // Items are already added by ReceiptReview component, so just refresh the context
     try {
-      // Save receipt data
-      await receiptService.saveReceiptData(currentReceipt, user.id, supabaseClient);
-
-      // Add confirmed items to pantry
-      for (const item of confirmedItems) {
-        if (!item.addToPantry) continue;
-
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + item.expirationDays);
-
-        // Convert receipt item to ingredient request format
-        const ingredientRequest: CreateIngredientRequest = {
-          name: item.name,
-          category: item.category!,
-          quantity: item.quantity.toString(),
-          unit: item.unit,
-          expiryDate: expirationDate.toISOString(),
-          price: item.price,
-          priceSource: 'receipt',
-          isVegetarian:
-            item.category !== 'protein' ||
-            ['tofu', 'beans', 'eggs'].some(v => item.name.toLowerCase().includes(v)),
-          isVegan:
-            !['dairy', 'protein'].includes(item.category!) ||
-            ['tofu', 'beans'].some(v => item.name.toLowerCase().includes(v)),
-          isProtein: item.category === 'protein',
-        };
-
-        try {
-          const ingredientService = await getIngredientService();
-          await ingredientService.createIngredient(ingredientRequest);
-        } catch (error) {
-          console.error('Failed to add item to pantry:', error);
-        }
-      }
-
-      // Reload ingredients to show new items in pantry
-      await loadIngredients();
+      console.log('🔄 Refreshing global context after receipt confirmation...');
+      await refetch();
 
       // Show success and close review
       alert(`Successfully added ${confirmedItems.length} items to your pantry!`);
       setShowReceiptReview(false);
       setCurrentReceipt(null);
+      console.log('✅ Receipt confirmed, context refreshed');
     } catch (error) {
       console.error('Failed to confirm receipt:', error);
       setError('Failed to save receipt data. Please try again.');
@@ -211,7 +167,7 @@ export default function PantryManagement() {
     .filter(([, count]) => count > 0)
     .sort(([, a], [, b]) => b - a);
 
-  if (loading) {
+  if (contextLoading || loading) {
     return (
       <AuthGuard>
         <DashboardLayout>

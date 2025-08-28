@@ -9,7 +9,7 @@ import EnhancedRecipeCard from '../../components/EnhancedRecipeCard';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { RecipeService } from '../../lib/services/recipeService';
 // Dynamic import for AdvancedRecipeEngine to reduce initial bundle size
-import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
+import { ingredientService } from '../../lib/services/ingredientService';
 // Removed direct databaseRecipeService import - using RecipeService instead
 import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
 import { Ingredient, Recipe, CuisineType } from '../../types';
@@ -38,7 +38,6 @@ export default function CreateRecipe() {
         '📦 Filling pantry with ingredients:',
         tempIngredients.map(ing => ing.name)
       );
-      const ingredientService = await getIngredientService();
 
       for (const ingredient of tempIngredients) {
         // Skip if ingredient is already marked as temporary (starts with temp_)
@@ -101,7 +100,6 @@ export default function CreateRecipe() {
       }
 
       // For permanent ingredients, remove from database
-      const ingredientService = await getIngredientService();
       await ingredientService.deleteIngredient(id);
       setIngredients(ingredients.filter(ing => ing.id !== id));
     } catch (error) {
@@ -112,7 +110,6 @@ export default function CreateRecipe() {
 
   const handleUpdateIngredient = async (ingredient: Ingredient) => {
     try {
-      const ingredientService = await getIngredientService();
       const updatedIngredient = await ingredientService.updateIngredient(ingredient.id, {
         name: ingredient.name,
         category: ingredient.category,

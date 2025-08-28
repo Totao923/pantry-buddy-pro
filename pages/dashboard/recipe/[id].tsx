@@ -201,10 +201,8 @@ export default function RecipeDetail() {
       console.log('Starting cooking session for:', recipe.title);
 
       // First, check if we have enough ingredients in pantry
-      const { getIngredientService } = await import(
-        '../../../lib/services/ingredientServiceFactory'
-      );
-      const pantryService = await getIngredientService();
+      const { ingredientService } = await import('../../../lib/services/ingredientService');
+      const pantryService = ingredientService;
 
       // Prompt user about servings and confirm ingredient deduction
       const servingsInput = prompt(

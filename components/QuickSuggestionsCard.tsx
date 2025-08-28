@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getIngredientService } from '../lib/services/ingredientServiceFactory';
+import { ingredientService } from '../lib/services/ingredientService';
 import QuickRecipeSuggestions from './QuickRecipeSuggestions';
 
 interface QuickSuggestionsCardProps {
@@ -19,8 +19,7 @@ export default function QuickSuggestionsCard({
   useEffect(() => {
     const loadPantryStats = async () => {
       try {
-        const service = await getIngredientService();
-        const pantryItems = await service.getAllIngredients();
+        const pantryItems = await ingredientService.getAllIngredients();
         setPantryItemCount(pantryItems.length);
 
         // Calculate expiring items (within 3 days)

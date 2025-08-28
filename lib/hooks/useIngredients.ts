@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Ingredient, IngredientCategory } from '../../types';
-import { getIngredientService } from '../services/ingredientServiceFactory';
+import { ingredientService } from '../services/ingredientService';
 
 export interface CreateIngredientRequest {
   name: string;
@@ -51,8 +51,7 @@ export function useIngredients(): UseIngredientsResult {
     try {
       setLoading(true);
       setError(null);
-      const service = await getIngredientService();
-      const fetchedIngredients = await service.getAllIngredients();
+      const fetchedIngredients = await ingredientService.getAllIngredients();
       setIngredients(fetchedIngredients);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch ingredients';
@@ -67,8 +66,7 @@ export function useIngredients(): UseIngredientsResult {
     async (ingredientData: CreateIngredientRequest): Promise<Ingredient> => {
       try {
         setError(null);
-        const service = await getIngredientService();
-        const newIngredient = await service.createIngredient(ingredientData);
+        const newIngredient = await ingredientService.createIngredient(ingredientData);
         setIngredients(prev => [...prev, newIngredient]);
         return newIngredient;
       } catch (err) {
@@ -84,8 +82,7 @@ export function useIngredients(): UseIngredientsResult {
     async (id: string, updates: UpdateIngredientRequest): Promise<Ingredient> => {
       try {
         setError(null);
-        const service = await getIngredientService();
-        const updatedIngredient = await service.updateIngredient(id, updates);
+        const updatedIngredient = await ingredientService.updateIngredient(id, updates);
         setIngredients(prev =>
           prev.map(ingredient => (ingredient.id === id ? updatedIngredient : ingredient))
         );
@@ -102,8 +99,7 @@ export function useIngredients(): UseIngredientsResult {
   const deleteIngredient = useCallback(async (id: string): Promise<void> => {
     try {
       setError(null);
-      const service = await getIngredientService();
-      await service.deleteIngredient(id);
+      await ingredientService.deleteIngredient(id);
       setIngredients(prev => prev.filter(ingredient => ingredient.id !== id));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete ingredient';
@@ -115,8 +111,7 @@ export function useIngredients(): UseIngredientsResult {
   const clearAllIngredients = useCallback(async (): Promise<void> => {
     try {
       setError(null);
-      const service = await getIngredientService();
-      await service.clearAllIngredients();
+      await ingredientService.clearAllIngredients();
       setIngredients([]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to clear ingredients';

@@ -39,6 +39,37 @@ class IngredientService {
   private cache = new Map<string, { data: Ingredient[]; timestamp: number }>();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
   private mockIngredients: Ingredient[] = []; // In-memory storage for mock mode
+  private readonly STORAGE_KEY = 'pantry-ingredients';
+
+  constructor() {
+    // Load ingredients from localStorage on initialization
+    this.loadFromStorage();
+  }
+
+  private loadFromStorage(): void {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        if (stored) {
+          this.mockIngredients = JSON.parse(stored);
+          console.log('💾 Loaded', this.mockIngredients.length, 'ingredients from localStorage');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading ingredients from localStorage:', error);
+    }
+  }
+
+  private saveToStorage(): void {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.mockIngredients));
+        console.log('💾 Saved', this.mockIngredients.length, 'ingredients to localStorage');
+      }
+    } catch (error) {
+      console.error('Error saving ingredients to localStorage:', error);
+    }
+  }
 
   async getAllIngredients(): Promise<Ingredient[]> {
     try {
@@ -104,6 +135,9 @@ class IngredientService {
       // Add to in-memory storage
       this.mockIngredients.push(ingredient);
 
+      // Save to localStorage for persistence
+      this.saveToStorage();
+
       // Invalidate cache
       this.cache.delete('all');
 
@@ -136,6 +170,9 @@ class IngredientService {
       // Replace in mock storage
       this.mockIngredients[ingredientIndex] = updatedIngredient;
 
+      // Save to localStorage for persistence
+      this.saveToStorage();
+
       // Invalidate cache
       this.cache.delete('all');
 
@@ -158,6 +195,9 @@ class IngredientService {
       // Remove from mock storage
       this.mockIngredients.splice(ingredientIndex, 1);
 
+      // Save to localStorage for persistence
+      this.saveToStorage();
+
       // Invalidate cache
       this.cache.delete('all');
     } catch (error) {
@@ -170,6 +210,11 @@ class IngredientService {
     try {
       // Clear all ingredients from mock storage
       this.mockIngredients = [];
+
+      // Clear localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(this.STORAGE_KEY);
+      }
 
       // Invalidate cache
       this.cache.delete('all');

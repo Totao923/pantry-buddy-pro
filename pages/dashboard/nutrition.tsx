@@ -4,8 +4,9 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
 import { AInutritionist } from '../../components/AInutritionist';
 import { useAuth } from '../../lib/auth/AuthProvider';
-import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
+import { ingredientService } from '../../lib/services/ingredientService';
 import { RecipeService } from '../../lib/services/recipeService';
+import { useIngredients } from '../../contexts/IngredientsProvider';
 import { Ingredient, Recipe } from '../../types';
 import { Card } from '../../components/ui/Card';
 
@@ -19,7 +20,7 @@ export default function NutritionDashboard({
   recentRecipes: propRecentRecipes = [],
 }: NutritionDashboardProps = {}) {
   const { user } = useAuth();
-  const [ingredients, setIngredients] = useState<Ingredient[]>(propIngredients);
+  const { ingredients, loading: contextLoading } = useIngredients();
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>(propRecentRecipes);
   const [loading, setLoading] = useState(true);
 
@@ -202,12 +203,7 @@ export default function NutritionDashboard({
   };
 
   // Sync props to state immediately when they change
-  useEffect(() => {
-    if (propIngredients.length > 0) {
-      console.log('🔄 Syncing ingredients from props:', propIngredients.length);
-      setIngredients(propIngredients);
-    }
-  }, [propIngredients.length]);
+  // No longer need to sync ingredients from props since we use global context
 
   useEffect(() => {
     if (propRecentRecipes.length > 0) {
@@ -219,33 +215,13 @@ export default function NutritionDashboard({
   useEffect(() => {
     const loadNutritionData = async () => {
       try {
-        console.log('🍽️ Nutrition Dashboard: Initializing with data...', {
-          propIngredientsCount: propIngredients.length,
-          propRecipesCount: propRecentRecipes.length,
-          currentIngredientsCount: ingredients.length,
-          currentRecipesCount: recentRecipes.length,
+        console.log('🍽️ Nutrition Dashboard: Using global context ingredients:', {
+          count: ingredients.length,
+          contextLoading,
+          ingredientNames: ingredients.map(i => i.name).slice(0, 3),
         });
 
-        // If props were provided, use them directly (from parent dashboard)
-        if (propIngredients.length > 0) {
-          console.log('✅ Using ingredients passed from parent:', propIngredients.length);
-          setIngredients(propIngredients);
-        } else {
-          // Fallback: Load ingredients using service (for direct navigation)
-          const ingredientService = await getIngredientService();
-          const userIngredients = await ingredientService.getAllIngredients();
-          console.log('🥬 Nutrition Dashboard: Loaded ingredients from service:', {
-            count: userIngredients.length,
-            service: ingredientService.constructor.name,
-            sampleItems: userIngredients.slice(0, 3).map(ing => ({
-              id: ing.id,
-              name: ing.name,
-              category: ing.category,
-              quantity: ing.quantity,
-            })),
-          });
-          setIngredients(userIngredients);
-        }
+        // Ingredients now come from global context, no need to load them locally
 
         // If props were provided, use them directly
         if (propRecentRecipes.length > 0) {
@@ -357,9 +333,9 @@ export default function NutritionDashboard({
     };
 
     loadNutritionData();
-  }, [propIngredients.length, propRecentRecipes.length, user?.id]);
+  }, [propRecentRecipes.length, user?.id]);
 
-  if (loading) {
+  if (contextLoading || loading) {
     return (
       <AuthGuard requireAuth={false}>
         <DashboardLayout>

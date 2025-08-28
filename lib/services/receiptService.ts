@@ -275,26 +275,35 @@ class ReceiptService {
 
     // Enhanced parsing - try multiple strategies
 
-    // Strategy 1: Look for items after section headers (strict)
+    // Strategy 1: Look for items with more flexible parsing
     let inItemSection = false;
     let pendingItemName = '';
     const sectionHeaders = ['GROCERY', 'PRODUCE', 'DAIRY', 'MEAT', 'FROZEN', 'BAKERY', 'DELI'];
+    let startedItemProcessing = false;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (line.length < 2) continue;
 
-      // Start collecting items ONLY after explicit section headers
+      // Start collecting items after explicit section headers OR after reasonable number of header lines
       if (sectionHeaders.some(header => line === header || line.includes(header))) {
         inItemSection = true;
+        startedItemProcessing = true;
         console.log(`📦 Entering section: ${line}`);
         continue;
       }
 
-      // Skip processing if we haven't reached a section header yet
-      if (!inItemSection) {
-        console.log(`⏭️ Skipping header line: "${line}"`);
+      // Skip obvious store header lines (first few lines with store info)
+      if (!startedItemProcessing && this.isStoreHeaderLine(line, i)) {
+        console.log(`⏭️ Skipping store header line: "${line}"`);
         continue;
+      }
+
+      // Start processing items after store header section
+      if (!startedItemProcessing && i >= 0) {
+        inItemSection = true;
+        startedItemProcessing = true;
+        console.log('📦 Starting item processing after store headers');
       }
 
       // Stop at obvious end markers
@@ -322,7 +331,7 @@ class ReceiptService {
       }
 
       // Pattern 1: Price line following item name
-      const priceOnlyMatch = line.match(/^\$(\d+\.\d{2})\s*([A-Z]*)?$/);
+      const priceOnlyMatch = line.match(/^(?:\$)?(\d+\.\d{2})\s*([A-Z]*)?$/);
       if (priceOnlyMatch && pendingItemName) {
         const price = parseFloat(priceOnlyMatch[1]);
         const cleanName = this.cleanItemName(pendingItemName);
@@ -338,7 +347,7 @@ class ReceiptService {
       // Pattern 2: Item name and price on same line
       const combinedPatterns = [
         /^(.+?)\s+\$(\d+\.\d{2})\s*([A-Z]*)?$/, // "Item Name $X.XX"
-        /^(.+?)\s+(\d+\.\d{2})\s*$/, // "Item Name X.XX"
+        /^(.+?)\s+(\d+\.\d{2})\s*([A-Z]*)?$/, // "Item Name X.XX F"
         /^(.+?)\$(\d+\.\d{2})/, // "Item Name$X.XX"
       ];
 
@@ -403,7 +412,6 @@ class ReceiptService {
     const endMarkers = [
       'subtotal',
       'sub total',
-      'total',
       'tax',
       'balance',
       'payment',
@@ -415,14 +423,17 @@ class ReceiptService {
       'debit',
       'thank you',
       'thanks',
-      'receipt',
-      'duplicate',
     ];
+
+    // Only treat 'total' as end if it has a dollar amount or comes after items
+    const hasTotalWithAmount = line.match(/total.*\$\d+\.\d{2}/i);
+    const isSimpleTotal = line.toLowerCase().trim() === 'total' && line.includes('$');
 
     const lowerLine = line.toLowerCase();
     return (
       endMarkers.some(marker => lowerLine.includes(marker)) ||
-      !!line.match(/total.*\$\d+\.\d{2}/i) ||
+      hasTotalWithAmount ||
+      isSimpleTotal ||
       !!line.match(/tax.*\$\d+\.\d{2}/i)
     );
   }
@@ -433,6 +444,9 @@ class ReceiptService {
 
     // Skip obvious non-items
     if (this.isSkippableLine(line.toLowerCase())) return false;
+
+    // Skip store information lines anywhere in the receipt
+    if (this.isStoreInfoLine(line)) return false;
 
     // Skip lines that are just numbers, dates, or addresses
     if (line.match(/^\d+$/)) return false;
@@ -507,8 +521,13 @@ class ReceiptService {
         continue;
       }
 
-      // Only process items after we've found a section header
-      if (!foundSectionHeader || !inItemSection) {
+      // If no section header found, start processing items immediately
+      if (!foundSectionHeader && i >= 0) {
+        inItemSection = true;
+      }
+
+      // Only process items after we've found a section header OR started processing
+      if (!inItemSection) {
         continue;
       }
 
@@ -520,6 +539,9 @@ class ReceiptService {
 
       // Skip if it's obviously not an item
       if (this.isSkippableLine(trimmed.toLowerCase())) continue;
+
+      // Skip store information lines anywhere in the receipt
+      if (this.isStoreInfoLine(trimmed)) continue;
 
       // Skip obvious header patterns (store names, addresses, etc.)
       if (this.isHeaderLine(trimmed, i)) continue;
@@ -563,6 +585,67 @@ class ReceiptService {
 
     console.log(`🔄 Fallback found ${fallbackItems.length} additional items`);
     return fallbackItems.slice(0, 15); // Reduced limit to avoid false positives
+  }
+
+  private isStoreHeaderLine(line: string, lineIndex: number): boolean {
+    // Only check first 4 lines for store headers
+    if (lineIndex > 3) return false;
+
+    return this.isStoreInfoLine(line);
+  }
+
+  private isStoreInfoLine(line: string): boolean {
+    // Phone number patterns (most specific first)
+    if (line.match(/^\(\d{3}\)-?\d{3}-?\d{4}$/)) {
+      return true; // "(201)-649-0888"
+    }
+
+    // City, state, zip patterns
+    if (line.match(/^[A-Z\s]+,\s+[A-Z]{2}\s+\d{5}$/)) {
+      return true; // "PARAMUS, NJ 07652"
+    }
+
+    // Address patterns (number followed by street name)
+    if (line.match(/^\d+\s+[A-Za-z\s]+$/) && !line.match(/\d+\.\d{2}/)) {
+      return true; // "700 Paramus Park"
+    }
+
+    // Store names - be more specific to avoid grocery items
+    // Look for patterns that are likely store names vs grocery items
+    if (line.match(/^[A-Za-z\s&'-]+$/) && !line.match(/\d+\.\d{2}/)) {
+      // Common store name patterns
+      if (
+        line.match(/'s$/) || // "Leonard's", "McDonald's"
+        line.match(
+          /\b(store|market|shop|mart|foods|grocery|company|inc|corp|llc|supermarket)\b/i
+        ) ||
+        line.match(/^[A-Z][a-z]+\s+[A-Z][a-z]+$/)
+      ) {
+        // "Stew Leonard"
+        return true;
+      }
+
+      // Specific CTown patterns
+      if (line.match(/^(CTOWN|TOWN)$/i)) {
+        return true; // Store name components
+      }
+
+      // Transaction/receipt info patterns
+      if (line.match(/^(SE|DUPLICATE|\*+\s*DUPLICATE\s*\*+)$/i)) {
+        return true;
+      }
+
+      // If it looks like a grocery abbreviation, don't filter it
+      if (
+        line.match(
+          /\b(CRM|MLK|CHZ|BRD|YGT|LTT|TOM|APP|ORG|GRFK|VAN|ICE|OAT|PLNT|CHIA|SEED|SODA|CRACKERS|BLEACH|COLA|CHERRY|COCONUT|JUICE)\b/i
+        )
+      ) {
+        return false; // Keep grocery abbreviations and food words
+      }
+    }
+
+    return false;
   }
 
   private isHeaderLine(line: string, lineIndex: number): boolean {
@@ -713,8 +796,11 @@ class ReceiptService {
   }
 
   private cleanItemName(name: string): string {
+    // First expand abbreviated names
+    let expanded = this.expandAbbreviations(name);
+
     // Remove common store prefixes/suffixes and clean up
-    return name
+    return expanded
       .replace(/^(ORGANIC|ORG)\s+/i, '')
       .replace(/\s+(ORGANIC|ORG)$/i, '')
       .replace(/\s+\d+\s*(LB|OZ|CT|GAL)S?$/i, '')
@@ -722,6 +808,86 @@ class ReceiptService {
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
+  }
+
+  private expandAbbreviations(name: string): string {
+    // Common grocery item abbreviation mappings
+    const abbreviations: Record<string, string> = {
+      // Ice cream variations
+      'HP VAN ICE CRM': 'Half Vanilla Ice Cream',
+      'VAN ICE CRM': 'Vanilla Ice Cream',
+      'CHOC ICE CRM': 'Chocolate Ice Cream',
+      'STRAW ICE CRM': 'Strawberry Ice Cream',
+      'ICE CRM': 'Ice Cream',
+
+      // Milk variations
+      'GARELCK 2% MILK': 'Garelick 2% Milk',
+      GARELCK: 'Garelick Milk',
+      '2% MILK': '2% Milk',
+      'WHOLE MILK': 'Whole Milk',
+      'SKIM MILK': 'Skim Milk',
+
+      // Fruit variations
+      'PLUM GRFK ORG': 'Plum Greek Organic',
+      GRFK: 'Greek',
+
+      // Pie and desserts
+      'HALF APPLE PIE': 'Half Apple Pie',
+      'APPLE PIE': 'Apple Pie',
+
+      // Common abbreviations
+      CHKN: 'Chicken',
+      CHK: 'Chicken',
+      BRD: 'Bread',
+      MLK: 'Milk',
+      CHZ: 'Cheese',
+      BTR: 'Butter',
+      YGT: 'Yogurt',
+      CRM: 'Cream',
+      LTT: 'Lettuce',
+      TOM: 'Tomato',
+      POT: 'Potato',
+      BAN: 'Banana',
+      APP: 'Apple',
+      ORG: 'Orange',
+      LMN: 'Lemon',
+      LIM: 'Lime',
+      AVK: 'Avocado',
+      CUC: 'Cucumber',
+      CAR: 'Carrot',
+      ONI: 'Onion',
+      GAR: 'Garlic',
+      CEL: 'Celery',
+      PEP: 'Pepper',
+      BRC: 'Broccoli',
+      SPN: 'Spinach',
+      RIC: 'Rice',
+      PAS: 'Pasta',
+      CER: 'Cereal',
+      EGG: 'Eggs',
+      BAC: 'Bacon',
+      HAM: 'Ham',
+      BGF: 'Beef',
+      PRK: 'Pork',
+      FSH: 'Fish',
+      SAL: 'Salmon',
+      TUN: 'Tuna',
+    };
+
+    // Check for exact matches first
+    const upperName = name.toUpperCase();
+    if (abbreviations[upperName]) {
+      return abbreviations[upperName];
+    }
+
+    // Check for partial matches and word-by-word expansion
+    let expanded = name;
+    Object.entries(abbreviations).forEach(([abbrev, full]) => {
+      const regex = new RegExp(`\\b${abbrev.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      expanded = expanded.replace(regex, full);
+    });
+
+    return expanded;
   }
 
   private categorizeItem(itemName: string): IngredientCategory {

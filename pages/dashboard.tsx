@@ -49,6 +49,7 @@ export default function Dashboard() {
   const { ingredients } = useIngredients();
   const router = useRouter();
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
+  const [totalRecipesCount, setTotalRecipesCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   // Removed emergency timeout - rely on proper loading state management
@@ -56,12 +57,18 @@ export default function Dashboard() {
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        // Only load recipes now - ingredients come from context
-        const recipes = await loadRecipesFromService();
-        setRecentRecipes(recipes);
+        // Load all recipes to get accurate count
+        const allRecipes = await loadRecipesFromService();
+
+        // Set total count for stats
+        setTotalRecipesCount(allRecipes.length);
+
+        // Set limited recipes for display (max 3 for better UX)
+        setRecentRecipes(allRecipes.slice(0, 3));
       } catch (error) {
         console.error('Dashboard: Unexpected error loading recipes:', error);
         setRecentRecipes([]);
+        setTotalRecipesCount(0);
       } finally {
         setLoading(false);
       }
@@ -105,12 +112,12 @@ export default function Dashboard() {
           }
         }
 
-        // Remove duplicates and limit to 6 for dashboard
+        // Remove duplicates - return ALL recipes for accurate counting
         const uniqueRecipes = allRecipes.filter(
           (recipe, index, self) => index === self.findIndex(r => r.id === recipe.id)
         );
 
-        return uniqueRecipes.slice(0, 3);
+        return uniqueRecipes; // Return all recipes, not limited
       } catch (error) {
         console.error('Error loading recipes:', error);
         return [];
@@ -123,11 +130,11 @@ export default function Dashboard() {
   const stats = useMemo(
     () => ({
       totalIngredients: ingredients.length,
-      totalRecipes: recentRecipes.length,
+      totalRecipes: totalRecipesCount, // Use total count, not display count
       cookedToday: 0, // Placeholder for future implementation
       weeklyGoal: 5, // Placeholder for user preferences
     }),
-    [ingredients.length, recentRecipes.length]
+    [ingredients.length, totalRecipesCount]
   );
 
   const quickActions = useMemo(

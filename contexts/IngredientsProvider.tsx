@@ -8,7 +8,7 @@ import React, {
   useCallback,
 } from 'react';
 import { Ingredient } from '../types';
-import { getIngredientService } from '../lib/services/ingredientServiceFactory';
+import { ingredientService } from '../lib/services/ingredientService';
 
 interface IngredientsContextType {
   ingredients: Ingredient[];
@@ -34,12 +34,11 @@ export const IngredientsProvider: React.FC<IngredientsProviderProps> = ({ childr
       setError(null);
       console.log('🔄 IngredientsProvider: Loading ingredients...');
 
-      const ingredientService = await getIngredientService();
       const userIngredients = await ingredientService.getAllIngredients();
 
       console.log('✅ IngredientsProvider: Loaded ingredients:', {
         count: userIngredients.length,
-        service: ingredientService.constructor.name,
+        service: 'Direct IngredientService',
       });
 
       setIngredients(userIngredients);

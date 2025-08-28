@@ -9,10 +9,15 @@ class IngredientServiceFactory {
   private _initialized = false;
 
   async getService(): Promise<IngredientServiceInterface> {
+    console.log('🏭 Factory getService called - initialized:', this._initialized);
+    console.log('🏭 Factory current service:', this._currentService);
+
     if (!this._initialized) {
+      console.log('🏭 Factory initializing...');
       await this.initialize();
     }
 
+    console.log('🏭 Factory returning service:', this._currentService);
     return this._currentService!;
   }
 
@@ -22,12 +27,14 @@ class IngredientServiceFactory {
       const isDatabaseAvailable = await this.isDatabaseAvailable();
 
       if (isDatabaseAvailable) {
-        console.log('User authenticated - using Supabase database ingredient service');
+        console.log('🏭 User authenticated - using Supabase database ingredient service');
         this._currentService = databaseIngredientService as any;
       } else {
-        console.log('User not authenticated - using mock ingredient service (demo mode)');
+        console.log('🏭 User not authenticated - using mock ingredient service (demo mode)');
         this._currentService = mockIngredientService;
       }
+
+      console.log('🏭 Factory initialized with service:', this._currentService);
 
       this._initialized = true;
     } catch (error) {
