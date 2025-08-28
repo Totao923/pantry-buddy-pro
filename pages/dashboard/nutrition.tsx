@@ -20,7 +20,7 @@ export default function NutritionDashboard({
   recentRecipes: propRecentRecipes = [],
 }: NutritionDashboardProps = {}) {
   const { user } = useAuth();
-  const { ingredients, loading: contextLoading } = useIngredients();
+  const { ingredients, loading: contextLoading, refetch } = useIngredients();
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>(propRecentRecipes);
   const [loading, setLoading] = useState(true);
 
@@ -340,7 +340,11 @@ export default function NutritionDashboard({
           if (sampleIngredients) {
             console.log('📦 Nutrition Dashboard: Loading sample ingredients from localStorage');
             const parsedSampleIngredients = JSON.parse(sampleIngredients);
-            setIngredients(parsedSampleIngredients);
+            // Add sample ingredients via the service instead of local state
+            for (const ingredient of parsedSampleIngredients) {
+              await ingredientService.createIngredient(ingredient);
+            }
+            await refetch(); // Refresh global context
           }
         }
       } catch (error) {
