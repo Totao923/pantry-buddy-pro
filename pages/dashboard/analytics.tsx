@@ -309,7 +309,7 @@ export default function Analytics() {
         // Use cache if less than 5 minutes old (analytics data changes less frequently)
         if (false && cachedData && cacheAge < 5 * 60 * 1000) {
           try {
-            const cached = JSON.parse(cachedData);
+            const cached = JSON.parse(cachedData!);
             console.log('✅ Analytics: Using cached data');
             setAnalyticsData(cached);
             setLoading(false);
