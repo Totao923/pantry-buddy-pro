@@ -151,8 +151,21 @@ const invalidateAnalyticsCache = (userId: string) => {
 
 export default function Analytics() {
   // Force deployment update v1.0.1
+  console.log('🔍 Analytics: Component rendering/mounting');
   const { user } = useAuth();
   const { ingredients } = useIngredients();
+
+  console.log('🔍 Analytics: User and ingredients loaded:', {
+    hasUser: !!user,
+    userId: user?.id,
+    ingredientsCount: ingredients.length,
+  });
+
+  // Debug ingredients loading
+  console.log('🔍 Analytics: Current ingredients from context:', {
+    count: ingredients.length,
+    sample: ingredients.slice(0, 3).map(i => ({ name: i.name, category: i.category })),
+  });
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [receipts, setReceipts] = useState<ExtractedReceiptData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -261,8 +274,20 @@ export default function Analytics() {
   // Split useEffect into two: one for initial data load, one for timeRange-specific updates
   useEffect(() => {
     const loadStaticAnalyticsData = async () => {
+      console.log('🚀 Analytics: Starting to load analytics data for user:', user?.id);
+      console.log('🔍 Analytics: Component mounted and function called');
+
+      // Quick check for localStorage receipts
+      const localReceipts = localStorage.getItem('userReceipts') || '[]';
+      console.log('📱 Analytics: localStorage receipts check:', {
+        hasLocalStorage: !!localReceipts,
+        localStorageLength: localReceipts.length,
+        parsedCount: JSON.parse(localReceipts).length,
+      });
+
       try {
         if (!user) {
+          console.log('❌ Analytics: No user found, stopping load');
           setLoading(false);
           return;
         }
@@ -274,10 +299,18 @@ export default function Analytics() {
         const now = Date.now();
         const cacheAge = cacheTimestamp ? now - parseInt(cacheTimestamp) : Infinity;
 
+        console.log('🗄️ Analytics: Cache check:', {
+          hasCachedData: !!cachedData,
+          cacheAge: Math.round(cacheAge / 1000),
+          willUseCache: cachedData && cacheAge < 5 * 60 * 1000,
+        });
+
+        // Temporarily disable cache to debug spending calculation issue
         // Use cache if less than 5 minutes old (analytics data changes less frequently)
-        if (cachedData && cacheAge < 5 * 60 * 1000) {
+        if (false && cachedData && cacheAge < 5 * 60 * 1000) {
           try {
             const cached = JSON.parse(cachedData);
+            console.log('✅ Analytics: Using cached data');
             setAnalyticsData(cached);
             setLoading(false);
             return;
@@ -285,6 +318,8 @@ export default function Analytics() {
             console.warn('Failed to parse cached analytics data, fetching fresh');
           }
         }
+
+        console.log('🔄 Analytics: Fetching fresh data...');
 
         // Get session once for all authenticated calls
         const supabase = createSupabaseClient();
@@ -303,7 +338,7 @@ export default function Analytics() {
           cookingSessionsResult,
         ] = await Promise.allSettled([
           aiService.getUsageStats(user.id),
-          receiptService.getUserReceipts(user.id),
+          receiptService.getUserReceipts(user.id, supabase),
           Promise.resolve(ingredients),
           barcodeService.getScanningStats(user.id),
           // For cooking preferences, provide fallback for demo/anonymous users
@@ -333,6 +368,16 @@ export default function Analytics() {
 
         const userReceipts =
           userReceiptsResult.status === 'fulfilled' ? userReceiptsResult.value : [];
+        console.log('🧾 Analytics: Receipt loading result:', {
+          status: userReceiptsResult.status,
+          count: userReceipts.length,
+          error: userReceiptsResult.status === 'rejected' ? userReceiptsResult.reason : null,
+          sample: userReceipts.slice(0, 2).map(r => ({
+            storeName: r.storeName,
+            totalAmount: r.totalAmount,
+            itemCount: r.items?.length,
+          })),
+        });
 
         const pantryItems = pantryItemsResult.status === 'fulfilled' ? pantryItemsResult.value : [];
 
@@ -375,6 +420,13 @@ export default function Analytics() {
         const totalSpent = userReceipts.reduce((sum, receipt) => sum + receipt.totalAmount, 0);
         const totalReceiptsCount = userReceipts.length;
         const avgReceiptValue = totalReceiptsCount > 0 ? totalSpent / totalReceiptsCount : 0;
+
+        console.log('💰 Analytics: Spending calculation:', {
+          totalSpent,
+          totalReceiptsCount,
+          avgReceiptValue,
+          receiptAmounts: userReceipts.map(r => r.totalAmount),
+        });
 
         // Calculate pantry analytics
         const pantryItemsCount = pantryItems.length;
@@ -543,9 +595,16 @@ export default function Analytics() {
       }
     };
 
+    console.log('🔄 Analytics: useEffect triggered with user:', {
+      userId: user?.id,
+      hasUser: !!user,
+    });
+    console.log('🔍 Analytics: useEffect execution check');
+
     if (user) {
       loadStaticAnalyticsData();
     } else {
+      console.log('⚠️ Analytics: No user found, setting loading to false');
       // Set loading to false if no user to prevent infinite loading
       setLoading(false);
     }

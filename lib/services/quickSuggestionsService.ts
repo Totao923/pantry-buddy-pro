@@ -345,7 +345,10 @@ IMPORTANT: Include accurate nutritional estimates per serving in the nutritionIn
             let cleanJson = jsonArrayMatch[0]
               .replace(/,(\s*[\]}])/g, '$1') // Remove trailing commas
               .replace(/'/g, '"') // Replace single quotes with double quotes
-              .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote unquoted keys
+              .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote unquoted keys
+              .replace(/"([^"]*)"[^",}\]]*$/g, '"$1"') // Fix truncated strings at end
+              .replace(/,\s*$/g, '') // Remove trailing comma at very end
+              .replace(/([^}\]]),?\s*$/g, '$1'); // Ensure proper ending
 
             recipesData = JSON.parse(cleanJson);
             console.log('✅ Successfully parsed JSON array');
@@ -365,7 +368,10 @@ IMPORTANT: Include accurate nutritional estimates per serving in the nutritionIn
                 let cleanMatch = match
                   .replace(/,(\s*})/g, '$1') // Remove trailing commas
                   .replace(/'/g, '"') // Replace single quotes
-                  .replace(/([{,]\s*)(\w+):/g, '$1"$2":'); // Quote keys
+                  .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote keys
+                  .replace(/"([^"]*)"[^",}]*$/g, '"$1"') // Fix truncated strings
+                  .replace(/,\s*$/g, '') // Remove trailing comma
+                  .replace(/([^}]),?\s*$/g, '$1}'); // Ensure proper object ending
                 return JSON.parse(cleanMatch);
               });
               console.log('✅ Successfully parsed JSON objects');

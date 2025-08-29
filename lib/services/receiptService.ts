@@ -1239,10 +1239,57 @@ class ReceiptService {
 
   // Get user's receipt history
   async getUserReceipts(userId: string, supabaseClient?: any): Promise<ExtractedReceiptData[]> {
+    console.log('🧾 ReceiptService: getUserReceipts called for userId:', userId);
+
+    // For analytics reliability, try localStorage first
+    console.log('🧾 ReceiptService: Checking localStorage first for better reliability...');
+    try {
+      const receipts = JSON.parse(localStorage.getItem('userReceipts') || '[]');
+      console.log('🧾 ReceiptService: localStorage check:', {
+        totalCount: receipts.length,
+        userId,
+        sample: receipts.slice(0, 2).map((r: any) => ({
+          id: r.id,
+          storeName: r.storeName,
+          totalAmount: r.totalAmount,
+          userId: r.userId,
+          hasUserId: !!r.userId,
+        })),
+      });
+
+      if (receipts.length > 0) {
+        // Use localStorage data if available - much more reliable
+        console.log(
+          '🧾 ReceiptService: Using localStorage data directly (more reliable than database)'
+        );
+        const filteredReceipts = receipts
+          .filter((receipt: any) => !userId || !receipt.userId || receipt.userId === userId)
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.createdAt || b.receiptDate).getTime() -
+              new Date(a.createdAt || a.receiptDate).getTime()
+          );
+
+        console.log('🧾 ReceiptService: localStorage receipts after processing:', {
+          count: filteredReceipts.length,
+          totalSpent: filteredReceipts.reduce(
+            (sum: number, r: any) => sum + (r.totalAmount || 0),
+            0
+          ),
+        });
+
+        return filteredReceipts;
+      }
+    } catch (localError) {
+      console.log('🧾 ReceiptService: localStorage read failed, will try database:', localError);
+    }
+
+    // Fallback to database if localStorage is empty
     try {
       const supabase = supabaseClient || getSupabaseClient();
 
       // Get receipts with their items
+      console.log('🧾 ReceiptService: Querying Supabase receipts table...');
       const { data: receipts, error } = await supabase
         .from('receipts')
         .select(
@@ -1255,9 +1302,20 @@ class ReceiptService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching receipts:', error);
+        console.error('🧾 ReceiptService: Supabase query error:', error);
         throw error;
       }
+
+      console.log('🧾 ReceiptService: Supabase query success:', {
+        count: receipts?.length || 0,
+        sample:
+          receipts?.slice(0, 2).map((r: any) => ({
+            id: r.id,
+            store_name: r.store_name,
+            total_amount: r.total_amount,
+            user_id: r.user_id,
+          })) || [],
+      });
 
       // Transform data to match our interface
       return receipts.map((receipt: any) => ({
@@ -1284,11 +1342,27 @@ class ReceiptService {
       // Fallback to localStorage
       try {
         const receipts = JSON.parse(localStorage.getItem('userReceipts') || '[]');
-        return receipts
-          .filter((receipt: any) => receipt.userId === userId)
-          .sort(
-            (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
+        console.log('🧾 ReceiptService: localStorage fallback - raw data:', {
+          totalCount: receipts.length,
+          userId,
+          sample: receipts.slice(0, 2).map((r: any) => ({
+            id: r.id,
+            storeName: r.storeName,
+            totalAmount: r.totalAmount,
+            userId: r.userId,
+            hasUserId: !!r.userId,
+          })),
+        });
+
+        const filteredReceipts = receipts.filter((receipt: any) => receipt.userId === userId);
+        console.log('🧾 ReceiptService: after filtering by userId:', {
+          filteredCount: filteredReceipts.length,
+          originalCount: receipts.length,
+        });
+
+        return filteredReceipts.sort(
+          (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       } catch (localError) {
         console.error('Failed to get receipts from localStorage:', localError);
         return [];

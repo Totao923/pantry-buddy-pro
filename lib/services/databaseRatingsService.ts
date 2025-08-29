@@ -152,12 +152,18 @@ class DatabaseRatingsService {
     rating: Omit<RecipeRating, 'recipeId' | 'userId' | 'createdAt' | 'updatedAt'>,
     review?: Omit<RecipeReview, 'recipeId' | 'userId' | 'createdAt' | 'updatedAt'>
   ): Promise<boolean> {
+    console.log('🔧 DatabaseRatingsService: Starting saveRecipeRatingAndReview');
+    console.log('🔧 Input params:', { recipeId, rating, review, hasSupabase: !!this.supabase });
+
     if (!this.supabase) {
+      console.error('🔧 Database not available - supabase client is null');
       throw new Error('Database not available');
     }
 
     try {
+      console.log('🔧 Ensuring user is authenticated...');
       const userId = await this.ensureAuthenticated();
+      console.log('🔧 User authenticated:', userId);
 
       const ratingData: RecipeRatingInsert = {
         recipe_id: recipeId,
@@ -170,7 +176,9 @@ class DatabaseRatingsService {
         modifications: review?.modifications || null,
         cooking_tips: review?.cookingTips || null,
       };
+      console.log('🔧 Prepared rating data for database:', ratingData);
 
+      console.log('🔧 Executing upsert operation...');
       const { error } = await withRetry(async () => {
         return await this.supabase!.from('recipe_ratings').upsert(ratingData, {
           onConflict: 'recipe_id,user_id',
@@ -178,10 +186,12 @@ class DatabaseRatingsService {
       });
 
       if (error) {
+        console.error('🔧 Database upsert failed with error:', error);
         const handled = handleSupabaseError(error, 'saving recipe rating and review');
         throw new Error(handled.message);
       }
 
+      console.log('🔧 Database save successful, invalidating cache');
       // Invalidate cache
       this.cache.delete(`rating_${userId}_${recipeId}`);
       return true;
@@ -344,19 +354,36 @@ class DatabaseRatingsService {
 
   // Health check
   async isAvailable(): Promise<boolean> {
+    console.log('🔧 DatabaseRatingsService: Checking availability...');
     try {
-      if (!this.supabase) return false;
+      if (!this.supabase) {
+        console.log('🔧 No supabase client available');
+        return false;
+      }
 
+      console.log('🔧 Getting current user...');
       const {
         data: { user },
       } = await this.supabase.auth.getUser();
-      if (!user) return false;
+      if (!user) {
+        console.log('🔧 No authenticated user found');
+        return false;
+      }
+      console.log('🔧 User found:', user.id);
 
       // Test basic query
+      console.log('🔧 Testing database connection with basic query...');
       const { error } = await this.supabase.from('recipe_ratings').select('id').limit(1);
 
-      return !error;
-    } catch {
+      if (error) {
+        console.error('🔧 Database query failed:', error);
+        return false;
+      }
+
+      console.log('🔧 Database is available and accessible');
+      return true;
+    } catch (error) {
+      console.error('🔧 Availability check failed with error:', error);
       return false;
     }
   }

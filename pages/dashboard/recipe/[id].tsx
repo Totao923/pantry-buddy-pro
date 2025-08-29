@@ -76,21 +76,38 @@ export default function RecipeDetail() {
 
         // Load rating and review from database first, fallback to localStorage
         if (await databaseRatingsService.isAvailable()) {
-          console.log('Loading ratings from Supabase database');
+          console.log('📖 Loading ratings from Supabase database');
           try {
             const dbRating = await databaseRatingsService.getRecipeRating(recipeId);
             const dbReview = await databaseRatingsService.getRecipeReview(recipeId);
+            console.log('📖 Database rating loaded:', dbRating);
+            console.log('📖 Database review loaded:', dbReview);
 
-            if (dbRating) setRating(dbRating);
-            if (dbReview) setReview(dbReview);
+            if (dbRating) {
+              console.log('📖 Setting rating from database');
+              setRating(dbRating);
+            }
+            if (dbReview) {
+              console.log('📖 Setting review from database');
+              setReview(dbReview);
+            }
           } catch (error) {
             console.warn('Database rating load failed, using localStorage fallback:', error);
             // Fallback to localStorage
+            console.log('📖 Loading ratings from localStorage fallback');
             const ratings = JSON.parse(localStorage.getItem('recipeRatings') || '{}');
             const reviews = JSON.parse(localStorage.getItem('recipeReviews') || '{}');
+            console.log('📖 localStorage ratings:', ratings[recipeId]);
+            console.log('📖 localStorage reviews:', reviews[recipeId]);
 
-            if (ratings[recipeId]) setRating(ratings[recipeId]);
-            if (reviews[recipeId]) setReview(reviews[recipeId]);
+            if (ratings[recipeId]) {
+              console.log('📖 Setting rating from localStorage');
+              setRating(ratings[recipeId]);
+            }
+            if (reviews[recipeId]) {
+              console.log('📖 Setting review from localStorage');
+              setReview(reviews[recipeId]);
+            }
           }
         } else {
           // Not authenticated or database unavailable, use localStorage
@@ -257,43 +274,85 @@ export default function RecipeDetail() {
   };
 
   const handleSubmitRating = async (newRating: RecipeRating, newReview?: RecipeReview) => {
+    console.log('🔄 Starting handleSubmitRating with:', {
+      rating: newRating,
+      review: newReview,
+      recipeId: recipe?.id,
+    });
+
     if (recipe) {
-      // Try to save to database first
-      if (await databaseRatingsService.isAvailable()) {
-        console.log('Saving rating to Supabase database');
+      // Check database availability first
+      console.log('🔍 Checking if database is available...');
+      const isDbAvailable = await databaseRatingsService.isAvailable();
+      console.log('🔍 Database available:', isDbAvailable);
+
+      if (isDbAvailable) {
+        console.log('💾 Attempting to save rating to Supabase database');
         try {
+          // First, ensure the recipe exists in the database
+          console.log('🔍 Checking if recipe exists in database...');
+          const recipeExists = await databaseRecipeService.getRecipeById(recipe.id);
+
+          if (!recipeExists.success || !recipeExists.data) {
+            console.log('📥 Recipe not in database, saving recipe first...');
+            const saveRecipeResult = await databaseRecipeService.saveRecipe(recipe, user?.id || '');
+
+            if (!saveRecipeResult.success) {
+              console.warn('⚠️ Failed to save recipe to database, falling back to localStorage');
+              throw new Error('Recipe save failed');
+            }
+            console.log('✅ Recipe saved to database successfully');
+          } else {
+            console.log('✅ Recipe already exists in database');
+          }
+
+          // Now save the rating
           const success = await databaseRatingsService.saveRecipeRatingAndReview(
             recipe.id,
             newRating,
             newReview
           );
+          console.log('💾 Database rating save result:', success);
 
           if (success) {
+            console.log('✅ Database save successful, updating UI state');
             setRating(newRating);
-            if (newReview) setReview(newReview);
+            if (newReview) {
+              console.log('✅ Setting review state:', newReview);
+              setReview(newReview);
+            }
             setShowRatingModal(false);
             return;
+          } else {
+            console.warn('⚠️ Database save returned false, trying localStorage fallback');
           }
         } catch (error) {
-          console.warn('Database rating save failed, falling back to localStorage:', error);
+          console.error('❌ Database rating save failed with error:', error);
+          console.warn('🔄 Falling back to localStorage');
         }
+      } else {
+        console.log('⚠️ Database not available, using localStorage directly');
       }
 
       // Fallback to localStorage
-      console.log('Saving rating to localStorage fallback');
+      console.log('💽 Saving rating to localStorage fallback');
       const ratings = JSON.parse(localStorage.getItem('recipeRatings') || '{}');
       ratings[recipe.id] = newRating;
       localStorage.setItem('recipeRatings', JSON.stringify(ratings));
+      console.log('💽 Rating saved to localStorage:', ratings[recipe.id]);
       setRating(newRating);
 
       // Save review if provided
       if (newReview) {
+        console.log('💽 Saving review to localStorage:', newReview);
         const reviews = JSON.parse(localStorage.getItem('recipeReviews') || '{}');
         reviews[recipe.id] = newReview;
         localStorage.setItem('recipeReviews', JSON.stringify(reviews));
+        console.log('💽 Review saved to localStorage:', reviews[recipe.id]);
         setReview(newReview);
       }
 
+      console.log('🎯 Closing rating modal and finishing save process');
       setShowRatingModal(false);
     }
   };

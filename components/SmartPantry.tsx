@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Ingredient, IngredientCategory, SmartSuggestion } from '../types';
-import { getIngredientService } from '../lib/services/ingredientServiceFactory';
+import { ingredientService } from '../lib/services/ingredientService';
 import { useIngredients } from '../lib/hooks/useIngredients';
 import { useAuth } from '../lib/auth/AuthProvider';
 

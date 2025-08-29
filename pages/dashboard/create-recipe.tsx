@@ -72,16 +72,14 @@ export default function CreateRecipe() {
     console.log('🎯 Create Recipe: handleAddIngredient called with:', ingredient);
     console.log('🎯 Current ingredients count:', ingredients.length);
     setIngredients(prev => {
-      // Check if ingredient already exists to avoid duplicates
-      const exists = prev.some(
-        ing => ing.id === ingredient.id || ing.name.toLowerCase() === ingredient.name.toLowerCase()
+      // Check if ingredient already exists by name only (case-insensitive)
+      const existingIndex = prev.findIndex(
+        ing => ing.name.toLowerCase() === ingredient.name.toLowerCase()
       );
-      if (exists) {
+      if (existingIndex !== -1) {
         console.log('Ingredient already exists, updating:', ingredient.name);
-        return prev.map(ing =>
-          ing.id === ingredient.id || ing.name.toLowerCase() === ingredient.name.toLowerCase()
-            ? ingredient
-            : ing
+        return prev.map((ing, index) =>
+          index === existingIndex ? { ...ingredient, id: ing.id } : ing
         );
       }
       console.log('Adding new ingredient:', ingredient.name);
@@ -110,6 +108,13 @@ export default function CreateRecipe() {
 
   const handleUpdateIngredient = async (ingredient: Ingredient) => {
     try {
+      // For temporary ingredients (Create Recipe mode), just update local state
+      if (ingredient.id.startsWith('temp_')) {
+        setIngredients(ingredients.map(ing => (ing.id === ingredient.id ? ingredient : ing)));
+        return;
+      }
+
+      // For permanent ingredients, update via service
       const updatedIngredient = await ingredientService.updateIngredient(ingredient.id, {
         name: ingredient.name,
         category: ingredient.category,

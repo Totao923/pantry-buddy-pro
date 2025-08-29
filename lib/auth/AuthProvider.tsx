@@ -95,12 +95,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (session?.user) {
           // Load user data immediately for faster UI response
           loadUserData(session.user.id);
-
-          // Reset ingredients in background - don't await
-          ingredientService
-            .clearAllIngredients()
-            .then(() => console.log('Ingredients reset on session load'))
-            .catch(error => console.error('Error resetting ingredients on session load:', error));
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);

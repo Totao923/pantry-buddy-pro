@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -60,7 +60,16 @@ export default function Receipts() {
   };
 
   const handleReceiptConfirmed = async (confirmedItems: ConfirmedReceiptItem[]) => {
-    if (!currentReceipt || !user) return;
+    console.log('🎯🎯🎯 NEW VERSION - handleReceiptConfirmed called!');
+    console.log('🎯 Items received:', confirmedItems?.length || 0);
+
+    if (!currentReceipt || !user) {
+      console.error('❌ Missing currentReceipt or user', {
+        currentReceipt: !!currentReceipt,
+        user: !!user,
+      });
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -99,9 +108,11 @@ export default function Receipts() {
         };
 
         try {
+          console.log('🥕 Creating ingredient:', item.name);
           await ingredientService.createIngredient(pantryItem);
+          console.log('✅ Successfully created ingredient:', item.name);
         } catch (error) {
-          console.error('Failed to add item to pantry:', error);
+          console.error('❌ Failed to add item to pantry:', item.name, error);
         }
       }
 
@@ -432,7 +443,84 @@ export default function Receipts() {
         {showReview && currentReceipt && (
           <ReceiptReview
             receiptData={currentReceipt}
-            onConfirm={handleReceiptConfirmed}
+            onConfirm={async confirmedItems => {
+              alert('INLINE FUNCTION CALLED!'); // This should definitely show
+              console.log(
+                '🔥🔥🔥 INLINE FUNCTION - Adding items to pantry:',
+                confirmedItems.length
+              );
+
+              if (!currentReceipt || !user) {
+                console.error('❌ Missing currentReceipt or user');
+                setError('Missing required data');
+                return;
+              }
+
+              setLoading(true);
+              setError(null);
+
+              try {
+                // Save receipt data
+                console.log('💾 Saving receipt data...');
+                await receiptService.saveReceiptData(currentReceipt, user.id, supabaseClient);
+
+                // Add confirmed items to pantry
+                for (const item of confirmedItems) {
+                  const expirationDate = new Date();
+                  expirationDate.setDate(expirationDate.getDate() + item.expirationDays);
+
+                  const pantryItem = {
+                    id: uuidv4(),
+                    name: item.name,
+                    category: item.category!,
+                    currentQuantity: item.quantity,
+                    originalQuantity: item.quantity,
+                    unit: item.unit,
+                    location: item.storageLocation,
+                    price: item.price,
+                    brand: item.brand,
+                    purchaseDate: currentReceipt.receiptDate,
+                    expiryDate: expirationDate.toISOString(),
+                    isRunningLow: false,
+                    usageFrequency: 0,
+                    autoReorderLevel: Math.max(1, Math.floor(item.quantity * 0.2)),
+                    isVegetarian:
+                      item.category !== 'protein' ||
+                      ['tofu', 'beans', 'eggs'].some(v => item.name.toLowerCase().includes(v)),
+                    isVegan:
+                      !['dairy', 'protein'].includes(item.category!) ||
+                      ['tofu', 'beans'].some(v => item.name.toLowerCase().includes(v)),
+                    isProtein: item.category === 'protein',
+                  };
+
+                  try {
+                    console.log('🥕 Creating ingredient:', item.name);
+                    await ingredientService.createIngredient(pantryItem);
+                    console.log('✅ Successfully created ingredient:', item.name);
+                  } catch (error) {
+                    console.error('❌ Failed to add item to pantry:', item.name, error);
+                  }
+                }
+
+                // Reload receipts and show success
+                await loadReceipts();
+                setSuccessMessage(
+                  `Successfully added ${confirmedItems.length} items to your pantry!`
+                );
+                setShowReview(false);
+                setCurrentReceipt(null);
+
+                // Clear success message after 5 seconds
+                setTimeout(() => setSuccessMessage(null), 5000);
+
+                console.log('🎉 ALL DONE - Items added successfully!');
+              } catch (error) {
+                console.error('❌ Failed to save receipt data:', error);
+                setError('Failed to save receipt data. Please try again.');
+              } finally {
+                setLoading(false);
+              }
+            }}
             onClose={() => {
               setShowReview(false);
               setCurrentReceipt(null);
