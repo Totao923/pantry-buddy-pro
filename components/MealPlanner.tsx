@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MealPlan, PlannedMeal, Recipe, MealType, PrepStatus, NutritionGoals } from '../types';
+import { HealthGoal } from '../lib/health-goals';
 
 interface MealPlannerProps {
   mealPlans: MealPlan[];
@@ -12,6 +13,8 @@ interface MealPlannerProps {
   onUpdateMeal: (mealPlanId: string, mealId: string, updates: Partial<PlannedMeal>) => void;
   onRemoveMealFromPlan: (mealPlanId: string, mealId: string) => void;
   userId: string;
+  selectedHealthGoal?: HealthGoal;
+  mealPlanMode?: 'health-goal' | 'family-friendly' | 'pantry-based';
 }
 
 const MEAL_TYPES: { value: MealType; label: string; icon: string; color: string }[] = [
@@ -41,6 +44,8 @@ export default function MealPlanner({
   onUpdateMeal,
   onRemoveMealFromPlan,
   userId,
+  selectedHealthGoal,
+  mealPlanMode = 'pantry-based',
 }: MealPlannerProps) {
   const [activeView, setActiveView] = useState<'calendar' | 'plans' | 'nutrition'>('calendar');
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(currentMealPlan || null);
@@ -48,6 +53,7 @@ export default function MealPlanner({
   const [showAddMealModal, setShowAddMealModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<MealType>('dinner');
+  const [recipeTab, setRecipeTab] = useState<'all' | 'ai-generated' | 'user-created'>('all');
   const [weekStart, setWeekStart] = useState<Date>(() => {
     const today = new Date();
     const dayOfWeek = today.getDay();
@@ -73,6 +79,27 @@ export default function MealPlanner({
 
   const [selectedRecipeForMeal, setSelectedRecipeForMeal] = useState<Recipe | null>(null);
 
+  // Sync internal selectedPlan state with currentMealPlan prop and updated mealPlans
+  useEffect(() => {
+    if (currentMealPlan && (!selectedPlan || selectedPlan.id !== currentMealPlan.id)) {
+      console.log(
+        '🔄 MealPlanner: Updating selectedPlan with currentMealPlan:',
+        currentMealPlan.id
+      );
+      setSelectedPlan(currentMealPlan);
+    } else if (selectedPlan) {
+      // Update selectedPlan if there's a newer version in mealPlans
+      const updatedPlan = mealPlans.find(plan => plan.id === selectedPlan.id);
+      if (updatedPlan && updatedPlan.meals.length !== selectedPlan.meals.length) {
+        console.log('🔄 MealPlanner: Updating selectedPlan with fresh meal data:', {
+          oldMealCount: selectedPlan.meals.length,
+          newMealCount: updatedPlan.meals.length,
+        });
+        setSelectedPlan(updatedPlan);
+      }
+    }
+  }, [currentMealPlan, selectedPlan, mealPlans]);
+
   // Get current week dates
   const getWeekDates = () => {
     const dates = [];
@@ -88,7 +115,7 @@ export default function MealPlanner({
   const getMealsForDate = (date: Date): PlannedMeal[] => {
     if (!selectedPlan) return [];
     return selectedPlan.meals
-      .filter(meal => meal.date.toDateString() === date.toDateString())
+      .filter(meal => new Date(meal.date).toDateString() === date.toDateString())
       .sort((a, b) => {
         const mealOrder = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
         return mealOrder[a.mealType] - mealOrder[b.mealType];
@@ -174,12 +201,28 @@ export default function MealPlanner({
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-7xl mx-auto p-6 print:p-4 full-planner-printable">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 print-hidden">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Meal Planner</h1>
           <p className="text-gray-600">Plan your meals and track your nutrition goals</p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-sm text-gray-600">Mode:</span>
+            {mealPlanMode === 'health-goal' && selectedHealthGoal ? (
+              <span className="text-xs bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+                🎯 {selectedHealthGoal.name}
+              </span>
+            ) : mealPlanMode === 'family-friendly' ? (
+              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
+                🍴 Family-Friendly
+              </span>
+            ) : (
+              <span className="text-xs bg-gradient-to-r from-green-100 to-green-200 text-green-700 px-2 py-1 rounded-full font-medium">
+                🥫 Pantry-Based
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <select
@@ -207,7 +250,7 @@ export default function MealPlanner({
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-8">
+      <div className="flex gap-4 mb-8 print-hidden">
         <button
           onClick={() => setActiveView('calendar')}
           className={`px-6 py-3 rounded-xl font-medium transition-all ${
@@ -243,6 +286,23 @@ export default function MealPlanner({
       {/* Calendar View */}
       {activeView === 'calendar' && selectedPlan && (
         <div>
+          {/* Print-only header */}
+          <div className="hidden print:block full-planner-print-header">
+            <h1 className="text-xl font-bold text-gray-900 mb-1">Meal Plan: {selectedPlan.name}</h1>
+            <p className="text-sm text-gray-600">
+              {weekStart.toLocaleDateString()} -{' '}
+              {new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+            </p>
+            <p className="text-xs mt-1">
+              {mealPlanMode === 'health-goal' && selectedHealthGoal ? (
+                <span className="text-purple-700">🎯 Health Goal: {selectedHealthGoal.name}</span>
+              ) : mealPlanMode === 'family-friendly' ? (
+                <span className="text-gray-600">🍴 Family-Friendly Plan</span>
+              ) : (
+                <span className="text-green-700">🥫 Pantry-Based Plan</span>
+              )}
+            </p>
+          </div>
           {/* Week Navigation */}
           <div className="flex items-center justify-between mb-6">
             <button
@@ -251,28 +311,37 @@ export default function MealPlanner({
                 newWeekStart.setDate(weekStart.getDate() - 7);
                 setWeekStart(newWeekStart);
               }}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors print-hidden"
             >
               ← Previous Week
             </button>
-            <h2 className="text-xl font-semibold text-gray-800">
-              {weekStart.toLocaleDateString()} -{' '}
-              {new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-            </h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-semibold text-gray-800">
+                {weekStart.toLocaleDateString()} -{' '}
+                {new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+              </h2>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors print-hidden"
+                title="Print Calendar"
+              >
+                🖨️ Print
+              </button>
+            </div>
             <button
               onClick={() => {
                 const newWeekStart = new Date(weekStart);
                 newWeekStart.setDate(weekStart.getDate() + 7);
                 setWeekStart(newWeekStart);
               }}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors print-hidden"
             >
               Next Week →
             </button>
           </div>
 
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-4">
+          <div className="grid grid-cols-7 gap-4 print:gap-2 print:text-sm print:page-break-avoid full-planner-grid">
             {getWeekDates().map(date => {
               const dayMeals = getMealsForDate(date);
               const nutrition = getDayNutrition(date);
@@ -281,8 +350,8 @@ export default function MealPlanner({
               return (
                 <div
                   key={date.toISOString()}
-                  className={`bg-white rounded-xl shadow-lg p-4 min-h-[300px] ${
-                    isToday ? 'ring-2 ring-blue-500' : ''
+                  className={`meal-card bg-white rounded-xl shadow-lg p-4 min-h-[300px] print:break-inside-avoid full-planner-card ${
+                    isToday ? 'ring-2 ring-blue-500 print:ring-0' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -295,7 +364,7 @@ export default function MealPlanner({
                   </div>
 
                   {/* Nutrition Summary */}
-                  <div className="mb-4 p-2 bg-gray-50 rounded-lg text-xs">
+                  <div className="nutrition-summary mb-4 p-2 bg-gray-50 rounded-lg text-xs nutrition-print">
                     <div className="text-center font-medium text-gray-700">
                       {Math.round(nutrition.totalCalories)} cal
                     </div>
@@ -370,7 +439,8 @@ export default function MealPlanner({
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">{plan.name}</h3>
                   <p className="text-gray-600">
-                    {plan.startDate.toLocaleDateString()} - {plan.endDate.toLocaleDateString()}
+                    {new Date(plan.startDate).toLocaleDateString()} -{' '}
+                    {new Date(plan.endDate).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -416,7 +486,8 @@ export default function MealPlanner({
                   <span className="text-gray-500">Duration:</span>
                   <span className="font-medium ml-2">
                     {Math.ceil(
-                      (plan.endDate.getTime() - plan.startDate.getTime()) / (1000 * 60 * 60 * 24)
+                      (new Date(plan.endDate).getTime() - new Date(plan.startDate).getTime()) /
+                        (1000 * 60 * 60 * 24)
                     )}{' '}
                     days
                   </span>
@@ -675,26 +746,75 @@ export default function MealPlanner({
                 </button>
               </div>
 
+              {/* Recipe Tabs */}
+              <div className="flex border-b border-gray-200 mb-4">
+                <button
+                  onClick={() => setRecipeTab('all')}
+                  className={`px-4 py-2 font-medium text-sm transition-colors ${
+                    recipeTab === 'all'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  All Recipes ({recipes.length})
+                </button>
+                <button
+                  onClick={() => setRecipeTab('ai-generated')}
+                  className={`px-4 py-2 font-medium text-sm transition-colors ${
+                    recipeTab === 'ai-generated'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  🤖 AI Generated ({recipes.filter(r => r.tags?.includes('ai-generated')).length})
+                </button>
+                <button
+                  onClick={() => setRecipeTab('user-created')}
+                  className={`px-4 py-2 font-medium text-sm transition-colors ${
+                    recipeTab === 'user-created'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  👨‍🍳 My Recipes ({recipes.filter(r => !r.tags?.includes('ai-generated')).length})
+                </button>
+              </div>
+
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                {recipes.map(recipe => (
-                  <div
-                    key={recipe.id}
-                    onClick={() => setSelectedRecipeForMeal(recipe)}
-                    className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                      selectedRecipeForMeal?.id === recipe.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <h3 className="font-semibold text-gray-800 mb-2">{recipe.title}</h3>
-                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{recipe.description}</p>
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>⏱️ {recipe.totalTime}m</span>
-                      <span>{recipe.servings} servings</span>
-                      {recipe.nutritionInfo && <span>{recipe.nutritionInfo.calories} cal</span>}
+                {recipes
+                  .filter(recipe => {
+                    if (recipeTab === 'ai-generated') return recipe.tags?.includes('ai-generated');
+                    if (recipeTab === 'user-created') return !recipe.tags?.includes('ai-generated');
+                    return true; // 'all' tab
+                  })
+                  .map(recipe => (
+                    <div
+                      key={recipe.id}
+                      onClick={() => setSelectedRecipeForMeal(recipe)}
+                      className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        selectedRecipeForMeal?.id === recipe.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-800 flex-1">{recipe.title}</h3>
+                        {recipe.tags?.includes('ai-generated') && (
+                          <span className="ml-2 text-xs bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 px-2 py-1 rounded-full flex items-center gap-1">
+                            🤖 AI
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                        {recipe.description}
+                      </p>
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <span>⏱️ {recipe.totalTime}m</span>
+                        <span>{recipe.servings} servings</span>
+                        {recipe.nutritionInfo && <span>{recipe.nutritionInfo.calories} cal</span>}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
 
               <div className="flex gap-4 pt-6">

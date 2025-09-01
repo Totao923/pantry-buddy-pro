@@ -132,6 +132,19 @@ export class MealPlanService {
     meal: Omit<PlannedMeal, 'id'>
   ): Promise<PlannedMeal> {
     try {
+      console.log('🍽️ MealPlanService: Adding meal to plan:', {
+        mealPlanId,
+        meal: {
+          recipeId: meal.recipeId,
+          date: meal.date,
+          mealType: meal.mealType,
+          servings: meal.servings,
+          prepStatus: meal.prepStatus,
+          recipeIdType: typeof meal.recipeId,
+          dateType: typeof meal.date,
+        },
+      });
+
       const response = await fetch(`${this.baseUrl}/${mealPlanId}/meals`, {
         method: 'POST',
         headers: {
@@ -141,10 +154,14 @@ export class MealPlanService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add meal to plan');
+        const errorData = await response.json().catch(() => null);
+        console.error('❌ MealPlanService: API error response:', errorData);
+        throw new Error(`Failed to add meal to plan: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('✅ MealPlanService: API success response:', data);
+      console.log('🍽️ MealPlanService: Returning meal data:', data.meal);
       return data.meal;
     } catch (error) {
       console.error('Error adding meal to plan:', error);

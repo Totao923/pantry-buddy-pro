@@ -85,21 +85,44 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
 
 async function handlePost(req: NextApiRequest, res: NextApiResponse) {
   try {
+    console.log('🔗 Meal Plan API: POST request received');
     const mealPlanData: Omit<MealPlan, 'id' | 'createdAt' | 'updatedAt'> = req.body;
 
+    console.log('📋 Meal Plan API: Request data:', {
+      name: mealPlanData?.name,
+      userId: mealPlanData?.userId,
+      startDate: mealPlanData?.startDate,
+      endDate: mealPlanData?.endDate,
+      mealsCount: mealPlanData?.meals?.length,
+    });
+
     if (!mealPlanData.name || !mealPlanData.userId) {
+      console.error('❌ Meal Plan API: Missing required fields');
       return res.status(400).json({ error: 'Name and userId are required' });
     }
 
     // Start transaction
+    console.log('📊 Meal Plan API: Starting database operations...');
     const supabase = createServerSupabaseClient();
+
+    // Convert dates to proper format (handle both Date objects and ISO strings)
+    const startDate =
+      typeof mealPlanData.startDate === 'string'
+        ? mealPlanData.startDate
+        : mealPlanData.startDate.toISOString();
+    const endDate =
+      typeof mealPlanData.endDate === 'string'
+        ? mealPlanData.endDate
+        : mealPlanData.endDate.toISOString();
+
+    console.log('📊 Meal Plan API: Creating meal plan record with dates:', { startDate, endDate });
     const { data: newMealPlan, error: mealPlanError } = await supabase
       .from('meal_plans')
       .insert({
         name: mealPlanData.name,
         user_id: mealPlanData.userId,
-        start_date: mealPlanData.startDate.toISOString(),
-        end_date: mealPlanData.endDate.toISOString(),
+        start_date: startDate,
+        end_date: endDate,
         shopping_list: mealPlanData.shoppingList || [],
         total_calories: mealPlanData.totalCalories || 0,
         status: mealPlanData.status || 'draft',
@@ -111,16 +134,23 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       .single();
 
     if (mealPlanError) {
-      console.error('Error creating meal plan:', mealPlanError);
-      return res.status(500).json({ error: 'Failed to create meal plan' });
+      console.error('❌ Meal Plan API: Error creating meal plan:', mealPlanError);
+      return res.status(500).json({
+        error: 'Failed to create meal plan',
+        details: mealPlanError.message,
+        code: mealPlanError.code,
+      });
     }
+
+    console.log('✅ Meal Plan API: Meal plan created successfully:', newMealPlan.id);
 
     // Insert planned meals if any
     if (mealPlanData.meals && mealPlanData.meals.length > 0) {
+      console.log('🍽️ Meal Plan API: Creating planned meals...', mealPlanData.meals.length);
       const plannedMealsData = mealPlanData.meals.map(meal => ({
         meal_plan_id: newMealPlan.id,
         recipe_id: meal.recipeId,
-        date: meal.date.toISOString(),
+        date: typeof meal.date === 'string' ? meal.date : meal.date.toISOString(),
         meal_type: meal.mealType,
         servings: meal.servings,
         prep_status: meal.prepStatus || 'planned',
@@ -128,14 +158,25 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
         ingredients: meal.ingredients || [],
       }));
 
+      console.log('🍽️ Meal Plan API: Sample planned meal data:', plannedMealsData[0]);
+
       const { error: mealsError } = await supabase.from('planned_meals').insert(plannedMealsData);
 
       if (mealsError) {
-        console.error('Error creating planned meals:', mealsError);
+        console.error('❌ Meal Plan API: Error creating planned meals:', mealsError);
         // Clean up meal plan if meals failed to insert
+        console.log('🧹 Meal Plan API: Cleaning up meal plan due to meals error...');
         await supabase.from('meal_plans').delete().eq('id', newMealPlan.id);
-        return res.status(500).json({ error: 'Failed to create planned meals' });
+        return res.status(500).json({
+          error: 'Failed to create planned meals',
+          details: mealsError.message,
+          code: mealsError.code,
+        });
       }
+
+      console.log('✅ Meal Plan API: Planned meals created successfully');
+    } else {
+      console.log('ℹ️ Meal Plan API: No planned meals to create');
     }
 
     // Return the created meal plan

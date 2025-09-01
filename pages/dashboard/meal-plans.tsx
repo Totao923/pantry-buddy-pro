@@ -8,7 +8,9 @@ import MealPlanner from '../../components/MealPlanner';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { aiService } from '../../lib/ai/aiService';
 import { useIngredients } from '../../contexts/IngredientsProvider';
+import { useHealthGoal } from '../../lib/contexts/HealthGoalContext';
 import { MealPlanService } from '../../lib/services/mealPlanService';
+import { databaseRecipeService } from '../../lib/services/databaseRecipeService';
 import { Recipe, MealPlan, Ingredient, PlannedMeal } from '../../types';
 import {
   BarChart,
@@ -38,6 +40,7 @@ interface WeekDay {
 export default function MealPlans() {
   const { user, session } = useAuth();
   const { ingredients: availableIngredients } = useIngredients();
+  const { selectedGoal } = useHealthGoal();
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [currentWeek, setCurrentWeek] = useState<WeekDay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +48,9 @@ export default function MealPlans() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
+  const [mealPlanMode, setMealPlanMode] = useState<
+    'health-goal' | 'family-friendly' | 'pantry-based'
+  >('pantry-based'); // Default to original pantry-based
   const [newPlanName, setNewPlanName] = useState('');
   const [newPlanWeek, setNewPlanWeek] = useState<WeekDay[]>([]);
   const [availableRecipes, setAvailableRecipes] = useState<Recipe[]>([]);
@@ -83,23 +89,74 @@ export default function MealPlans() {
     setCurrentWeek(week);
   }, [selectedWeek]);
 
+  // Separate function for refreshing meal plans that can be called from other functions
+  const refreshMealPlans = useCallback(async () => {
+    if (!user) {
+      console.log('⚠️ No user available for refreshing meal plans');
+      return;
+    }
+
+    try {
+      console.log('🔄 Refreshing meal plans for user:', user.id);
+      const plans = await MealPlanService.getMealPlans(user.id);
+      console.log('✅ Refreshed meal plans:', plans.length);
+
+      // Update meal plans state
+      setMealPlans(plans);
+
+      // Update current meal plan if it was previously selected - use functional state update to get latest value
+      setCurrentMealPlan(prevCurrentPlan => {
+        if (prevCurrentPlan) {
+          const updatedCurrentPlan = plans.find(plan => plan.id === prevCurrentPlan.id);
+          if (updatedCurrentPlan) {
+            console.log('🔄 Updating current meal plan after refresh:', updatedCurrentPlan.id);
+            console.log('📊 Current meal plan meals count:', updatedCurrentPlan.meals.length);
+            return updatedCurrentPlan;
+          }
+        }
+        return prevCurrentPlan;
+      });
+    } catch (error) {
+      console.error('❌ Error refreshing meal plans:', error);
+      throw error;
+    }
+  }, [user]);
+
   useEffect(() => {
     const loadMealPlans = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('⚠️ No user available for loading meal plans');
+        return;
+      }
 
       try {
+        console.log('📥 Loading meal plans for user:', user.id);
         // Load meal plans from database
         const plans = await MealPlanService.getMealPlans(user.id);
+        console.log('✅ Loaded meal plans:', plans.length);
         setMealPlans(plans);
+
+        // Update current meal plan if it was previously selected
+        if (currentMealPlan) {
+          const updatedCurrentPlan = plans.find(plan => plan.id === currentMealPlan.id);
+          if (updatedCurrentPlan) {
+            console.log('🔄 Updating current meal plan after refresh:', updatedCurrentPlan.id);
+            setCurrentMealPlan(updatedCurrentPlan);
+          }
+        }
 
         // Ingredients now loaded from context
         console.log('✅ Meal Plans: Using ingredients from context:', availableIngredients.length);
 
-        // Load available recipes from localStorage (will be replaced with API call later)
-        const savedRecipes = localStorage.getItem('recentRecipes');
-        if (savedRecipes) {
-          const recipes = JSON.parse(savedRecipes);
-          setAvailableRecipes(recipes);
+        // Load available recipes from database
+        console.log('📚 Loading user recipes from database...');
+        const recipesResponse = await databaseRecipeService.getUserRecipes();
+        if (recipesResponse.success && recipesResponse.data) {
+          console.log('✅ Loaded recipes from database:', recipesResponse.data.length);
+          setAvailableRecipes(recipesResponse.data);
+        } else {
+          console.warn('⚠️ Failed to load recipes from database, using empty array');
+          setAvailableRecipes([]);
         }
 
         // Initialize AI service
@@ -115,7 +172,7 @@ export default function MealPlans() {
     };
 
     loadMealPlans();
-  }, [user, selectedWeek, generateWeekStructure]);
+  }, [user, selectedWeek]);
 
   // CRUD handlers for MealPlanner component
   const handleCreateMealPlanFromPlanner = async (
@@ -180,25 +237,40 @@ export default function MealPlans() {
 
   const handleAddMealToPlan = async (mealPlanId: string, meal: Omit<PlannedMeal, 'id'>) => {
     try {
+      console.log('🍽️ Adding meal to plan:', { mealPlanId, meal });
       const newMeal = await MealPlanService.addMealToPlan(mealPlanId, meal);
+      console.log('✅ Meal added successfully:', newMeal);
 
-      // Update the meal plan in our state
-      setMealPlans(
-        mealPlans.map(plan =>
+      // Refresh data from server
+      console.log('🔄 Refreshing meal plans from server to get latest data...');
+      try {
+        await refreshMealPlans();
+        console.log('✅ Meal plans refreshed successfully');
+      } catch (refreshError) {
+        console.error('❌ Error refreshing meal plans:', refreshError);
+        // Fallback: manually update state if refresh fails
+        console.log('🔄 Refresh failed, falling back to manual state update...');
+        const updatedMealPlans = mealPlans.map(plan =>
           plan.id === mealPlanId ? { ...plan, meals: [...plan.meals, newMeal] } : plan
-        )
-      );
+        );
+        setMealPlans(updatedMealPlans);
 
-      // Update current meal plan if needed
-      if (currentMealPlan?.id === mealPlanId) {
-        setCurrentMealPlan({
-          ...currentMealPlan,
-          meals: [...currentMealPlan.meals, newMeal],
-        });
+        if (currentMealPlan?.id === mealPlanId) {
+          const updatedCurrentPlan = {
+            ...currentMealPlan,
+            meals: [...currentMealPlan.meals, newMeal],
+          };
+          setCurrentMealPlan(updatedCurrentPlan);
+        }
       }
     } catch (error) {
-      console.error('Error adding meal to plan:', error);
-      alert('Failed to add meal to plan. Please try again.');
+      console.error('❌ Error in handleAddMealToPlan:', error);
+      console.error('❌ Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name,
+      });
+      alert(`Failed to add meal to plan: ${error?.message || 'Unknown error'}. Please try again.`);
     }
   };
 
@@ -298,14 +370,95 @@ export default function MealPlans() {
     setShowRecipeSelector(true);
   };
 
-  const handleSelectRecipe = (recipe: Recipe) => {
+  const handleSelectRecipe = async (recipe: Recipe) => {
     if (!selectedMealSlot) return;
 
-    const updatedWeek = [...newPlanWeek];
-    (updatedWeek[selectedMealSlot.dayIndex].meals as any)[selectedMealSlot.mealType] = recipe;
-    setNewPlanWeek(updatedWeek);
+    // Check if we're in meal plan creation mode (newPlanWeek) or Quick View mode
+    if (newPlanWeek.length > 0) {
+      // Original behavior for meal plan creation
+      const updatedWeek = [...newPlanWeek];
+      (updatedWeek[selectedMealSlot.dayIndex].meals as any)[selectedMealSlot.mealType] = recipe;
+      setNewPlanWeek(updatedWeek);
+    } else {
+      // Quick View mode - need to add to an actual meal plan
+      await handleAddMealToQuickView(recipe, selectedMealSlot.dayIndex, selectedMealSlot.mealType);
+    }
+
     setShowRecipeSelector(false);
     setSelectedMealSlot(null);
+  };
+
+  const handleAddMealToQuickView = async (recipe: Recipe, dayIndex: number, mealType: string) => {
+    try {
+      // Find or create a default meal plan for Quick View
+      let quickViewPlan = mealPlans.find(plan => plan.name === 'Quick View Plan');
+
+      if (!quickViewPlan && user) {
+        // Create a default meal plan for Quick View
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+        const newPlan = {
+          name: 'Quick View Plan',
+          userId: user.id,
+          startDate: startOfWeek,
+          endDate: endOfWeek,
+          nutritionGoals: {
+            dailyCalories: 2000,
+            protein: 150,
+            carbs: 200,
+            fat: 65,
+            fiber: 25,
+            sodium: 2300,
+            restrictions: [] as string[],
+          },
+          meals: [],
+          shoppingList: [],
+          totalCalories: 0,
+          status: 'draft' as const,
+          isTemplate: false,
+          sharedWith: [],
+        };
+
+        quickViewPlan = await MealPlanService.createMealPlan(newPlan);
+        await refreshMealPlans();
+      }
+
+      if (!quickViewPlan) {
+        throw new Error('No meal plan available for Quick View');
+      }
+
+      // Calculate the date for the selected day
+      const today = new Date();
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay() + selectedWeek * 7);
+      const selectedDate = new Date(startOfWeek);
+      selectedDate.setDate(startOfWeek.getDate() + dayIndex);
+
+      // Add the meal to the plan
+      const meal = {
+        date: selectedDate,
+        mealType: mealType as any,
+        recipeId: recipe.id,
+        servings: recipe.servings,
+        prepStatus: 'planned' as const,
+        notes: '',
+        ingredients: recipe.ingredients,
+      };
+
+      await handleAddMealToPlan(quickViewPlan.id, meal);
+
+      // Update the Quick View display
+      const updatedCurrentWeek = [...currentWeek];
+      (updatedCurrentWeek[dayIndex].meals as any)[mealType] = recipe;
+      setCurrentWeek(updatedCurrentWeek);
+    } catch (error) {
+      console.error('Error adding meal to Quick View:', error);
+      alert(`Failed to add meal: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleSaveManualPlan = async () => {
@@ -381,8 +534,25 @@ export default function MealPlans() {
   };
 
   const handleAddMeal = (dayIndex: number, mealType: 'breakfast' | 'lunch' | 'dinner') => {
-    // Placeholder for adding meals to specific days
-    console.log(`Add ${mealType} to ${currentWeek[dayIndex].day}`);
+    const selectedDay = currentWeek[dayIndex];
+    if (!selectedDay) return;
+
+    // Create a date object for the selected day
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + selectedWeek * 7);
+    const selectedDate = new Date(startOfWeek);
+    selectedDate.setDate(startOfWeek.getDate() + dayIndex);
+
+    // Open the recipe selector for this specific date and meal type
+    setSelectedMealSlot({ dayIndex, mealType });
+    setShowRecipeSelector(true);
+
+    console.log(`Add ${mealType} to ${selectedDay.day}`, {
+      dayIndex,
+      mealType,
+      selectedDate: selectedDate.toDateString(),
+    });
   };
 
   const generateAIMealPlan = async () => {
@@ -391,6 +561,14 @@ export default function MealPlans() {
     setGeneratingPlan(true);
     try {
       console.log('🍳 Generating AI meal plan with ingredients:', availableIngredients.length);
+      console.log('🎯 Meal plan mode:', mealPlanMode);
+      if (mealPlanMode === 'health-goal') {
+        console.log('🎯 Using health goal:', selectedGoal.name, `(${selectedGoal.id})`);
+      } else if (mealPlanMode === 'family-friendly') {
+        console.log('🍴 Generating family-friendly meal plan');
+      } else {
+        console.log('🥫 Generating pantry-based meal plan (original mode)');
+      }
 
       // Call the dedicated meal plan generation API with timeout
       const controller = new AbortController();
@@ -404,6 +582,8 @@ export default function MealPlans() {
         body: JSON.stringify({
           ingredients: availableIngredients,
           userId: user.id,
+          healthGoal: mealPlanMode === 'health-goal' ? selectedGoal : undefined,
+          mealPlanMode: mealPlanMode,
           preferences: {
             difficulty: 'Easy',
           },
@@ -729,26 +909,53 @@ export default function MealPlans() {
               onUpdateMeal={handleUpdateMeal}
               onRemoveMealFromPlan={handleRemoveMealFromPlan}
               userId={user.id}
+              selectedHealthGoal={selectedGoal}
+              mealPlanMode={mealPlanMode}
             />
           )}
 
           {/* Week View */}
           {!showMealPlanner && (
             <>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    {selectedWeek === 0
-                      ? 'This Week'
-                      : selectedWeek === 1
-                        ? 'Next Week'
-                        : `Week ${selectedWeek + 1}`}
-                  </h2>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden quick-view-printable">
+                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {selectedWeek === 0
+                        ? 'This Week'
+                        : selectedWeek === 1
+                          ? 'Next Week'
+                          : `Week ${selectedWeek + 1}`}
+                    </h2>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-sm text-gray-600">Mode:</span>
+                      {mealPlanMode === 'health-goal' ? (
+                        <span className="text-xs bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+                          🎯 {selectedGoal.name}
+                        </span>
+                      ) : mealPlanMode === 'family-friendly' ? (
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
+                          🍴 Family-Friendly
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-gradient-to-r from-green-100 to-green-200 text-green-700 px-2 py-1 rounded-full font-medium">
+                          🥫 Pantry-Based
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors print-hidden"
+                    title="Print Quick View"
+                  >
+                    🖨️ Print
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-gray-200 meal-grid-print">
                   {currentWeek.map((day, index) => (
-                    <div key={day.day} className="p-4 min-h-[300px]">
+                    <div key={day.day} className="p-4 min-h-[300px] meal-day-print">
                       <div className="text-center mb-4">
                         <h3 className="font-semibold text-gray-900">{day.day}</h3>
                         <p className="text-sm text-gray-500">{day.date}</p>
@@ -811,8 +1018,77 @@ export default function MealPlans() {
                   <div className="text-2xl mb-3">🤖</div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Meal Planning</h3>
                   <p className="text-gray-600 text-sm mb-4">
-                    Let AI create a balanced meal plan based on your preferences and pantry items.
+                    Let AI create a balanced meal plan. Choose your planning approach below.
                   </p>
+
+                  {/* Meal Planning Mode Selector */}
+                  <div className="mb-3 p-3 bg-white rounded-lg border border-pantry-200">
+                    <div className="text-xs font-semibold text-gray-700 mb-3">
+                      MEAL PLANNING MODE
+                    </div>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="mealPlanMode"
+                          value="pantry-based"
+                          checked={mealPlanMode === 'pantry-based'}
+                          onChange={e => setMealPlanMode(e.target.value as any)}
+                          className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">🥫 Pantry-Based</div>
+                          <div className="text-xs text-gray-600">
+                            Use what you have - original smart meal planning
+                          </div>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="mealPlanMode"
+                          value="health-goal"
+                          checked={mealPlanMode === 'health-goal'}
+                          onChange={e => setMealPlanMode(e.target.value as any)}
+                          className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            🎯 Health-Focused
+                            {mealPlanMode === 'health-goal' && (
+                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                {selectedGoal.name}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Personalized nutrition based on your health goal
+                          </div>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="mealPlanMode"
+                          value="family-friendly"
+                          checked={mealPlanMode === 'family-friendly'}
+                          onChange={e => setMealPlanMode(e.target.value as any)}
+                          className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">
+                            🍴 Family-Friendly
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            Balanced meals for the whole family
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
                   <button
                     onClick={() => {
                       console.log('🔍 AI Button Debug:', {

@@ -23,13 +23,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 async function handlePost(req: NextApiRequest, res: NextApiResponse, mealPlanId: string) {
   try {
+    console.log('🍽️ Meals API: POST request received for meal plan:', mealPlanId);
     const mealData: Omit<PlannedMeal, 'id'> = req.body;
 
+    console.log('🍽️ Meals API: Request data:', {
+      recipeId: mealData.recipeId,
+      recipeIdType: typeof mealData.recipeId,
+      date: mealData.date,
+      dateType: typeof mealData.date,
+      mealType: mealData.mealType,
+      servings: mealData.servings,
+      prepStatus: mealData.prepStatus,
+    });
+
     if (!mealData.recipeId || !mealData.date || !mealData.mealType) {
+      console.error('❌ Meals API: Missing required fields:', {
+        hasRecipeId: !!mealData.recipeId,
+        hasDate: !!mealData.date,
+        hasMealType: !!mealData.mealType,
+      });
       return res.status(400).json({ error: 'Recipe ID, date, and meal type are required' });
     }
 
     const supabase = createServerSupabaseClient();
+    console.log('🗄️ Meals API: Attempting to insert to database:', {
+      meal_plan_id: mealPlanId,
+      recipe_id: mealData.recipeId,
+      date: new Date(mealData.date).toISOString(),
+      meal_type: mealData.mealType,
+      servings: mealData.servings || 2,
+    });
+
     const { data: newMeal, error } = await supabase
       .from('planned_meals')
       .insert({
@@ -46,8 +70,18 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, mealPlanId:
       .single();
 
     if (error) {
-      console.error('Error adding meal to plan:', error);
-      return res.status(500).json({ error: 'Failed to add meal to plan' });
+      console.error('❌ Meals API: Database error adding meal to plan:', {
+        error: error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return res.status(500).json({
+        error: 'Failed to add meal to plan',
+        details: error.message,
+        code: error.code,
+      });
     }
 
     const plannedMeal: PlannedMeal = {
@@ -61,6 +95,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, mealPlanId:
       ingredients: newMeal.ingredients,
     };
 
+    console.log('✅ Meals API: Sending success response:', { meal: plannedMeal });
     res.status(201).json({ meal: plannedMeal });
   } catch (error) {
     console.error('Error in meal POST:', error);

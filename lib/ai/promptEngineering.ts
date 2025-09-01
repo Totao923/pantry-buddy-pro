@@ -175,6 +175,44 @@ Please consider this feedback when making enhancements.`;
       section += `\n- Nutrition goal: ${preferences.nutritionGoals}`;
     }
 
+    // Health goal integration
+    if (preferences.healthGoal) {
+      section += `\n- Health Goal: ${preferences.healthGoal}`;
+    }
+
+    if (preferences.targetCalories) {
+      section += `\n- Target calories for this meal: ~${preferences.targetCalories} calories`;
+    }
+
+    if (preferences.proteinFocus) {
+      section += `\n- IMPORTANT: High protein focus for muscle building/maintenance`;
+    }
+
+    if (preferences.lowSodium) {
+      section += `\n- IMPORTANT: Low sodium for heart health (under 400mg sodium per serving)`;
+    }
+
+    if (preferences.heartHealthy) {
+      section += `\n- IMPORTANT: Heart-healthy focus with omega-3 rich ingredients when possible`;
+    }
+
+    // Meal plan mode specific guidance
+    if (preferences.familyFriendly) {
+      section += `\n- FAMILY-FRIENDLY: Create meals that appeal to all ages, with moderate flavors`;
+    }
+
+    if (preferences.pantryFocused) {
+      section += `\n- PANTRY-FOCUSED: Make the most of available ingredients, minimize waste`;
+    }
+
+    if (preferences.useWhatYouHave) {
+      section += `\n- USE WHAT YOU HAVE: Focus on practical recipes that utilize pantry ingredients efficiently`;
+    }
+
+    if (preferences.practical) {
+      section += `\n- PRACTICAL: Emphasize simple, achievable recipes with common techniques`;
+    }
+
     return section;
   }
 

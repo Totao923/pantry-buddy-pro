@@ -8,6 +8,8 @@ import { Button } from './ui/Button';
 import { LoadingSkeleton } from './ui/LoadingSkeleton';
 import { Ingredient, NutritionInfo, Recipe } from '../types';
 import { useAuth } from '../lib/auth/AuthProvider';
+import { HEALTH_GOALS } from '../lib/health-goals';
+import { useHealthGoal } from '../lib/contexts/HealthGoalContext';
 
 interface NutritionAnalysis {
   overallScore: number;
@@ -28,45 +30,6 @@ interface NutritionRecommendation {
   action?: string;
 }
 
-interface HealthGoal {
-  id: string;
-  name: string;
-  description: string;
-  targetCalories?: number;
-  proteinMultiplier?: number;
-  restrictions?: string[];
-}
-
-const HEALTH_GOALS: HealthGoal[] = [
-  {
-    id: 'weight-loss',
-    name: 'Weight Loss',
-    description: 'Reduce calories while maintaining nutrition',
-    targetCalories: 1800,
-    proteinMultiplier: 1.2,
-  },
-  {
-    id: 'muscle-gain',
-    name: 'Muscle Gain',
-    description: 'Increase protein and calories for muscle building',
-    targetCalories: 2400,
-    proteinMultiplier: 1.8,
-  },
-  {
-    id: 'maintenance',
-    name: 'Health Maintenance',
-    description: 'Balanced nutrition for overall wellness',
-    targetCalories: 2000,
-    proteinMultiplier: 1.0,
-  },
-  {
-    id: 'heart-health',
-    name: 'Heart Health',
-    description: 'Low sodium, healthy fats focus',
-    restrictions: ['low-sodium', 'omega-3-rich'],
-  },
-];
-
 interface AInutritionistProps {
   ingredients: Ingredient[];
   recentRecipes?: Recipe[];
@@ -79,8 +42,8 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
   className = '',
 }) => {
   const { user, profile, subscription, session } = useAuth();
+  const { selectedGoal, setSelectedGoal } = useHealthGoal();
   const [analysis, setAnalysis] = useState<NutritionAnalysis | null>(null);
-  const [selectedGoal, setSelectedGoal] = useState<HealthGoal>(HEALTH_GOALS[2]); // Default to maintenance
   const [loading, setLoading] = useState(false);
   const [weeklyReport, setWeeklyReport] = useState<any>(null);
   const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);

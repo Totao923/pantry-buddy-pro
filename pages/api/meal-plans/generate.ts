@@ -1,10 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { aiService } from '../../../lib/ai/aiService';
 import { Ingredient, Recipe, DifficultyLevel } from '../../../types';
+import { databaseRecipeService } from '../../../lib/services/databaseRecipeService';
+import { HealthGoal } from '../../../lib/health-goals';
 
 interface GenerateMealPlanRequest {
   ingredients: Ingredient[];
   userId: string;
+  healthGoal?: HealthGoal;
+  mealPlanMode?: 'health-goal' | 'family-friendly' | 'pantry-based';
   preferences?: {
     maxTime?: number;
     difficulty?: DifficultyLevel;
@@ -40,7 +44,13 @@ async function generateMealPlanHandler(
   }
 
   try {
-    const { ingredients, userId, preferences } = req.body as GenerateMealPlanRequest;
+    const {
+      ingredients,
+      userId,
+      healthGoal,
+      mealPlanMode = 'pantry-based',
+      preferences,
+    } = req.body as GenerateMealPlanRequest;
 
     if (!ingredients || ingredients.length === 0) {
       return res.status(400).json({
@@ -77,6 +87,18 @@ async function generateMealPlanHandler(
 
     // OPTIMIZED: Generate base recipes first, then create variations
     console.log('🔄 Generating base recipes for meal plan optimization...');
+    console.log(`🎯 Meal plan mode: ${mealPlanMode}`);
+    if (mealPlanMode === 'health-goal' && healthGoal) {
+      console.log(`🎯 Using health goal: ${healthGoal.name} (${healthGoal.id})`);
+      console.log(
+        `📊 Target calories: ${healthGoal.targetCalories}, Protein multiplier: ${healthGoal.proteinMultiplier}`
+      );
+      console.log(`🚫 Restrictions: ${healthGoal.restrictions || 'None'}`);
+    } else if (mealPlanMode === 'family-friendly') {
+      console.log('🍴 Generating family-friendly meal plan');
+    } else {
+      console.log('🥫 Generating pantry-based meal plan (original mode)');
+    }
 
     const baseRecipes: { [key: string]: Recipe[] } = {
       breakfast: [],
@@ -105,21 +127,88 @@ async function generateMealPlanHandler(
           const selectedCuisine = cuisineVariety[Math.floor(Math.random() * cuisineVariety.length)];
           const baseTime = mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60;
 
+          // Apply meal plan mode specific parameters
+          let enhancedPreferences: any = {
+            maxTime: baseTime,
+            difficulty: preferences?.difficulty || 'Easy',
+          };
+
+          if (mealPlanMode === 'health-goal' && healthGoal) {
+            // Health-focused mode with specific targets
+            let targetCalories = 400;
+            if (healthGoal.targetCalories) {
+              const mealsPerDay = mealType === 'snack' ? 5 : 3;
+              targetCalories = Math.round(healthGoal.targetCalories / mealsPerDay);
+            }
+
+            const healthGoalRestrictions = healthGoal.restrictions || [];
+            enhancedPreferences = {
+              ...enhancedPreferences,
+              targetCalories,
+              proteinFocus: healthGoal.proteinMultiplier
+                ? healthGoal.proteinMultiplier > 1.2
+                : false,
+              lowSodium: healthGoalRestrictions.includes('low-sodium'),
+              heartHealthy: healthGoalRestrictions.includes('omega-3-rich'),
+              healthGoal: healthGoal.name,
+            };
+          } else if (mealPlanMode === 'family-friendly') {
+            // Family-friendly mode with balanced approach
+            enhancedPreferences = {
+              ...enhancedPreferences,
+              familyFriendly: true,
+              balancedNutrition: true,
+              moderatePortions: true,
+            };
+          } else {
+            // Pantry-based mode (original) - use what you have efficiently
+            enhancedPreferences = {
+              ...enhancedPreferences,
+              pantryFocused: true,
+              useWhatYouHave: true,
+              practical: true,
+            };
+          }
+
           const response = await aiService.generateRecipe(
             {
               ingredients: selectedIngredients,
               cuisine: selectedCuisine as any,
               servings: 2,
-              preferences: {
-                maxTime: baseTime,
-                difficulty: preferences?.difficulty || 'Easy',
-              },
+              preferences: enhancedPreferences,
             },
             userId
           );
 
           if (response.success && response.recipe) {
-            baseRecipes[mealType].push(response.recipe);
+            // Tag the recipe based on meal plan mode
+            const modeTags = [`mode-${mealPlanMode}`];
+            const healthGoalTags =
+              mealPlanMode === 'health-goal' && healthGoal ? [`health-goal-${healthGoal.id}`] : [];
+            const aiRecipe = {
+              ...response.recipe,
+              tags: [
+                ...(response.recipe.tags || []),
+                'ai-generated',
+                'meal-plan',
+                ...modeTags,
+                ...healthGoalTags,
+              ],
+            };
+
+            // Save the AI-generated recipe to user's collection
+            try {
+              const saveResult = await databaseRecipeService.saveRecipe(aiRecipe, userId);
+              if (saveResult.success) {
+                console.log(`✅ Saved AI recipe "${aiRecipe.title}" to user collection`);
+              } else {
+                console.warn(`⚠️ Failed to save AI recipe "${aiRecipe.title}":`, saveResult.error);
+              }
+            } catch (error) {
+              console.error(`❌ Error saving AI recipe "${aiRecipe.title}":`, error);
+            }
+
+            baseRecipes[mealType].push(aiRecipe);
           }
 
           // Reduced delay since we're making fewer calls
