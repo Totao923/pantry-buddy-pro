@@ -137,7 +137,7 @@ async function generateMealPlanHandler(
             // Health-focused mode with specific targets
             let targetCalories = 400;
             if (healthGoal.targetCalories) {
-              const mealsPerDay = mealType === 'snack' ? 5 : 3;
+              const mealsPerDay = 3; // breakfast, lunch, dinner
               targetCalories = Math.round(healthGoal.targetCalories / mealsPerDay);
             }
 
