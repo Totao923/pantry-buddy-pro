@@ -265,12 +265,13 @@ export default function MealPlans() {
       }
     } catch (error) {
       console.error('❌ Error in handleAddMealToPlan:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('❌ Error details:', {
-        message: error?.message,
-        stack: error?.stack,
-        name: error?.name,
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : undefined,
       });
-      alert(`Failed to add meal to plan: ${error?.message || 'Unknown error'}. Please try again.`);
+      alert(`Failed to add meal to plan: ${errorMessage}. Please try again.`);
     }
   };
 
