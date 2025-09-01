@@ -8,7 +8,7 @@ import QuickSuggestionsCard from '../../components/QuickSuggestionsCard';
 import ReceiptScanner from '../../components/ReceiptScanner';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import ReceiptReview, { ConfirmedReceiptItem } from '../../components/ReceiptReview';
-import { ingredientService } from '../../lib/services/ingredientService';
+import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
 import type { CreateIngredientRequest } from '../../lib/services/ingredientService';
 import { useIngredients } from '../../contexts/IngredientsProvider';
 import { receiptService, ExtractedReceiptData } from '../../lib/services/receiptService';
@@ -71,6 +71,8 @@ export default function PantryManagement() {
 
   const handleAddIngredient = async (ingredient: Ingredient) => {
     try {
+      console.log('➕ Adding ingredient using service factory:', ingredient.name);
+      const ingredientService = await getIngredientService();
       const newIngredient = await ingredientService.createIngredient({
         name: ingredient.name,
         category: ingredient.category,
@@ -87,7 +89,7 @@ export default function PantryManagement() {
 
       // Refresh the global context so all components get updated data
       await refetch();
-      console.log('✅ Ingredient added, context refreshed');
+      console.log('✅ Ingredient added and context refreshed:', ingredient.name);
     } catch (error) {
       console.error('Error adding ingredient:', error);
     }
@@ -95,17 +97,21 @@ export default function PantryManagement() {
 
   const handleRemoveIngredient = async (id: string) => {
     try {
+      console.log('🗑️ Deleting ingredient using service factory:', id);
+      const ingredientService = await getIngredientService();
       await ingredientService.deleteIngredient(id);
       // Refresh the global context so all components get updated data
       await refetch();
       console.log('✅ Ingredient removed, context refreshed');
     } catch (error) {
-      console.error('Error removing ingredient:', error);
+      console.error('❌ Error removing ingredient:', error);
     }
   };
 
   const handleUpdateIngredient = async (ingredient: Ingredient) => {
     try {
+      console.log('✏️ Updating ingredient using service factory:', ingredient.name);
+      const ingredientService = await getIngredientService();
       const updatedIngredient = await ingredientService.updateIngredient(ingredient.id, {
         name: ingredient.name,
         category: ingredient.category,
@@ -119,7 +125,7 @@ export default function PantryManagement() {
       });
       // Refresh the global context so all components get updated data
       await refetch();
-      console.log('✅ Ingredient updated, context refreshed');
+      console.log('✅ Ingredient updated and context refreshed:', ingredient.name);
     } catch (error) {
       console.error('Error updating ingredient:', error);
     }
@@ -132,12 +138,15 @@ export default function PantryManagement() {
       )
     ) {
       try {
+        console.log('🗑️ Clearing all ingredients using service factory...');
+        const ingredientService = await getIngredientService();
         await ingredientService.clearAllIngredients();
         // Refresh the global context so all components get updated data
         await refetch();
         console.log('✅ All ingredients cleared, context refreshed');
       } catch (error) {
-        console.error('Error clearing ingredients:', error);
+        console.error('❌ Error clearing ingredients:', error);
+        alert('Failed to clear ingredients. Please try again.');
       }
     }
   };

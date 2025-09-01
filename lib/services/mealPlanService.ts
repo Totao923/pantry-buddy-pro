@@ -42,6 +42,20 @@ export class MealPlanService {
     mealPlan: Omit<MealPlan, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<MealPlan> {
     try {
+      console.log('🔗 MealPlanService: Sending CREATE request to API:', {
+        url: this.baseUrl,
+        method: 'POST',
+        bodyPreview: {
+          name: mealPlan.name,
+          userId: mealPlan.userId,
+          mealsCount: mealPlan.meals.length,
+          startDate: mealPlan.startDate,
+          endDate: mealPlan.endDate,
+          startDateType: typeof mealPlan.startDate,
+          endDateType: typeof mealPlan.endDate,
+        },
+      });
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
@@ -50,14 +64,25 @@ export class MealPlanService {
         body: JSON.stringify(mealPlan),
       });
 
+      console.log('📡 MealPlanService: API response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      });
+
       if (!response.ok) {
-        throw new Error('Failed to create meal plan');
+        const errorData = await response.json().catch(() => null);
+        console.error('❌ MealPlanService: API error response:', errorData);
+        throw new Error(
+          `Failed to create meal plan: ${response.status} ${response.statusText} - ${errorData?.error || 'Unknown error'}`
+        );
       }
 
       const data = await response.json();
+      console.log('✅ MealPlanService: Meal plan created successfully');
       return data.mealPlan;
     } catch (error) {
-      console.error('Error creating meal plan:', error);
+      console.error('❌ MealPlanService: Error creating meal plan:', error);
       throw error;
     }
   }

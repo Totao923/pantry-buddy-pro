@@ -121,14 +121,28 @@ export default function MealPlans() {
   const handleCreateMealPlanFromPlanner = async (
     mealPlan: Omit<MealPlan, 'id' | 'createdAt' | 'updatedAt'>
   ) => {
-    if (!user) return;
+    if (!user) {
+      console.error('❌ Cannot create meal plan: no user found');
+      alert('Please log in to create a meal plan.');
+      return;
+    }
 
     try {
+      console.log('💾 Creating meal plan from planner:', {
+        name: mealPlan.name,
+        userId: mealPlan.userId,
+        startDate: mealPlan.startDate,
+        endDate: mealPlan.endDate,
+        mealsCount: mealPlan.meals.length,
+      });
+
       const createdPlan = await MealPlanService.createMealPlan(mealPlan);
+      console.log('✅ Meal plan created successfully:', createdPlan.id);
       setMealPlans([...mealPlans, createdPlan]);
     } catch (error) {
-      console.error('Error creating meal plan:', error);
-      alert('Failed to create meal plan. Please try again.');
+      console.error('❌ Error creating meal plan from planner:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to create meal plan: ${errorMessage}`);
     }
   };
 
@@ -338,8 +352,17 @@ export default function MealPlans() {
         sharedWith: [],
       };
 
+      console.log('💾 Creating manual meal plan:', {
+        name: newMealPlan.name,
+        userId: newMealPlan.userId,
+        startDate: newMealPlan.startDate,
+        endDate: newMealPlan.endDate,
+        mealsCount: newMealPlan.meals.length,
+      });
+
       // Create meal plan using API
       const createdPlan = await MealPlanService.createMealPlan(newMealPlan);
+      console.log('✅ Manual meal plan created successfully:', createdPlan.id);
 
       // Update local state
       setMealPlans([...mealPlans, createdPlan]);
@@ -351,8 +374,9 @@ export default function MealPlans() {
 
       alert('Meal plan created successfully!');
     } catch (error) {
-      console.error('Error creating meal plan:', error);
-      alert('Failed to create meal plan. Please try again.');
+      console.error('❌ Error creating manual meal plan:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to create meal plan: ${errorMessage}`);
     }
   };
 
