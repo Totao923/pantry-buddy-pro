@@ -71,7 +71,9 @@ export default function PantryManagement() {
 
   const handleAddIngredient = async (ingredient: Ingredient) => {
     try {
-      console.log('➕ Adding ingredient using service factory:', ingredient.name);
+      console.log('🔍 PANTRY DEBUG: Starting handleAddIngredient for:', ingredient.name);
+      console.log('🔍 PANTRY DEBUG: Current ingredients count BEFORE:', ingredients.length);
+
       const ingredientService = await getIngredientService();
       const newIngredient = await ingredientService.createIngredient({
         name: ingredient.name,
@@ -84,14 +86,18 @@ export default function PantryManagement() {
         isVegetarian: ingredient.isVegetarian,
         isVegan: ingredient.isVegan,
         price: ingredient.price,
-        priceSource: ingredient.priceSource || 'estimated',
       });
 
+      console.log('✅ PANTRY DEBUG: Ingredient service created:', newIngredient);
+
       // Refresh the global context so all components get updated data
+      console.log('🔄 PANTRY DEBUG: Calling refetch to refresh global context...');
       await refetch();
-      console.log('✅ Ingredient added and context refreshed:', ingredient.name);
+
+      console.log('🔍 PANTRY DEBUG: Current ingredients count AFTER refetch:', ingredients.length);
+      console.log('✅ PANTRY DEBUG: Process completed for:', ingredient.name);
     } catch (error) {
-      console.error('Error adding ingredient:', error);
+      console.error('❌ PANTRY DEBUG: Error in handleAddIngredient:', error);
     }
   };
 
@@ -152,20 +158,47 @@ export default function PantryManagement() {
   };
 
   const handleReceiptConfirmed = async (confirmedItems: ConfirmedReceiptItem[]) => {
-    console.log('📋 handleReceiptConfirmed called with', confirmedItems.length, 'items');
+    console.log(
+      '📋 RECEIPT DEBUG: handleReceiptConfirmed called with',
+      confirmedItems.length,
+      'items'
+    );
+    setLoading(true);
 
-    // Items are already added by ReceiptReview component, so just refresh the context
     try {
-      console.log('🔄 Refreshing global context after receipt confirmation...');
-      await refetch();
+      // Now properly add each confirmed item using the same flow as manual addition
+      for (const item of confirmedItems) {
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + item.expirationDays);
+
+        const ingredient: Ingredient = {
+          id: '',
+          name: item.name,
+          category: item.category!,
+          quantity: item.quantity?.toString(),
+          unit: item.unit,
+          expiryDate: expirationDate,
+          price: item.price,
+          isVegetarian:
+            item.category !== 'protein' ||
+            ['tofu', 'beans', 'eggs'].some(v => item.name.toLowerCase().includes(v)),
+          isVegan:
+            !['dairy', 'protein'].includes(item.category!) ||
+            ['tofu', 'beans'].some(v => item.name.toLowerCase().includes(v)),
+          isProtein: item.category === 'protein',
+        };
+
+        console.log('📦 RECEIPT DEBUG: Adding receipt item via handleAddIngredient:', item.name);
+        await handleAddIngredient(ingredient);
+      }
 
       // Show success and close review
       alert(`Successfully added ${confirmedItems.length} items to your pantry!`);
       setShowReceiptReview(false);
       setCurrentReceipt(null);
-      console.log('✅ Receipt confirmed, context refreshed');
+      console.log('✅ RECEIPT DEBUG: All receipt items processed');
     } catch (error) {
-      console.error('Failed to confirm receipt:', error);
+      console.error('❌ RECEIPT DEBUG: Failed to confirm receipt:', error);
       setError('Failed to save receipt data. Please try again.');
     } finally {
       setLoading(false);

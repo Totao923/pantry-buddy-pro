@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ingredientService } from '../lib/services/ingredientService';
+import { getIngredientService } from '../lib/services/ingredientServiceFactory';
 import QuickRecipeSuggestions from './QuickRecipeSuggestions';
 
 interface QuickSuggestionsCardProps {
@@ -19,7 +19,10 @@ export default function QuickSuggestionsCard({
   useEffect(() => {
     const loadPantryStats = async () => {
       try {
+        console.log('🔍 QUICK SUGGESTIONS: Loading pantry stats...');
+        const ingredientService = await getIngredientService();
         const pantryItems = await ingredientService.getAllIngredients();
+        console.log('🔍 QUICK SUGGESTIONS: Loaded pantry items:', pantryItems.length, pantryItems);
         setPantryItemCount(pantryItems.length);
 
         // Calculate expiring items (within 3 days)
@@ -31,8 +34,14 @@ export default function QuickSuggestionsCard({
           return daysUntilExpiry <= 3 && daysUntilExpiry >= 0;
         });
         setExpiringItemCount(expiringItems.length);
+        console.log(
+          '🔍 QUICK SUGGESTIONS: Final counts - pantry:',
+          pantryItems.length,
+          'expiring:',
+          expiringItems.length
+        );
       } catch (error) {
-        console.error('Failed to load pantry stats:', error);
+        console.error('❌ QUICK SUGGESTIONS: Failed to load pantry stats:', error);
       } finally {
         setLoading(false);
       }

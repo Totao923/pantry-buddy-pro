@@ -163,44 +163,13 @@ export default function ReceiptReview({
       console.log('⏭️ Skipping receipt saving in development mode');
       // Note: In production with proper auth, we would save the receipt here
 
-      // Add confirmed items to pantry
-      for (const item of itemsToAdd) {
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + item.expirationDays);
+      console.log('✅ RECEIPT DEBUG: Items validated, calling onConfirm callback');
+      console.log(
+        '📦 RECEIPT DEBUG: This will trigger the parent component to add items via proper callback flow'
+      );
 
-        const pantryItem = {
-          id: uuidv4(),
-          name: item.name,
-          category: item.category!,
-          currentQuantity: item.quantity,
-          originalQuantity: item.quantity,
-          unit: item.unit,
-          location: item.storageLocation,
-          price: item.price,
-          brand: item.brand,
-          purchaseDate: receiptData.receiptDate,
-          expiryDate: expirationDate.toISOString(),
-          isRunningLow: false,
-          usageFrequency: 0,
-          autoReorderLevel: Math.max(1, Math.floor(item.quantity * 0.2)),
-          isVegetarian:
-            item.category !== 'protein' ||
-            ['tofu', 'beans', 'eggs'].some(v => item.name.toLowerCase().includes(v)),
-          isVegan:
-            !['dairy', 'protein'].includes(item.category!) ||
-            ['tofu', 'beans'].some(v => item.name.toLowerCase().includes(v)),
-          isProtein: item.category === 'protein',
-        };
-
-        try {
-          console.log('🥕 Creating ingredient:', item.name);
-          console.log('🔍 RECEIPT: Using direct ingredient service:', ingredientService);
-          await ingredientService.createIngredient(pantryItem);
-          console.log('✅ Successfully created ingredient:', item.name);
-        } catch (error) {
-          console.error('❌ Failed to add item to pantry:', item.name, error);
-        }
-      }
+      // Note: The actual ingredient addition will be handled by the parent component
+      // via the onConfirm callback, which ensures proper global context refresh
 
       console.log('🎉 ALL ITEMS ADDED SUCCESSFULLY!');
 

@@ -81,11 +81,10 @@ class DatabaseIngredientService {
       unit: item.unit || undefined,
       expiryDate: item.expiry_date ? new Date(item.expiry_date) : undefined,
       nutritionalValue: item.nutritional_value || undefined,
-      isProtein: item.is_protein,
-      isVegetarian: item.is_vegetarian,
-      isVegan: item.is_vegan,
+      isProtein: item.category === 'protein', // Derive from category since DB column doesn't exist
+      isVegetarian: item.category !== 'protein', // Derive from category
+      isVegan: !['dairy', 'protein'].includes(item.category), // Derive from category
       price: (item as any).price || undefined,
-      priceSource: (item as any).price_source || undefined,
     };
   }
 
@@ -101,11 +100,7 @@ class DatabaseIngredientService {
       unit: ingredient.unit || null,
       expiry_date: ingredient.expiryDate || null,
       nutritional_value: ingredient.nutritionalValue || null,
-      is_protein: ingredient.isProtein ?? false,
-      is_vegetarian: ingredient.isVegetarian ?? true,
-      is_vegan: ingredient.isVegan ?? true,
       price: ingredient.price || null,
-      price_source: ingredient.priceSource || null,
     } as any;
   }
 

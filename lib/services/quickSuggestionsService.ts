@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Ingredient, IngredientCategory } from '../../types';
-import { ingredientService } from './ingredientService';
+import { getIngredientService } from './ingredientServiceFactory';
 import { aiService } from '../ai/aiService';
 
 export interface QuickRecipeSuggestion {
@@ -40,6 +40,7 @@ export interface SuggestionRequest {
   prioritizeExpiring?: boolean;
   dietaryPreferences?: string[];
   forceRefresh?: boolean;
+  excludeRecipes?: string[]; // Recipe names to exclude from new suggestions
 }
 
 interface PrioritizedIngredient extends Ingredient {
@@ -74,14 +75,15 @@ class QuickSuggestionsService {
       prioritizeExpiring = true,
       dietaryPreferences = [],
       forceRefresh = false,
+      excludeRecipes = [],
     } = request;
 
     try {
       // Generate cache key for both caching and storing results
       const cacheKey = this.generateCacheKey(userId, request);
 
-      // Check cache first (skip if forceRefresh is true)
-      if (!forceRefresh) {
+      // Check cache first (skip if forceRefresh is true or excludeRecipes provided)
+      if (!forceRefresh && excludeRecipes.length === 0) {
         const cached = this.cache.get(cacheKey);
 
         if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
@@ -89,12 +91,12 @@ class QuickSuggestionsService {
           return cached.suggestions;
         }
       } else {
-        console.log('🔄 Force refresh requested, bypassing cache');
+        console.log('🔄 Force refresh or exclusions requested, bypassing cache');
       }
 
       // Get current pantry inventory
       console.log('📦 Loading pantry inventory...');
-      const userIngredients = await ingredientService.getAllIngredients();
+      const ingredientService = await getIngredientService();
       const pantryItems = await ingredientService.getAllIngredients();
 
       if (pantryItems.length < 3) {
@@ -113,7 +115,8 @@ class QuickSuggestionsService {
           maxSuggestions,
           maxCookTime,
           difficultyLevel,
-          dietaryPreferences
+          dietaryPreferences,
+          excludeRecipes
         );
       } catch (aiError) {
         console.warn('AI suggestions failed, using fallback recipes:', aiError);
@@ -219,7 +222,8 @@ class QuickSuggestionsService {
     maxSuggestions: number,
     maxCookTime: number,
     difficultyLevel: string,
-    dietaryPreferences: string[]
+    dietaryPreferences: string[],
+    excludeRecipes: string[] = []
   ): Promise<any[]> {
     const expiringItems = prioritizedItems.filter(item => item.isExpiring).map(item => item.name);
     const abundantItems = prioritizedItems.filter(item => item.isAbundant).map(item => item.name);
@@ -252,7 +256,21 @@ class QuickSuggestionsService {
             .join(', ')}`
         : '';
 
-    const prompt = `Generate ${maxSuggestions} quick recipe suggestions using available pantry ingredients.
+    // Create exclusion text
+    const exclusionText =
+      excludeRecipes.length > 0
+        ? `AVOID these already suggested recipes: ${excludeRecipes.join(', ')}`
+        : '';
+
+    // Add variety keywords for more diverse suggestions
+    const varietyKeywords = [
+      'Different cooking methods (roasted, grilled, steamed, stir-fried, baked)',
+      'Diverse cuisines (Italian, Asian, Mexican, Mediterranean, American)',
+      'Varied meal types (soup, salad, main dish, one-pot meal)',
+      'Different flavor profiles (spicy, mild, tangy, savory, umami)',
+    ];
+
+    const prompt = `Generate ${maxSuggestions} UNIQUE and DIVERSE quick recipe suggestions using available pantry ingredients.
 
 PANTRY INVENTORY:
 Priority ingredients (expiring soon): ${expiringItems.join(', ') || 'None'}
@@ -265,7 +283,8 @@ REQUIREMENTS:
 - Cook time: Maximum ${maxCookTime} minutes
 - Difficulty: ${difficultyLevel === 'Both' ? 'Easy or Medium only' : difficultyLevel + ' only'}
 - Prioritize expiring ingredients: ${expiringItems.join(', ')}
-- Include variety: Different cuisines and cooking methods
+- ENSURE VARIETY: ${varietyKeywords.join(', ')}
+- ${exclusionText}
 - ${dietaryRestrictions}
 
 FORMAT (JSON array):
@@ -686,7 +705,7 @@ IMPORTANT: Include accurate nutritional estimates per serving in the nutritionIn
 
     try {
       // Try to get user's pantry for better fallback suggestions
-      const userIngredients = await ingredientService.getAllIngredients();
+      const ingredientService = await getIngredientService();
       const pantryItems = await ingredientService.getAllIngredients();
       if (pantryItems && Array.isArray(pantryItems) && pantryItems.length >= 3) {
         // Convert to PrioritizedIngredient format
@@ -823,6 +842,7 @@ IMPORTANT: Include accurate nutritional estimates per serving in the nutritionIn
       maxCookTime: request.maxCookTime,
       difficultyLevel: request.difficultyLevel,
       dietaryPreferences: request.dietaryPreferences?.sort(),
+      excludeRecipes: request.excludeRecipes?.sort(),
       // Add pantry signature for cache invalidation
       timestamp: Math.floor(Date.now() / this.CACHE_DURATION), // Changes every 24 hours
     };

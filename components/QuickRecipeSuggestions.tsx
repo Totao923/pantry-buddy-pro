@@ -195,6 +195,7 @@ export default function QuickRecipeSuggestions({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cookingRecipeId, setCookingRecipeId] = useState<string | null>(null);
+  const [allSeenRecipes, setAllSeenRecipes] = useState<string[]>([]);
 
   console.log('🏗️ Current state:', { suggestionsCount: suggestions.length, loading, error });
   const [options, setOptions] = useState<SuggestionRequest>({
@@ -208,26 +209,40 @@ export default function QuickRecipeSuggestions({
 
   const generateSuggestions = async (
     customOptions?: Partial<SuggestionRequest>,
-    forceRefresh?: boolean
+    forceRefresh?: boolean,
+    isGetMoreRequest = false
   ) => {
     console.log(
       '🔄 DEBUG: generateSuggestions called with options:',
       customOptions,
       'forceRefresh:',
-      forceRefresh
+      forceRefresh,
+      'isGetMoreRequest:',
+      isGetMoreRequest
     );
     console.log(
       '🔄 DEBUG: Current state - loading:',
       loading,
       'suggestions count:',
-      suggestions.length
+      suggestions.length,
+      'allSeenRecipes:',
+      allSeenRecipes
     );
 
     setLoading(true);
     setError(null);
 
     try {
-      const requestOptions = { ...options, ...customOptions, userId: user?.id, forceRefresh };
+      // For "Get More" requests, pass previously seen recipes as exclusions
+      const excludeRecipes = isGetMoreRequest ? allSeenRecipes : [];
+
+      const requestOptions = {
+        ...options,
+        ...customOptions,
+        userId: user?.id,
+        forceRefresh,
+        excludeRecipes,
+      };
       console.log('🔄 DEBUG: Request options:', requestOptions);
 
       const newSuggestions = await quickSuggestionsService.getQuickSuggestions(requestOptions);
@@ -240,6 +255,14 @@ export default function QuickRecipeSuggestions({
       } else {
         console.log('🔄 DEBUG: Setting suggestions:', newSuggestions.length, 'items');
         setSuggestions(newSuggestions);
+
+        // Track all recipe names we've seen
+        const newRecipeNames = newSuggestions.map(recipe => recipe.name);
+        setAllSeenRecipes(prev => {
+          const updated = [...new Set([...prev, ...newRecipeNames])];
+          console.log('🔄 DEBUG: Updated allSeenRecipes:', updated);
+          return updated;
+        });
       }
     } catch (err) {
       console.error('🔄 DEBUG: Failed to generate suggestions:', err);
@@ -505,7 +528,8 @@ export default function QuickRecipeSuggestions({
           <button
             onClick={() => {
               console.log('🔄 REFRESH BUTTON CLICKED');
-              generateSuggestions({}, true);
+              setAllSeenRecipes([]); // Reset seen recipes for fresh start
+              generateSuggestions({}, true, false);
             }}
             disabled={loading}
             className="px-4 py-2 text-pantry-600 border border-pantry-600 rounded-lg hover:bg-pantry-50 transition-colors text-sm font-medium"
@@ -653,7 +677,10 @@ export default function QuickRecipeSuggestions({
       {/* Get More Suggestions */}
       <div className="text-center">
         <button
-          onClick={() => generateSuggestions({}, true)}
+          onClick={() => {
+            console.log('✨ GET MORE IDEAS BUTTON CLICKED');
+            generateSuggestions({}, true, true);
+          }}
           disabled={loading}
           className="px-6 py-3 text-pantry-600 border border-pantry-300 rounded-xl hover:bg-pantry-50 transition-colors font-medium"
         >
