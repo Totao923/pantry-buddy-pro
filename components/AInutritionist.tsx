@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/router';
 
 // Global flag to prevent multiple simultaneous analysis requests
 let globalAnalysisInProgress = false;
 let globalAnalysisCount = 0;
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
+import { Modal } from './ui/Modal';
 import { LoadingSkeleton } from './ui/LoadingSkeleton';
 import { Ingredient, NutritionInfo, Recipe } from '../types';
 import { useAuth } from '../lib/auth/AuthProvider';
 import { HEALTH_GOALS } from '../lib/health-goals';
 import { useHealthGoal } from '../lib/contexts/HealthGoalContext';
+import { ShoppingListService } from '../lib/services/shoppingListService';
 
 interface NutritionAnalysis {
   overallScore: number;
@@ -43,9 +46,12 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
 }) => {
   const { user, profile, subscription, session } = useAuth();
   const { selectedGoal, setSelectedGoal } = useHealthGoal();
+  const router = useRouter();
   const [analysis, setAnalysis] = useState<NutritionAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [weeklyReport, setWeeklyReport] = useState<any>(null);
+  const [showShoppingListModal, setShowShoppingListModal] = useState(false);
+  const [pendingShoppingItem, setPendingShoppingItem] = useState<string | null>(null);
   const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastAnalysisParamsRef = useRef<string>('');
   const isAnalysisInProgressRef = useRef<boolean>(false);
@@ -205,6 +211,95 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
       }
     } catch (error) {
       console.error('Error generating weekly report:', error);
+    }
+  };
+
+  const handleRecommendationAction = (recommendation: NutritionRecommendation) => {
+    console.log(
+      '🎯 Handling recommendation action:',
+      recommendation.action,
+      'for:',
+      recommendation.title
+    );
+
+    switch (recommendation.action) {
+      case 'Add to Shopping List':
+        // Extract ingredient name from recommendation title
+        const ingredientName = extractIngredientFromRecommendation(recommendation);
+        setPendingShoppingItem(ingredientName);
+        setShowShoppingListModal(true);
+        break;
+
+      case 'Find High-Fiber Recipes':
+      case 'Find Protein Recipes':
+      case 'Find Healthy Recipes':
+        // Navigate to recipes with search filter
+        const searchQuery = getRecipeSearchQuery(recommendation);
+        router.push(`/dashboard/recipes?search=${encodeURIComponent(searchQuery)}`);
+        break;
+
+      default:
+        console.log('Unknown action:', recommendation.action);
+    }
+  };
+
+  const extractIngredientFromRecommendation = (rec: NutritionRecommendation): string => {
+    // Extract ingredient name from recommendation title/description
+    const text = rec.title.toLowerCase();
+
+    if (text.includes('protein')) return 'eggs';
+    if (text.includes('fiber') || text.includes('vegetable')) return 'broccoli';
+    if (text.includes('dairy') || text.includes('calcium')) return 'milk';
+    if (text.includes('vitamin c') || text.includes('citrus')) return 'orange';
+    if (text.includes('iron')) return 'spinach';
+
+    // Default fallback based on description
+    const description = rec.description.toLowerCase();
+    if (description.includes('chicken')) return 'chicken breast';
+    if (description.includes('fish')) return 'salmon';
+    if (description.includes('beans')) return 'black beans';
+    if (description.includes('nuts')) return 'almonds';
+
+    return 'healthy ingredients';
+  };
+
+  const getRecipeSearchQuery = (rec: NutritionRecommendation): string => {
+    const title = rec.title.toLowerCase();
+
+    if (title.includes('fiber')) return 'high fiber';
+    if (title.includes('protein')) return 'high protein';
+    if (title.includes('vegetable')) return 'vegetables';
+
+    return 'healthy';
+  };
+
+  const addToShoppingList = async () => {
+    if (!pendingShoppingItem) return;
+
+    try {
+      const category = ShoppingListService.detectIngredientCategory(pendingShoppingItem);
+
+      const newItem = {
+        name: pendingShoppingItem,
+        quantity: 1,
+        unit: 'item',
+        category,
+        priority: 'medium' as const,
+        estimatedPrice: 3.99,
+        notes: 'Added from AI nutritionist recommendation',
+      };
+
+      ShoppingListService.addItemToActiveList(newItem);
+
+      // Show success message
+      alert(`✅ Added "${pendingShoppingItem}" to your shopping list!`);
+
+      // Close modal
+      setShowShoppingListModal(false);
+      setPendingShoppingItem(null);
+    } catch (error) {
+      console.error('Error adding to shopping list:', error);
+      alert('❌ Failed to add item to shopping list. Please try again.');
     }
   };
 
@@ -385,10 +480,7 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
                           variant="secondary"
                           size="sm"
                           className="mt-2"
-                          onClick={() => {
-                            // Handle recommendation action
-                            console.log('Executing recommendation action:', rec.action);
-                          }}
+                          onClick={() => handleRecommendationAction(rec)}
                         >
                           {rec.action}
                         </Button>
@@ -441,6 +533,58 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
           </div>
         </Card>
       )}
+
+      {/* Shopping List Modal */}
+      <Modal
+        isOpen={showShoppingListModal}
+        onClose={() => {
+          setShowShoppingListModal(false);
+          setPendingShoppingItem(null);
+        }}
+        title="Add to Shopping List"
+        size="sm"
+        footer={
+          <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowShoppingListModal(false);
+                setPendingShoppingItem(null);
+              }}
+              fullWidth
+              className="sm:w-auto order-2 sm:order-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={addToShoppingList}
+              fullWidth
+              className="sm:w-auto order-1 sm:order-2"
+            >
+              Add to List
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+            <span className="text-2xl">🛒</span>
+            <div>
+              <h4 className="font-medium text-blue-900">Add Recommended Ingredient</h4>
+              <p className="text-sm text-blue-700">
+                This will add "{pendingShoppingItem}" to your active shopping list
+              </p>
+            </div>
+          </div>
+
+          <div className="text-sm text-gray-600">
+            <p>✅ Will be added with default quantity of 1 item</p>
+            <p>✅ Added from AI nutritionist recommendation</p>
+            <p>✅ Can be modified later in Shopping Lists page</p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

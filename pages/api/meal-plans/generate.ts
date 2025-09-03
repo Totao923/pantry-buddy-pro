@@ -106,9 +106,9 @@ async function generateMealPlanHandler(
       dinner: [],
     };
 
-    // Generate 1 base recipe per meal type to stay under timeout limits
+    // Generate multiple base recipes per meal type for more variety
     for (const mealType of mealTypes) {
-      const recipesNeeded = 1; // Generate 1 base recipe per meal type for speed
+      const recipesNeeded = 3; // Generate 3 base recipes per meal type for variety
 
       for (let i = 0; i < recipesNeeded; i++) {
         try {
@@ -211,8 +211,8 @@ async function generateMealPlanHandler(
             baseRecipes[mealType].push(aiRecipe);
           }
 
-          // Reduced delay since we're making fewer calls
-          await new Promise(resolve => setTimeout(resolve, 200));
+          // Short delay between recipe generation calls
+          await new Promise(resolve => setTimeout(resolve, 150));
         } catch (error) {
           console.error(`Error generating base ${mealType} recipe ${i + 1}:`, error);
         }
@@ -236,8 +236,8 @@ async function generateMealPlanHandler(
       for (const mealType of mealTypes) {
         const availableRecipes = baseRecipes[mealType];
         if (availableRecipes.length > 0) {
-          // Use the base recipe with creative variations
-          const baseRecipe = availableRecipes[0]; // Only 1 recipe per type now
+          // Rotate through available recipes for variety
+          const baseRecipe = availableRecipes[dayIndex % availableRecipes.length];
 
           // Create meaningful variations by day
           const variations = [

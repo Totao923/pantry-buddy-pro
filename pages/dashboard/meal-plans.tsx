@@ -9,6 +9,9 @@ import { useAuth } from '../../lib/auth/AuthProvider';
 import { aiService } from '../../lib/ai/aiService';
 import { useIngredients } from '../../contexts/IngredientsProvider';
 import { useHealthGoal } from '../../lib/contexts/HealthGoalContext';
+import { HEALTH_GOALS } from '../../lib/health-goals';
+import { Modal } from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
 import { MealPlanService } from '../../lib/services/mealPlanService';
 import { databaseRecipeService } from '../../lib/services/databaseRecipeService';
 import { Recipe, MealPlan, Ingredient, PlannedMeal } from '../../types';
@@ -40,7 +43,7 @@ interface WeekDay {
 export default function MealPlans() {
   const { user, session } = useAuth();
   const { ingredients: availableIngredients } = useIngredients();
-  const { selectedGoal } = useHealthGoal();
+  const { selectedGoal, setSelectedGoal } = useHealthGoal();
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [currentWeek, setCurrentWeek] = useState<WeekDay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +54,7 @@ export default function MealPlans() {
   const [mealPlanMode, setMealPlanMode] = useState<
     'health-goal' | 'family-friendly' | 'pantry-based'
   >('pantry-based'); // Default to original pantry-based
+  const [showHealthGoalModal, setShowHealthGoalModal] = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [newPlanWeek, setNewPlanWeek] = useState<WeekDay[]>([]);
   const [availableRecipes, setAvailableRecipes] = useState<Recipe[]>([]);
@@ -556,6 +560,25 @@ export default function MealPlans() {
     });
   };
 
+  const handleMealPlanModeChange = (
+    newMode: 'health-goal' | 'family-friendly' | 'pantry-based'
+  ) => {
+    if (newMode === 'health-goal' && (!selectedGoal || selectedGoal.id === 'general-wellness')) {
+      setShowHealthGoalModal(true);
+      return;
+    }
+    setMealPlanMode(newMode);
+  };
+
+  const handleHealthGoalSelection = (goalId: string) => {
+    const goal = HEALTH_GOALS.find(g => g.id === goalId);
+    if (goal) {
+      setSelectedGoal(goal);
+      setMealPlanMode('health-goal');
+      setShowHealthGoalModal(false);
+    }
+  };
+
   const generateAIMealPlan = async () => {
     if (!user || generatingPlan) return;
 
@@ -1034,7 +1057,7 @@ export default function MealPlans() {
                           name="mealPlanMode"
                           value="pantry-based"
                           checked={mealPlanMode === 'pantry-based'}
-                          onChange={e => setMealPlanMode(e.target.value as any)}
+                          onChange={e => handleMealPlanModeChange(e.target.value as any)}
                           className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
                         />
                         <div className="flex-1">
@@ -1051,7 +1074,7 @@ export default function MealPlans() {
                           name="mealPlanMode"
                           value="health-goal"
                           checked={mealPlanMode === 'health-goal'}
-                          onChange={e => setMealPlanMode(e.target.value as any)}
+                          onChange={e => handleMealPlanModeChange(e.target.value as any)}
                           className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
                         />
                         <div className="flex-1">
@@ -1075,7 +1098,7 @@ export default function MealPlans() {
                           name="mealPlanMode"
                           value="family-friendly"
                           checked={mealPlanMode === 'family-friendly'}
-                          onChange={e => setMealPlanMode(e.target.value as any)}
+                          onChange={e => handleMealPlanModeChange(e.target.value as any)}
                           className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
                         />
                         <div className="flex-1">
@@ -1538,6 +1561,60 @@ export default function MealPlans() {
             </div>
           </div>
         )}
+
+        {/* Health Goal Selection Modal */}
+        <Modal
+          isOpen={showHealthGoalModal}
+          onClose={() => setShowHealthGoalModal(false)}
+          title="Select Your Health Goal"
+          size="md"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              To use health-focused meal planning, please select your health goal. This will help us
+              create personalized meal plans that align with your nutritional needs.
+            </p>
+
+            <div className="space-y-3">
+              {HEALTH_GOALS.filter(goal => goal.id !== 'general-wellness').map(goal => (
+                <div
+                  key={goal.id}
+                  className="border border-gray-200 rounded-lg p-4 hover:border-pantry-300 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">{goal.icon}</div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{goal.name}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{goal.description}</p>
+                      <div className="mt-2 text-xs text-gray-500">
+                        Target: {goal.targetCalories} calories/day
+                        {goal.proteinMultiplier &&
+                          goal.proteinMultiplier > 1 &&
+                          ` • High protein focus`}
+                        {goal.restrictions &&
+                          goal.restrictions.length > 0 &&
+                          ` • ${goal.restrictions.join(', ')}`}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleHealthGoalSelection(goal.id)}
+                    variant="primary"
+                    className="w-full mt-3"
+                  >
+                    Select {goal.name}
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-500">
+                💡 You can change your health goal anytime in the Settings page.
+              </p>
+            </div>
+          </div>
+        </Modal>
       </DashboardLayout>
     </AuthGuard>
   );
