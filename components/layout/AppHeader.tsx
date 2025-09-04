@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { UserMenu } from '../auth/AuthGuard';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { isAuthEnabled } from '../../lib/config/environment';
@@ -34,9 +35,11 @@ export default function AppHeader({
         <div className="flex justify-between items-center min-h-[64px]">
           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
             <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-2xl flex items-center justify-center overflow-hidden">
-              <img
+              <Image
                 src="/logo.png"
                 alt="Pantry Buddy Logo"
+                width={96}
+                height={96}
                 className="w-12 h-12 sm:w-20 sm:h-20 object-contain"
               />
             </div>

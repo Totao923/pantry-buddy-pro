@@ -608,7 +608,13 @@ export default function Analytics() {
       // Set loading to false if no user to prevent infinite loading
       setLoading(false);
     }
-  }, [user?.id]); // Remove timeRange dependency
+  }, [
+    user?.id,
+    ingredients,
+    memoizedTopIngredients,
+    memoizedCategoryBreakdown,
+    memoizedPantryValue,
+  ]);
 
   // Separate useEffect for timeRange-specific filtering (much lighter operation)
   useEffect(() => {

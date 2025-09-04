@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SmartPantry from '../components/SmartPantry';
 import AdvancedCuisineSelector from '../components/AdvancedCuisineSelector';
@@ -874,7 +875,13 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6 py-12">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-4">
-                <img src="/logo.png" alt="Pantry Buddy Logo" className="w-8 h-8 object-contain" />
+                <Image
+                  src="/logo.png"
+                  alt="Pantry Buddy Logo"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                />
                 <span className="text-xl font-bold bg-gradient-to-r from-pantry-600 to-orange-500 bg-clip-text text-transparent">
                   Pantry Buddy Pro
                 </span>

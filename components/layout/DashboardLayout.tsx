@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { useIngredients } from '../../contexts/IngredientsProvider';
@@ -148,7 +149,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
               <div className="w-20 h-20 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-xl flex items-center justify-center overflow-hidden">
-                <img src="/logo.png" alt="Pantry Buddy Logo" className="w-16 h-16 object-contain" />
+                <Image
+                  src="/logo.png"
+                  alt="Pantry Buddy Logo"
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 object-contain"
+                />
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-pantry-700 to-pantry-600 bg-clip-text text-transparent">

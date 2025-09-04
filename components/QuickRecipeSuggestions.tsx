@@ -278,7 +278,7 @@ export default function QuickRecipeSuggestions({
   // Load suggestions on mount
   useEffect(() => {
     generateSuggestions();
-  }, []);
+  }, [generateSuggestions]);
 
   const handleCookThis = async (recipe: QuickRecipeSuggestion) => {
     try {

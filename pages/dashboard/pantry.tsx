@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -35,11 +35,7 @@ export default function PantryManagement() {
     categories: {} as Record<IngredientCategory, number>,
   });
 
-  useEffect(() => {
-    calculateStats();
-  }, [ingredients]);
-
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     const total = ingredients.length;
     const expiringSoon = ingredients.filter(ingredient => {
       if (!ingredient.expiryDate) return false;
@@ -67,7 +63,11 @@ export default function PantryManagement() {
     });
 
     setStats({ total, expiringSoon, categories });
-  };
+  }, [ingredients]);
+
+  useEffect(() => {
+    calculateStats();
+  }, [calculateStats]);
 
   const handleAddIngredient = async (ingredient: Ingredient) => {
     try {
