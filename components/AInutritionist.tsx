@@ -52,6 +52,12 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
   const [weeklyReport, setWeeklyReport] = useState<any>(null);
   const [showShoppingListModal, setShowShoppingListModal] = useState(false);
   const [pendingShoppingItem, setPendingShoppingItem] = useState<string | null>(null);
+  const [shoppingItemForm, setShoppingItemForm] = useState({
+    name: '',
+    quantity: 1,
+    unit: 'pcs',
+    category: 'other' as 'protein' | 'vegetables' | 'fruits' | 'grains' | 'dairy' | 'other',
+  });
   const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastAnalysisParamsRef = useRef<string>('');
   const isAnalysisInProgressRef = useRef<boolean>(false);
@@ -227,6 +233,15 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
         // Extract ingredient name from recommendation title
         const ingredientName = extractIngredientFromRecommendation(recommendation);
         setPendingShoppingItem(ingredientName);
+
+        // Pre-populate the form with extracted ingredient info
+        setShoppingItemForm({
+          name: ingredientName,
+          quantity: 1,
+          unit: getDefaultUnit(ingredientName),
+          category: getDefaultCategory(ingredientName),
+        });
+
         setShowShoppingListModal(true);
         break;
 
@@ -254,23 +269,175 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
   };
 
   const extractIngredientFromRecommendation = (rec: NutritionRecommendation): string => {
-    // Extract ingredient name from recommendation title/description
-    const text = rec.title.toLowerCase();
+    // Try to extract specific ingredient names from the recommendation
+    const fullText = `${rec.title} ${rec.description}`.toLowerCase();
 
-    if (text.includes('protein')) return 'eggs';
-    if (text.includes('fiber') || text.includes('vegetable')) return 'broccoli';
-    if (text.includes('dairy') || text.includes('calcium')) return 'milk';
-    if (text.includes('vitamin c') || text.includes('citrus')) return 'orange';
-    if (text.includes('iron')) return 'spinach';
+    // Common ingredient patterns - check for specific ingredient mentions first
+    const ingredientPatterns = [
+      // Proteins
+      { pattern: /(chicken breast|chicken)/i, ingredient: 'chicken breast' },
+      { pattern: /(salmon|fish|tuna)/i, ingredient: 'salmon' },
+      { pattern: /(eggs|egg)/i, ingredient: 'eggs' },
+      { pattern: /(tofu|soy)/i, ingredient: 'tofu' },
+      { pattern: /(beans|lentils|chickpeas)/i, ingredient: 'black beans' },
+      { pattern: /(greek yogurt|yogurt)/i, ingredient: 'Greek yogurt' },
 
-    // Default fallback based on description
-    const description = rec.description.toLowerCase();
-    if (description.includes('chicken')) return 'chicken breast';
-    if (description.includes('fish')) return 'salmon';
-    if (description.includes('beans')) return 'black beans';
-    if (description.includes('nuts')) return 'almonds';
+      // Vegetables
+      { pattern: /(spinach|leafy greens)/i, ingredient: 'spinach' },
+      { pattern: /(broccoli)/i, ingredient: 'broccoli' },
+      { pattern: /(sweet potato|potatoes)/i, ingredient: 'sweet potato' },
+      { pattern: /(bell pepper|peppers)/i, ingredient: 'bell peppers' },
+      { pattern: /(tomatoes|tomato)/i, ingredient: 'tomatoes' },
+      { pattern: /(carrots|carrot)/i, ingredient: 'carrots' },
+      { pattern: /(onions|onion)/i, ingredient: 'onions' },
 
+      // Fruits
+      { pattern: /(oranges|orange|citrus)/i, ingredient: 'oranges' },
+      { pattern: /(bananas|banana)/i, ingredient: 'bananas' },
+      { pattern: /(berries|blueberries|strawberries)/i, ingredient: 'mixed berries' },
+      { pattern: /(apples|apple)/i, ingredient: 'apples' },
+
+      // Grains & Starches
+      { pattern: /(quinoa)/i, ingredient: 'quinoa' },
+      { pattern: /(brown rice|rice)/i, ingredient: 'brown rice' },
+      { pattern: /(oats|oatmeal)/i, ingredient: 'rolled oats' },
+      { pattern: /(whole grain|whole wheat)/i, ingredient: 'whole grain bread' },
+
+      // Dairy & Alternatives
+      { pattern: /(milk|dairy)/i, ingredient: 'milk' },
+      { pattern: /(cheese)/i, ingredient: 'cheese' },
+      { pattern: /(almond milk|plant milk)/i, ingredient: 'almond milk' },
+
+      // Nuts & Seeds
+      { pattern: /(almonds|nuts)/i, ingredient: 'almonds' },
+      { pattern: /(walnuts)/i, ingredient: 'walnuts' },
+      { pattern: /(chia seeds|seeds)/i, ingredient: 'chia seeds' },
+
+      // Oils & Condiments
+      { pattern: /(olive oil|oil)/i, ingredient: 'olive oil' },
+      { pattern: /(avocado)/i, ingredient: 'avocado' },
+    ];
+
+    // Find the first matching ingredient pattern
+    for (const { pattern, ingredient } of ingredientPatterns) {
+      if (pattern.test(fullText)) {
+        console.log(`🎯 Extracted ingredient "${ingredient}" from "${rec.title}"`);
+        return ingredient;
+      }
+    }
+
+    // Try to extract ingredient name directly from "Add [ingredient]" pattern
+    const addPattern = /add\s+([a-zA-Z\s]+?)(?:\s|$|,|\.|!)/i;
+    const addMatch = rec.title.match(addPattern);
+    if (addMatch && addMatch[1]) {
+      const extracted = addMatch[1].trim();
+      console.log(`🎯 Extracted ingredient "${extracted}" from "Add" pattern in "${rec.title}"`);
+      return extracted;
+    }
+
+    // Try to extract from "Restock" pattern
+    const restockPattern = /restock\s+([a-zA-Z\s,]+?)(?:\s|$|:)/i;
+    const restockMatch = rec.title.match(restockPattern);
+    if (restockMatch && restockMatch[1]) {
+      const extracted = restockMatch[1].split(',')[0].trim(); // Take first item if comma-separated
+      console.log(
+        `🎯 Extracted ingredient "${extracted}" from "Restock" pattern in "${rec.title}"`
+      );
+      return extracted;
+    }
+
+    // If all else fails, provide a reasonable default based on recommendation type
+    if (rec.type === 'ingredient') {
+      if (fullText.includes('protein')) return 'protein sources';
+      if (fullText.includes('fiber')) return 'high-fiber foods';
+      if (fullText.includes('vitamin')) return 'vitamin-rich foods';
+      if (fullText.includes('calcium')) return 'calcium-rich foods';
+    }
+
+    console.warn(
+      `⚠️ Could not extract specific ingredient from "${rec.title}" - using generic fallback`
+    );
     return 'healthy ingredients';
+  };
+
+  const getDefaultUnit = (ingredientName: string): string => {
+    const name = ingredientName.toLowerCase();
+
+    // Liquids
+    if (name.includes('milk') || name.includes('oil') || name.includes('juice')) {
+      return 'L';
+    }
+
+    // Weight-based items
+    if (name.includes('meat') || name.includes('fish') || name.includes('cheese')) {
+      return 'lbs';
+    }
+
+    // Produce
+    if (name.includes('apple') || name.includes('orange') || name.includes('banana')) {
+      return 'pcs';
+    }
+
+    return 'pcs'; // Default
+  };
+
+  const getDefaultCategory = (
+    ingredientName: string
+  ): 'protein' | 'vegetables' | 'fruits' | 'grains' | 'dairy' | 'other' => {
+    const name = ingredientName.toLowerCase();
+
+    // Proteins
+    if (
+      name.includes('chicken') ||
+      name.includes('fish') ||
+      name.includes('salmon') ||
+      name.includes('eggs') ||
+      name.includes('tofu') ||
+      name.includes('beans')
+    ) {
+      return 'protein';
+    }
+
+    // Vegetables
+    if (
+      name.includes('spinach') ||
+      name.includes('broccoli') ||
+      name.includes('peppers') ||
+      name.includes('tomatoes') ||
+      name.includes('carrots') ||
+      name.includes('onions')
+    ) {
+      return 'vegetables';
+    }
+
+    // Fruits
+    if (
+      name.includes('orange') ||
+      name.includes('banana') ||
+      name.includes('apple') ||
+      name.includes('berries') ||
+      name.includes('avocado')
+    ) {
+      return 'fruits';
+    }
+
+    // Grains
+    if (
+      name.includes('rice') ||
+      name.includes('quinoa') ||
+      name.includes('oats') ||
+      name.includes('bread') ||
+      name.includes('grain')
+    ) {
+      return 'grains';
+    }
+
+    // Dairy
+    if (name.includes('milk') || name.includes('cheese') || name.includes('yogurt')) {
+      return 'dairy';
+    }
+
+    return 'other';
   };
 
   const getRecipeSearchQuery = (rec: NutritionRecommendation): string => {
@@ -284,16 +451,14 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
   };
 
   const addToShoppingList = async () => {
-    if (!pendingShoppingItem) return;
+    if (!shoppingItemForm.name) return;
 
     try {
-      const category = ShoppingListService.detectIngredientCategory(pendingShoppingItem);
-
       const newItem = {
-        name: pendingShoppingItem,
-        quantity: 1,
-        unit: 'item',
-        category,
+        name: shoppingItemForm.name,
+        quantity: shoppingItemForm.quantity,
+        unit: shoppingItemForm.unit,
+        category: shoppingItemForm.category,
         priority: 'medium' as const,
         estimatedPrice: 3.99,
         notes: 'Added from AI nutritionist recommendation',
@@ -583,15 +748,84 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
             <div>
               <h4 className="font-medium text-blue-900">Add Recommended Ingredient</h4>
               <p className="text-sm text-blue-700">
-                This will add "{pendingShoppingItem}" to your active shopping list
+                Customize the details before adding to your shopping list
               </p>
             </div>
           </div>
 
-          <div className="text-sm text-gray-600">
-            <p>✅ Will be added with default quantity of 1 item</p>
+          {/* Editable form fields */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ingredient Name
+              </label>
+              <input
+                type="text"
+                value={shoppingItemForm.name}
+                onChange={e => setShoppingItemForm(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter ingredient name"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                <input
+                  type="number"
+                  min="0.1"
+                  step="0.1"
+                  value={shoppingItemForm.quantity}
+                  onChange={e =>
+                    setShoppingItemForm(prev => ({
+                      ...prev,
+                      quantity: parseFloat(e.target.value) || 1,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                <select
+                  value={shoppingItemForm.unit}
+                  onChange={e => setShoppingItemForm(prev => ({ ...prev, unit: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="pcs">pieces</option>
+                  <option value="lbs">pounds</option>
+                  <option value="kg">kilograms</option>
+                  <option value="L">liters</option>
+                  <option value="cup">cups</option>
+                  <option value="tbsp">tablespoons</option>
+                  <option value="tsp">teaspoons</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <select
+                value={shoppingItemForm.category}
+                onChange={e =>
+                  setShoppingItemForm(prev => ({ ...prev, category: e.target.value as any }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="protein">🥩 Protein</option>
+                <option value="vegetables">🥬 Vegetables</option>
+                <option value="fruits">🍎 Fruits</option>
+                <option value="grains">🌾 Grains</option>
+                <option value="dairy">🥛 Dairy</option>
+                <option value="other">📦 Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+            <p>✅ Will be added to your active shopping list</p>
             <p>✅ Added from AI nutritionist recommendation</p>
-            <p>✅ Can be modified later in Shopping Lists page</p>
           </div>
         </div>
       </Modal>
