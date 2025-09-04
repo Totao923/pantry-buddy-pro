@@ -3,12 +3,20 @@ import { Ingredient, IngredientCategory, SmartSuggestion } from '../types';
 import { ingredientService } from '../lib/services/ingredientService';
 import { useIngredients } from '../lib/hooks/useIngredients';
 import { useAuth } from '../lib/auth/AuthProvider';
+import { Modal } from './ui/Modal';
+import { Button } from './ui/Button';
 
 interface SmartPantryProps {
   ingredients: Ingredient[];
   onAddIngredient: (ingredient: Ingredient) => void;
   onRemoveIngredient: (id: string) => void;
   onUpdateIngredient: (ingredient: Ingredient) => void;
+  onMarkAsUsed?: (
+    id: string,
+    quantityUsed: number,
+    reason: 'cooking' | 'expired' | 'waste' | 'other',
+    cost?: number
+  ) => void;
   navigationButtons?: React.ReactNode;
   mode?: 'temporary' | 'permanent'; // temporary = Create Recipe, permanent = actual pantry
   onFillPantry?: (ingredients: Ingredient[]) => void; // Save temp ingredients to pantry
@@ -75,6 +83,7 @@ const SmartPantry = React.memo(function SmartPantry({
   onAddIngredient,
   onRemoveIngredient,
   onUpdateIngredient,
+  onMarkAsUsed,
   navigationButtons,
   mode = 'permanent',
   onFillPantry,
@@ -99,6 +108,17 @@ const SmartPantry = React.memo(function SmartPantry({
     quantity: '',
     unit: '',
     expiryDate: '',
+  });
+
+  // Usage tracking modal state
+  const [showUsageModal, setShowUsageModal] = useState(false);
+  const [selectedIngredientForUsage, setSelectedIngredientForUsage] = useState<Ingredient | null>(
+    null
+  );
+  const [usageForm, setUsageForm] = useState({
+    quantity: '',
+    reason: 'cooking' as 'cooking' | 'expired' | 'waste' | 'other',
+    cost: '',
   });
 
   // Use the ingredients hook to get loading and error states
@@ -323,6 +343,42 @@ const SmartPantry = React.memo(function SmartPantry({
       console.error('Failed to update ingredient:', error);
       alert('Failed to update ingredient. Please try again.');
     }
+  };
+
+  // Usage tracking functions
+  const startUsageTracking = (ingredient: Ingredient) => {
+    setSelectedIngredientForUsage(ingredient);
+    setUsageForm({
+      quantity: ingredient.quantity || '1',
+      reason: 'cooking',
+      cost: '',
+    });
+    setShowUsageModal(true);
+  };
+
+  const cancelUsageTracking = () => {
+    setShowUsageModal(false);
+    setSelectedIngredientForUsage(null);
+    setUsageForm({
+      quantity: '',
+      reason: 'cooking',
+      cost: '',
+    });
+  };
+
+  const saveUsageRecord = () => {
+    if (!selectedIngredientForUsage || !onMarkAsUsed) return;
+
+    const quantityUsed = parseFloat(usageForm.quantity) || 0;
+    const cost = usageForm.cost ? parseFloat(usageForm.cost) : undefined;
+
+    if (quantityUsed <= 0) {
+      alert('Please enter a valid quantity.');
+      return;
+    }
+
+    onMarkAsUsed(selectedIngredientForUsage.id, quantityUsed, usageForm.reason, cost);
+    cancelUsageTracking();
   };
 
   const filteredIngredients = useMemo(() => {
@@ -789,6 +845,27 @@ const SmartPantry = React.memo(function SmartPantry({
                                           />
                                         </svg>
                                       </button>
+                                      {onMarkAsUsed && mode === 'permanent' && (
+                                        <button
+                                          onClick={() => startUsageTracking(ingredient)}
+                                          className="text-orange-500 hover:text-orange-700 p-1 rounded-lg hover:bg-orange-50 transition-colors"
+                                          title="Mark as used"
+                                        >
+                                          <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth={2}
+                                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            />
+                                          </svg>
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() => onRemoveIngredient(ingredient.id)}
                                         className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 transition-colors"
@@ -831,6 +908,81 @@ const SmartPantry = React.memo(function SmartPantry({
           </p>
         </div>
       ) : null}
+
+      {/* Usage Tracking Modal */}
+      {showUsageModal && selectedIngredientForUsage && (
+        <Modal isOpen={showUsageModal} onClose={cancelUsageTracking} title="Mark as Used">
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                {selectedIngredientForUsage.name}
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Track usage and update your pantry inventory
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantity Used</label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={usageForm.quantity}
+                  onChange={e => setUsageForm({ ...usageForm, quantity: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Enter quantity"
+                />
+                <span className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-600 min-w-[80px] text-center">
+                  {selectedIngredientForUsage.unit || 'units'}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Use</label>
+              <select
+                value={usageForm.reason}
+                onChange={e => setUsageForm({ ...usageForm, reason: e.target.value as any })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="cooking">Cooking/Recipe</option>
+                <option value="expired">Expired</option>
+                <option value="waste">Wasted/Spoiled</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cost (Optional)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={usageForm.cost}
+                onChange={e => setUsageForm({ ...usageForm, cost: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Enter cost (optional)"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button variant="secondary" onClick={cancelUsageTracking}>
+                Cancel
+              </Button>
+              <Button
+                onClick={saveUsageRecord}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                Save Usage
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 });

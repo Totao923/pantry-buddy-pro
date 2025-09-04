@@ -137,6 +137,69 @@ export default function PantryManagement() {
     }
   };
 
+  const handleMarkAsUsed = async (
+    ingredientId: string,
+    quantityUsed: number,
+    reason: 'cooking' | 'expired' | 'waste' | 'other',
+    cost?: number
+  ) => {
+    try {
+      console.log('📊 Marking ingredient as used:', { ingredientId, quantityUsed, reason, cost });
+
+      const ingredient = ingredients.find(ing => ing.id === ingredientId);
+      if (!ingredient) {
+        console.error('❌ Ingredient not found for usage tracking');
+        return;
+      }
+
+      // Create usage record
+      const usageRecord = {
+        id: uuidv4(),
+        date: new Date(),
+        quantityUsed,
+        reason,
+        cost,
+      };
+
+      // Update ingredient with usage tracking
+      const currentQuantity = parseFloat(ingredient.quantity?.toString() || '0');
+      const newQuantity = Math.max(0, currentQuantity - quantityUsed);
+
+      const updatedIngredient: Ingredient = {
+        ...ingredient,
+        quantity: newQuantity > 0 ? newQuantity.toString() : undefined,
+        usageHistory: [...(ingredient.usageHistory || []), usageRecord],
+        totalUsed: (ingredient.totalUsed || 0) + quantityUsed,
+        lastUsedDate: new Date(),
+        ...(cost && ingredient.costPerUnit ? {} : cost ? { costPerUnit: cost / quantityUsed } : {}),
+      };
+
+      // Update using the ingredient service
+      const ingredientService = await getIngredientService();
+      await ingredientService.updateIngredient(ingredientId, {
+        name: updatedIngredient.name,
+        category: updatedIngredient.category,
+        quantity: updatedIngredient.quantity,
+        unit: updatedIngredient.unit,
+        expiryDate: updatedIngredient.expiryDate?.toISOString(),
+        nutritionalValue: updatedIngredient.nutritionalValue,
+        isProtein: updatedIngredient.isProtein,
+        isVegetarian: updatedIngredient.isVegetarian,
+        isVegan: updatedIngredient.isVegan,
+        usageHistory: updatedIngredient.usageHistory,
+        totalUsed: updatedIngredient.totalUsed,
+        lastUsedDate: updatedIngredient.lastUsedDate?.toISOString(),
+        costPerUnit: updatedIngredient.costPerUnit,
+      });
+
+      // Refresh the context
+      await refetch();
+      console.log('✅ Usage tracked, context refreshed');
+    } catch (error) {
+      console.error('❌ Error tracking ingredient usage:', error);
+    }
+  };
+
   const handleClearAll = async () => {
     if (
       window.confirm(
@@ -376,6 +439,7 @@ export default function PantryManagement() {
               onAddIngredient={handleAddIngredient}
               onRemoveIngredient={handleRemoveIngredient}
               onUpdateIngredient={handleUpdateIngredient}
+              onMarkAsUsed={handleMarkAsUsed}
             />
           </div>
 

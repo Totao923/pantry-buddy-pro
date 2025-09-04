@@ -1,3 +1,12 @@
+export interface UsageRecord {
+  id: string;
+  date: Date;
+  quantityUsed: number;
+  reason: 'cooking' | 'expired' | 'waste' | 'other';
+  cost?: number;
+  recipeId?: string;
+}
+
 export interface Ingredient {
   id: string;
   name: string;
@@ -15,6 +24,12 @@ export interface Ingredient {
   isDairyFree?: boolean;
   price?: number;
   priceSource?: 'receipt' | 'estimated';
+  // Usage tracking fields
+  usageHistory?: UsageRecord[];
+  totalUsed?: number;
+  costPerUnit?: number;
+  lastUsedDate?: Date;
+  lowStockThreshold?: number;
 }
 
 export type IngredientCategory =

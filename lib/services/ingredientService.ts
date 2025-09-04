@@ -26,6 +26,12 @@ export interface UpdateIngredientRequest {
   isVegan?: boolean;
   price?: number;
   priceSource?: 'receipt' | 'estimated';
+  // Usage tracking fields
+  usageHistory?: any[];
+  totalUsed?: number;
+  costPerUnit?: number;
+  lastUsedDate?: string;
+  lowStockThreshold?: number;
 }
 
 export interface IngredientsResponse {
@@ -165,6 +171,9 @@ class IngredientService {
         expiryDate: updates.expiryDate
           ? new Date(updates.expiryDate)
           : existingIngredient.expiryDate,
+        lastUsedDate: updates.lastUsedDate
+          ? new Date(updates.lastUsedDate)
+          : existingIngredient.lastUsedDate,
       };
 
       // Replace in mock storage
