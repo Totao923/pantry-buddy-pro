@@ -3,12 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
 
-  // API configuration
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
+  // API configuration moved to pages/api files
 
   // Browser compatibility - removed invalid option
 
