@@ -238,6 +238,16 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
         router.push(`/dashboard/recipes?search=${encodeURIComponent(searchQuery)}`);
         break;
 
+      case 'Generate New Recipe':
+      case 'Create Recipe':
+      case 'Generate Recipe':
+      case 'Generate Quick Recipe':
+      case 'Generate Protein Recipe':
+      case 'Generate High-Fiber Recipe':
+        // Navigate to create recipe page with AI suggestions
+        router.push('/dashboard/create-recipe?mode=ai-suggested');
+        break;
+
       default:
         console.log('Unknown action:', recommendation.action);
     }

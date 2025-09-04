@@ -106,24 +106,26 @@ async function generateMealPlanHandler(
       dinner: [],
     };
 
-    // Generate multiple base recipes per meal type for more variety
+    // Generate one base recipe per meal type to avoid timeouts
     for (const mealType of mealTypes) {
-      const recipesNeeded = 3; // Generate 3 base recipes per meal type for variety
+      const recipesNeeded = 1; // Reduced from 3 to 1 to prevent timeouts
 
       for (let i = 0; i < recipesNeeded; i++) {
+        // Prepare ingredients outside try block for fallback use
+        const ingredientVariety = [...ingredients];
+
+        // Shuffle and select ingredients
+        for (let j = ingredientVariety.length - 1; j > 0; j--) {
+          const k = Math.floor(Math.random() * (j + 1));
+          [ingredientVariety[j], ingredientVariety[k]] = [
+            ingredientVariety[k],
+            ingredientVariety[j],
+          ];
+        }
+
+        const selectedIngredients = ingredientVariety.slice(0, Math.min(8, ingredients.length));
+
         try {
-          const ingredientVariety = [...ingredients];
-
-          // Shuffle and select ingredients
-          for (let j = ingredientVariety.length - 1; j > 0; j--) {
-            const k = Math.floor(Math.random() * (j + 1));
-            [ingredientVariety[j], ingredientVariety[k]] = [
-              ingredientVariety[k],
-              ingredientVariety[j],
-            ];
-          }
-
-          const selectedIngredients = ingredientVariety.slice(0, Math.min(8, ingredients.length));
           const selectedCuisine = cuisineVariety[Math.floor(Math.random() * cuisineVariety.length)];
           const baseTime = mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60;
 
@@ -170,15 +172,21 @@ async function generateMealPlanHandler(
             };
           }
 
-          const response = await aiService.generateRecipe(
-            {
-              ingredients: selectedIngredients,
-              cuisine: selectedCuisine as any,
-              servings: 2,
-              preferences: enhancedPreferences,
-            },
-            userId
-          );
+          // Add timeout to AI service call
+          const response = await Promise.race([
+            aiService.generateRecipe(
+              {
+                ingredients: selectedIngredients,
+                cuisine: selectedCuisine as any,
+                servings: 2,
+                preferences: enhancedPreferences,
+              },
+              userId
+            ),
+            new Promise<{ success: false; error: string }>(
+              (_, reject) => setTimeout(() => reject(new Error('AI service timeout')), 30000) // 30 second timeout
+            ),
+          ]);
 
           if (response.success && response.recipe) {
             // Tag the recipe based on meal plan mode
@@ -211,10 +219,58 @@ async function generateMealPlanHandler(
             baseRecipes[mealType].push(aiRecipe);
           }
 
-          // Short delay between recipe generation calls
-          await new Promise(resolve => setTimeout(resolve, 150));
+          // Longer delay between recipe generation calls to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
           console.error(`Error generating base ${mealType} recipe ${i + 1}:`, error);
+
+          // Add fallback recipe if AI generation fails
+          const fallbackRecipe: Recipe = {
+            id: `fallback-${mealType}-${Date.now()}`,
+            title: `Simple ${mealType.charAt(0).toUpperCase() + mealType.slice(1)}`,
+            description: `A quick and easy ${mealType} using your available ingredients`,
+            cuisine: 'any' as any,
+            servings: 2,
+            prepTime: 10,
+            cookTime: mealType === 'breakfast' ? 15 : mealType === 'lunch' ? 20 : 30,
+            totalTime: mealType === 'breakfast' ? 25 : mealType === 'lunch' ? 30 : 40,
+            difficulty: 'Easy' as DifficultyLevel,
+            ingredients: selectedIngredients.slice(0, 5).map(ing => ({
+              name: ing.name,
+              amount: 1,
+              unit: ing.unit || 'serving',
+            })),
+            instructions: [
+              {
+                step: 1,
+                instruction: 'Prepare your ingredients',
+              },
+              {
+                step: 2,
+                instruction: 'Combine ingredients according to taste',
+              },
+              {
+                step: 3,
+                instruction: 'Cook as desired',
+              },
+              {
+                step: 4,
+                instruction: 'Serve and enjoy!',
+              },
+            ],
+            tags: ['simple', 'quick', 'fallback'],
+            dietaryInfo: {
+              isVegetarian: false,
+              isVegan: false,
+              isGlutenFree: false,
+              isDairyFree: false,
+              isKeto: false,
+              isPaleo: false,
+              allergens: [],
+            },
+          };
+
+          baseRecipes[mealType].push(fallbackRecipe);
         }
       }
     }
@@ -276,6 +332,17 @@ async function generateMealPlanHandler(
     });
   }
 }
+
+// Configure API timeout
+export const config = {
+  api: {
+    responseLimit: false,
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+  maxDuration: 60, // 60 second timeout for meal plan generation
+};
 
 // Export without authentication middleware to match existing meal plans API pattern
 export default generateMealPlanHandler;
