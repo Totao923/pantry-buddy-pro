@@ -26,7 +26,7 @@ export default function RecipesBrowser() {
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType | 'all'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'time' | 'rating'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [filter, setFilter] = useState<'all' | 'favorites' | 'recent'>('all');
+  const [filter, setFilter] = useState<'all' | 'favorites' | 'recent' | 'meal-plan'>('all');
 
   const cuisines: CuisineType[] = [
     'italian',
@@ -142,7 +142,7 @@ export default function RecipesBrowser() {
     // Apply filters based on URL query params
     const { filter: urlFilter } = router.query;
     if (urlFilter && typeof urlFilter === 'string') {
-      setFilter(urlFilter as 'all' | 'favorites' | 'recent');
+      setFilter(urlFilter as 'all' | 'favorites' | 'recent' | 'meal-plan');
     }
   }, [router.query]);
 
@@ -180,6 +180,9 @@ export default function RecipesBrowser() {
         // Assuming we add a createdAt timestamp to recipes in the future
         return true; // For now, show all as "recent"
       });
+    } else if (filter === 'meal-plan') {
+      // Show only AI-generated meal plan recipes
+      filtered = filtered.filter(recipe => recipe.tags?.includes('meal-plan'));
     }
 
     // Apply sorting
@@ -378,6 +381,7 @@ export default function RecipesBrowser() {
               { key: 'all', label: 'All Recipes' },
               { key: 'favorites', label: 'Favorites' },
               { key: 'recent', label: 'Recent' },
+              { key: 'meal-plan', label: 'Meal Plans' },
             ].map(tab => (
               <button
                 key={tab.key}

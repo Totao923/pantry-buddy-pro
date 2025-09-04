@@ -169,3 +169,63 @@ const AInutritionist = lazy(() => import('../components/AInutritionist'));
 
 **Estimated Total Impact:** 30-50% performance improvement
 **Implementation Time:** 4-6 hours for all high-priority fixes
+
+---
+
+# MEAL PLAN RECIPES ACCESS ISSUE
+
+## Problem Analysis
+
+**DISCOVERED ISSUE:** AI-generated meal plan recipes are being saved to user's recipe collection with "meal-plan" tags, but users have NO way to access them through the recipes interface.
+
+**Current Flow:**
+
+1. ✅ User generates meal plan → AI creates recipes → Recipes saved with "meal-plan" tag
+2. ❌ User goes to Recipes page → No filter for "meal-plan" recipes → Can't find their meal plan recipes
+3. ❌ User can't actually cook the recipes from their meal plans
+
+**Gap Identified:**
+
+- Recipes component only has filters: 'all' | 'favorites' | 'recent'
+- Missing: 'meal-plan' filter to show AI-generated meal plan recipes
+- Users can't access recipes they need to cook their planned meals
+
+## Simple Solution Plan
+
+### Todo Items:
+
+- [x] Investigate where AI-generated meal plan recipes are stored
+- [x] Check if meal plan recipes are accessible in recipes component
+- [x] Identify the gap between meal plan generation and recipe access
+- [x] Add 'meal-plan' filter option to recipes component filter state
+- [x] Add meal plan recipes tab/button to recipes component UI
+- [x] Update recipe filtering logic to filter by "meal-plan" tag
+- [x] Test that meal plan recipes are accessible and cookable
+- [x] Commit simple changes following CLAUDE.md principles
+
+## SOLUTION IMPLEMENTED
+
+### Changes Made:
+
+1. **Filter State Update:** Added 'meal-plan' to filter type union in recipes component
+2. **Filtering Logic:** Added `recipe.tags?.includes('meal-plan')` filter logic
+3. **UI Tab Addition:** Added "Meal Plans" tab to existing filter buttons
+4. **URL Parameter Support:** Updated URL filter handling to support 'meal-plan' filter
+
+### Files Modified:
+
+- `pages/dashboard/recipes.tsx` (3 simple changes, ~10 lines total)
+
+### Result:
+
+✅ Users can now click "Meal Plans" tab in Recipes page to see AI-generated meal plan recipes
+✅ Meal plan recipes are now accessible and cookable by users
+✅ Simple implementation following CLAUDE.md: minimal changes, reused existing patterns
+✅ No new components created, enhanced existing functionality
+
+### Implementation Notes:
+
+- Keep changes minimal: just add one filter option and filtering logic
+- Reuse existing filter UI patterns - no new components needed
+- Filter recipes where `recipe.tags.includes('meal-plan')`
+- Simple solution following CLAUDE.md: minimal code impact, reuse existing patterns
