@@ -14,6 +14,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { MealPlanService } from '../../lib/services/mealPlanService';
 import { databaseRecipeService } from '../../lib/services/databaseRecipeService';
+import { createUserSupabaseClient } from '../../lib/supabase/server';
 import { Recipe, MealPlan, Ingredient, PlannedMeal } from '../../types';
 import {
   BarChart,
@@ -101,7 +102,22 @@ export default function MealPlans() {
     async (mealPlan: MealPlan) => {
       if (!user) return;
 
-      console.log('Loading saved meal plan:', mealPlan.name);
+      console.log(
+        'Loading saved meal plan:',
+        mealPlan.name,
+        'with',
+        mealPlan.meals.length,
+        'meals'
+      );
+
+      // Debug: Log all meal dates in the saved plan
+      console.log('🔍 Debugging meal dates in saved plan:');
+      mealPlan.meals.forEach((meal, index) => {
+        console.log(
+          `  Meal ${index + 1}: ${meal.mealType} on ${meal.date} (${new Date(meal.date).toLocaleDateString()})`
+        );
+      });
+
       try {
         // Fetch full recipes for each planned meal
         const weekWithMeals: WeekDay[] = [];
@@ -115,14 +131,13 @@ export default function MealPlans() {
           'Saturday',
         ];
 
-        // Create base week structure
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay() + selectedWeek * 7);
+        // Use the saved meal plan's original start date instead of current selected week
+        const planStartDate = new Date(mealPlan.startDate);
+        console.log('📅 Meal plan start date:', planStartDate.toISOString());
 
         for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-          const date = new Date(startOfWeek);
-          date.setDate(startOfWeek.getDate() + dayIndex);
+          const date = new Date(planStartDate);
+          date.setDate(planStartDate.getDate() + dayIndex);
 
           weekWithMeals.push({
             day: dayNames[dayIndex],
@@ -136,7 +151,14 @@ export default function MealPlans() {
           });
         }
 
+        console.log(
+          '🗓️ Created week structure from',
+          planStartDate.toLocaleDateString(),
+          'for 7 days'
+        );
+
         // Map saved meals to week structure
+        let loadedMealsCount = 0;
         for (const plannedMeal of mealPlan.meals) {
           try {
             // Get recipe details for the planned meal
@@ -144,27 +166,48 @@ export default function MealPlans() {
             if (recipeResult.success && recipeResult.data) {
               const recipe = recipeResult.data;
 
-              // Find the matching day (use relative positioning rather than exact date match)
+              // Calculate which day this meal belongs to within the 7-day plan
               const mealDate = new Date(plannedMeal.date);
-              const planStartDate = new Date(mealPlan.startDate);
               const daysSinceStart = Math.floor(
                 (mealDate.getTime() - planStartDate.getTime()) / (1000 * 60 * 60 * 24)
               );
-              const weekDayIndex = daysSinceStart % 7;
 
-              if (weekDayIndex >= 0 && weekDayIndex < 7 && weekWithMeals[weekDayIndex]) {
+              console.log(
+                '📅 Meal',
+                plannedMeal.mealType,
+                'on',
+                mealDate.toLocaleDateString(),
+                'is day',
+                daysSinceStart,
+                'since start'
+              );
+
+              if (daysSinceStart >= 0 && daysSinceStart < 7 && weekWithMeals[daysSinceStart]) {
                 // Add recipe to the appropriate meal slot
                 if (plannedMeal.mealType === 'breakfast') {
-                  weekWithMeals[weekDayIndex].meals.breakfast = recipe;
+                  weekWithMeals[daysSinceStart].meals.breakfast = recipe;
                 } else if (plannedMeal.mealType === 'lunch') {
-                  weekWithMeals[weekDayIndex].meals.lunch = recipe;
+                  weekWithMeals[daysSinceStart].meals.lunch = recipe;
                 } else if (plannedMeal.mealType === 'dinner') {
-                  weekWithMeals[weekDayIndex].meals.dinner = recipe;
+                  weekWithMeals[daysSinceStart].meals.dinner = recipe;
                 } else if (plannedMeal.mealType === 'snack') {
-                  weekWithMeals[weekDayIndex].meals.snacks =
-                    weekWithMeals[weekDayIndex].meals.snacks || [];
-                  weekWithMeals[weekDayIndex].meals.snacks!.push(recipe);
+                  weekWithMeals[daysSinceStart].meals.snacks =
+                    weekWithMeals[daysSinceStart].meals.snacks || [];
+                  weekWithMeals[daysSinceStart].meals.snacks!.push(recipe);
                 }
+                loadedMealsCount++;
+                console.log(
+                  '✅ Loaded',
+                  plannedMeal.mealType,
+                  'for',
+                  dayNames[daysSinceStart],
+                  ':',
+                  recipe.title
+                );
+              } else {
+                console.warn(
+                  `⚠️ Meal date ${mealDate.toLocaleDateString()} falls outside 7-day plan range (day ${daysSinceStart})`
+                );
               }
             } else {
               console.warn(`Could not load recipe ${plannedMeal.recipeId} for meal plan`);
@@ -179,14 +222,14 @@ export default function MealPlans() {
         setCurrentMealPlan(mealPlan);
 
         console.log(
-          `✅ Loaded "${mealPlan.name}" with ${mealPlan.meals.length} meals into current week view`
+          `✅ Loaded "${mealPlan.name}" - ${loadedMealsCount}/${mealPlan.meals.length} meals loaded successfully`
         );
       } catch (error) {
         console.error('Error loading saved meal plan:', error);
         alert('Failed to load meal plan. Please try again.');
       }
     },
-    [user, selectedWeek]
+    [user]
   );
 
   // Separate function for refreshing meal plans that can be called from other functions
@@ -221,6 +264,53 @@ export default function MealPlans() {
       throw error;
     }
   }, [user]);
+
+  // Delete saved meal plan
+  const deleteMealPlan = useCallback(
+    async (mealPlanId: string, planName: string) => {
+      if (!user) return;
+
+      const confirmDelete = window.confirm(
+        `Are you sure you want to delete "${planName}"? This action cannot be undone.`
+      );
+      if (!confirmDelete) return;
+
+      try {
+        console.log('🗑️ Deleting meal plan:', planName);
+
+        // Call the MealPlanService to delete the plan
+        await MealPlanService.deleteMealPlan(mealPlanId);
+
+        console.log('✅ Meal plan deleted successfully');
+
+        // Remove from local state
+        setMealPlans(prevPlans => prevPlans.filter(plan => plan.id !== mealPlanId));
+
+        // If the deleted plan was currently loaded, clear it
+        setCurrentMealPlan(prevPlan => {
+          if (prevPlan && prevPlan.id === mealPlanId) {
+            return null;
+          }
+          return prevPlan;
+        });
+
+        alert(`"${planName}" has been deleted successfully.`);
+      } catch (error) {
+        console.error('❌ Error deleting meal plan:', error);
+        alert('Failed to delete meal plan. Please try again.');
+      }
+    },
+    [user]
+  );
+
+  // Set up authenticated database service when session is available
+  useEffect(() => {
+    if (session?.access_token) {
+      console.log('🔐 Setting up authenticated database service for client-side operations');
+      const userSupabase = createUserSupabaseClient(session.access_token);
+      databaseRecipeService.setSupabaseClient(userSupabase);
+    }
+  }, [session?.access_token]);
 
   useEffect(() => {
     const loadMealPlans = async () => {
@@ -734,10 +824,19 @@ export default function MealPlans() {
       const plannedMeals: any[] = [];
       const startDate = new Date();
 
+      console.log('🔍 Debug: Converting preview meal plan to database format');
+      console.log('📊 Preview meal plan has', previewMealPlan.length, 'days');
+
       previewMealPlan.forEach((day: any, dayIndex: number) => {
         const mealDate = new Date(startDate);
         mealDate.setDate(startDate.getDate() + dayIndex);
 
+        console.log(
+          `📅 Day ${dayIndex} (${day.day}): Processing meals for ${mealDate.toLocaleDateString()}`
+        );
+        console.log(`   Available meals:`, Object.keys(day.meals));
+
+        // Include all meal types including snacks
         ['breakfast', 'lunch', 'dinner'].forEach(mealType => {
           const recipe = (day.meals as any)[mealType];
           if (recipe) {
@@ -750,6 +849,19 @@ export default function MealPlans() {
             });
           }
         });
+
+        // Handle snacks array separately
+        if (day.meals.snacks && Array.isArray(day.meals.snacks)) {
+          day.meals.snacks.forEach((snackRecipe: Recipe) => {
+            plannedMeals.push({
+              id: uuidv4(),
+              recipeId: snackRecipe.id,
+              date: mealDate,
+              mealType: 'snack',
+              servings: snackRecipe.servings || 1,
+            });
+          });
+        }
       });
 
       // Save the meal plan using the correct MealPlan interface
@@ -771,18 +883,22 @@ export default function MealPlans() {
         isTemplate: false,
       };
 
-      // Update UI states
+      console.log('💾 Saving meal plan to database:', newMealPlan.name);
+
+      // Save meal plan to database
+      const createdPlan = await MealPlanService.createMealPlan(newMealPlan);
+      console.log('✅ Meal plan saved to database successfully:', createdPlan.id);
+
+      // Update UI states with the created plan (which might have been modified by the server)
       setCurrentWeek(previewMealPlan);
-      const updatedPlans = [...mealPlans, newMealPlan];
-      setMealPlans(updatedPlans);
-      localStorage.setItem('userMealPlans', JSON.stringify(updatedPlans));
 
       // Close preview modal
       setShowPreviewModal(false);
       setPreviewMealPlan(null);
       setMealPlanName('');
 
-      // Refresh meal plans to ensure everything is synced
+      // Refresh meal plans to load the saved plan from database
+      console.log('🔄 Refreshing meal plans to show newly saved plan...');
       await refreshMealPlans();
 
       const message = `✅ "${mealPlanName}" saved successfully!\n\n🍳 ${allRecipes.length} recipes saved to your collection\n📋 Meal plan added to your plans\n\n💡 To view your meal plan recipes:\n1. Go to "My Recipes" page\n2. Click the "Meal Plans" filter tab\n3. All recipes are tagged for easy identification\n\n🔄 If recipes don't appear immediately, refresh the My Recipes page.`;
@@ -1159,12 +1275,21 @@ export default function MealPlans() {
                       <span className="text-gray-500">
                         {plan.meals.length} meals • {plan.totalCalories || 0} cal
                       </span>
-                      <button
-                        onClick={() => loadSavedMealPlan(plan)}
-                        className="px-3 py-1 bg-pantry-600 text-white rounded-md hover:bg-pantry-700 transition-colors text-xs font-medium"
-                      >
-                        View Plan
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => loadSavedMealPlan(plan)}
+                          className="px-3 py-1 bg-pantry-600 text-white rounded-md hover:bg-pantry-700 transition-colors text-xs font-medium"
+                        >
+                          View Plan
+                        </button>
+                        <button
+                          onClick={() => deleteMealPlan(plan.id, plan.name)}
+                          className="px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-xs font-medium"
+                          title="Delete meal plan"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
