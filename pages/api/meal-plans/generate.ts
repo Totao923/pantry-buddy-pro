@@ -3,6 +3,8 @@ import { aiService } from '../../../lib/ai/aiService';
 import { Ingredient, Recipe, DifficultyLevel } from '../../../types';
 import { databaseRecipeService } from '../../../lib/services/databaseRecipeService';
 import { HealthGoal } from '../../../lib/health-goals';
+import { withAuth, type AuthenticatedRequest } from '../../../lib/middleware/auth';
+import { createUserSupabaseClient } from '../../../lib/supabase/server';
 
 interface GenerateMealPlanRequest {
   ingredients: Ingredient[];
@@ -32,7 +34,7 @@ interface GenerateMealPlanResponse {
 }
 
 async function generateMealPlanHandler(
-  req: NextApiRequest,
+  req: AuthenticatedRequest,
   res: NextApiResponse<GenerateMealPlanResponse>
 ) {
   if (req.method !== 'POST') {
@@ -46,23 +48,25 @@ async function generateMealPlanHandler(
   try {
     const {
       ingredients,
-      userId,
       healthGoal,
       mealPlanMode = 'pantry-based',
       preferences,
-    } = req.body as GenerateMealPlanRequest;
+    } = req.body as Omit<GenerateMealPlanRequest, 'userId'>;
+
+    // Use authenticated user ID from middleware
+    const userId = req.user.id;
+
+    // Extract JWT token from request headers and create authenticated Supabase client
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace('Bearer ', '') || '';
+    console.log('🔒 Setting up user Supabase client with token length:', token.length);
+    const userSupabase = createUserSupabaseClient(token);
+    databaseRecipeService.setSupabaseClient(userSupabase);
 
     if (!ingredients || ingredients.length === 0) {
       return res.status(400).json({
         success: false,
         error: 'At least one ingredient is required',
-      });
-    }
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID is required',
       });
     }
 
@@ -106,15 +110,15 @@ async function generateMealPlanHandler(
       dinner: [],
     };
 
-    // Generate one base recipe per meal type to avoid timeouts
+    // Generate multiple base recipes per meal type for variety (balanced approach)
     for (const mealType of mealTypes) {
-      const recipesNeeded = 1; // Reduced from 3 to 1 to prevent timeouts
+      const recipesNeeded = 2; // Generate 2 different recipes per meal type (balance variety vs performance)
 
       for (let i = 0; i < recipesNeeded; i++) {
-        // Prepare ingredients outside try block for fallback use
+        // Prepare ingredients with more variety for each recipe
         const ingredientVariety = [...ingredients];
 
-        // Shuffle and select ingredients
+        // Shuffle and select different ingredient combinations for each recipe
         for (let j = ingredientVariety.length - 1; j > 0; j--) {
           const k = Math.floor(Math.random() * (j + 1));
           [ingredientVariety[j], ingredientVariety[k]] = [
@@ -123,10 +127,24 @@ async function generateMealPlanHandler(
           ];
         }
 
-        const selectedIngredients = ingredientVariety.slice(0, Math.min(8, ingredients.length));
+        // Select different ingredient subsets for each recipe to ensure variety
+        const startIndex = (i * 3) % Math.max(1, ingredients.length - 5);
+        const endIndex = Math.min(startIndex + 6 + i, ingredients.length);
+        const selectedIngredients = ingredientVariety.slice(startIndex, endIndex);
+
+        // Ensure minimum ingredients
+        if (selectedIngredients.length < 4) {
+          selectedIngredients.push(...ingredientVariety.slice(0, 4 - selectedIngredients.length));
+        }
 
         try {
-          const selectedCuisine = cuisineVariety[Math.floor(Math.random() * cuisineVariety.length)];
+          // Ensure different cuisines for each recipe iteration
+          const selectedCuisine =
+            cuisineVariety[(i + mealTypes.indexOf(mealType)) % cuisineVariety.length];
+
+          console.log(
+            `🍳 Generating ${mealType} recipe ${i + 1}/2 with ${selectedCuisine} cuisine and ${selectedIngredients.length} ingredients`
+          );
           const baseTime = mealType === 'breakfast' ? 30 : mealType === 'lunch' ? 45 : 60;
 
           // Apply meal plan mode specific parameters
@@ -288,31 +306,21 @@ async function generateMealPlanHandler(
         meals: {},
       };
 
-      // Assign recipes from base recipes with enhanced variation
+      // Assign recipes from base recipes with real variety
       for (const mealType of mealTypes) {
         const availableRecipes = baseRecipes[mealType];
         if (availableRecipes.length > 0) {
-          // Rotate through available recipes for variety
-          const baseRecipe = availableRecipes[dayIndex % availableRecipes.length];
+          // Use different actual recipes, not just title variations
+          const selectedRecipe = availableRecipes[dayIndex % availableRecipes.length];
 
-          // Create meaningful variations by day
-          const variations = [
-            baseRecipe.title,
-            `Spiced ${baseRecipe.title}`,
-            `Quick ${baseRecipe.title}`,
-            `Family-Style ${baseRecipe.title}`,
-            `Rustic ${baseRecipe.title}`,
-            `Gourmet ${baseRecipe.title}`,
-            `Weekend ${baseRecipe.title}`,
-          ];
-
-          const variation = {
-            ...baseRecipe,
-            id: `${baseRecipe.id}-day${dayIndex}`,
-            title: variations[dayIndex] || baseRecipe.title,
+          // Create unique recipe for this day with proper UUID
+          const uniqueRecipe = {
+            ...selectedRecipe,
+            id: crypto.randomUUID(),
+            // Keep original title - no fake variations
           };
 
-          dayPlan.meals[mealType] = variation;
+          dayPlan.meals[mealType] = uniqueRecipe;
         }
       }
 
@@ -344,5 +352,5 @@ export const config = {
   maxDuration: 60, // 60 second timeout for meal plan generation
 };
 
-// Export without authentication middleware to match existing meal plans API pattern
-export default generateMealPlanHandler;
+// Export with authentication middleware to enable recipe saving
+export default withAuth(generateMealPlanHandler);

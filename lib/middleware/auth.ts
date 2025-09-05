@@ -21,9 +21,19 @@ export type AuthenticatedHandler = (
 export function withAuth(handler: AuthenticatedHandler) {
   return async (req: NextApiRequest, res: NextApiResponse) => {
     try {
+      console.log('🔒 Auth middleware - checking headers:', {
+        hasAuthHeader: !!req.headers.authorization,
+        authHeaderType: req.headers.authorization
+          ? req.headers.authorization.substring(0, 10) + '...'
+          : 'none',
+        method: req.method,
+        url: req.url,
+      });
+
       // Extract token from Authorization header
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.log('❌ Auth middleware - missing or invalid auth header');
         return res.status(401).json({
           error: 'Authentication required',
           code: 'MISSING_AUTH_TOKEN',
@@ -31,6 +41,7 @@ export function withAuth(handler: AuthenticatedHandler) {
       }
 
       const token = authHeader.replace('Bearer ', '');
+      console.log('🔒 Auth middleware - extracted token length:', token.length);
 
       // Create server-side Supabase client
       const supabase = createServerSupabaseClient();
@@ -41,7 +52,15 @@ export function withAuth(handler: AuthenticatedHandler) {
         error,
       } = await supabase.auth.getUser(token);
 
+      console.log('🔒 Auth middleware - token verification result:', {
+        hasUser: !!user,
+        userEmail: user?.email,
+        errorCode: error?.name,
+        errorMessage: error?.message,
+      });
+
       if (error || !user) {
+        console.log('❌ Auth middleware - token verification failed:', error);
         return res.status(401).json({
           error: 'Invalid authentication token',
           code: 'INVALID_AUTH_TOKEN',

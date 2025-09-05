@@ -175,7 +175,7 @@ Guidelines:
 
       // Add required fields that might be missing
       const recipe = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         rating: 4.5,
         reviews: Math.floor(Math.random() * 100) + 10,
         variations: [],
