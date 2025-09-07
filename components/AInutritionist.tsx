@@ -571,9 +571,8 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
           id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: basic.name,
           category: basic.category,
-          quantity: basic.quantity,
+          quantity: basic.quantity.toString(),
           unit: basic.unit,
-          notes: `Complementary ingredient for ${mainIngredient}`,
         });
       });
     }
