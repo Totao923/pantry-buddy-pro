@@ -166,24 +166,13 @@ Please consider this feedback when making enhancements.`;
             if (daysUntilExpiry <= 3) details.push('⚠️ Expires soon');
           }
 
-          // Mark AI suggested ingredients
-          const isAISuggested = item.notes && item.notes.includes('AI Nutritionist');
-          const marker = isAISuggested ? '🤖 ' : '- ';
-
-          section += `${marker}${item.name}${details.length ? ` (${details.join(', ')})` : ''}\n`;
+          section += `- ${item.name}${details.length ? ` (${details.join(', ')})` : ''}\n`;
         });
       }
     });
 
-    if (hasAISuggestedIngredients) {
-      section +=
-        '\n🎯 AI RECIPE PRIORITY: Create a recipe that prominently features the main AI-suggested ingredient. The main ingredient should be the primary focus of the dish, not just a minor component. Make it the hero of the recipe!';
-      section +=
-        '\n⚠️ IMPORTANT: Do NOT create generic recipes like "olive oil dressing" or "basic sauce". The recipe must be built around and showcase the main AI-suggested ingredient.';
-    } else {
-      section +=
-        '\nPRIORITY: Please prioritize using ingredients that are expiring soon. Try to use as many available ingredients as possible while creating a delicious, cohesive recipe.';
-    }
+    section +=
+      '\nPRIORITY: Please prioritize using ingredients that are expiring soon. Try to use as many available ingredients as possible while creating a delicious, cohesive recipe.';
 
     return section;
   }
