@@ -27,6 +27,8 @@ export default function RecipesBrowser() {
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'time' | 'rating'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState<'all' | 'favorites' | 'recent' | 'meal-plan'>('all');
+  const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   const cuisines: CuisineType[] = [
     'italian',
@@ -275,6 +277,90 @@ export default function RecipesBrowser() {
     }
   };
 
+  const bulkDeleteRecipes = async (recipeIds: string[]) => {
+    if (recipeIds.length === 0) return;
+
+    const count = recipeIds.length;
+    if (
+      !confirm(
+        `Are you sure you want to delete ${count} recipe${count > 1 ? 's' : ''}? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const userId = user?.id || 'anonymous';
+      let successCount = 0;
+      let failureCount = 0;
+
+      // Delete recipes one by one using existing logic
+      for (const recipeId of recipeIds) {
+        try {
+          const result = await RecipeService.deleteRecipe(recipeId, userId);
+          if (result.success) {
+            successCount++;
+          } else {
+            failureCount++;
+          }
+        } catch (error) {
+          failureCount++;
+          console.error(`Error deleting recipe ${recipeId}:`, error);
+        }
+      }
+
+      // Update local state by filtering out deleted recipes
+      const updatedRecipes = recipes.filter(recipe => !recipeIds.includes(recipe.id));
+      setRecipes(updatedRecipes);
+      setFilteredRecipes(
+        updatedRecipes.filter(recipe => {
+          // Reapply current filters
+          let include = true;
+
+          if (searchQuery) {
+            include =
+              include &&
+              (recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                recipe.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())));
+          }
+
+          if (selectedCuisine !== 'all') {
+            include = include && recipe.cuisine === selectedCuisine;
+          }
+
+          if (filter === 'favorites') {
+            const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+            include = include && favorites.includes(recipe.id);
+          }
+
+          return include;
+        })
+      );
+
+      // Exit selection mode
+      setSelectedRecipes([]);
+      setIsSelectionMode(false);
+
+      // Show result feedback
+      if (failureCount === 0) {
+        console.log(`Successfully deleted ${successCount} recipe${successCount > 1 ? 's' : ''}`);
+      } else {
+        alert(
+          `Deleted ${successCount} recipe${successCount > 1 ? 's' : ''}, but ${failureCount} failed. Please try again for the failed ones.`
+        );
+      }
+
+      // Force a small delay to let localStorage updates settle, then reload recipes
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (error) {
+      console.error('Error in bulk delete:', error);
+      alert('Failed to delete recipes. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <AuthGuard requireAuth={false}>
@@ -308,6 +394,40 @@ export default function RecipesBrowser() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {isSelectionMode ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setSelectedRecipes([]);
+                      setIsSelectionMode(false);
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => setSelectedRecipes(filteredRecipes.map(r => r.id))}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-medium"
+                  >
+                    Select All
+                  </button>
+                  {selectedRecipes.length > 0 && (
+                    <button
+                      onClick={() => setSelectedRecipes([])}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-medium"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsSelectionMode(true)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-medium"
+                >
+                  Select
+                </button>
+              )}
               <Link href="/dashboard/create-recipe">
                 <button className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all font-medium flex items-center gap-2">
                   <span>✨</span>
@@ -397,6 +517,22 @@ export default function RecipesBrowser() {
             ))}
           </div>
 
+          {/* Bulk Action Bar */}
+          {isSelectionMode && selectedRecipes.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+              <span className="text-red-700 font-medium">
+                {selectedRecipes.length} recipe{selectedRecipes.length > 1 ? 's' : ''} selected
+              </span>
+              <button
+                onClick={() => bulkDeleteRecipes(selectedRecipes)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium flex items-center gap-2"
+              >
+                <span>🗑️</span>
+                Delete Selected ({selectedRecipes.length})
+              </button>
+            </div>
+          )}
+
           {/* Recipes Grid/List */}
           {filteredRecipes.length > 0 ? (
             <div
@@ -411,11 +547,29 @@ export default function RecipesBrowser() {
                   key={recipe.id}
                   className={`bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all ${
                     viewMode === 'list' ? 'flex items-center gap-6 p-4' : 'p-6'
-                  }`}
+                  } ${isSelectionMode && selectedRecipes.includes(recipe.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
                 >
                   {viewMode === 'grid' ? (
                     <>
                       <div className="flex items-start justify-between mb-4">
+                        {isSelectionMode && (
+                          <div className="flex items-center mr-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedRecipes.includes(recipe.id)}
+                              onChange={() => {
+                                if (selectedRecipes.includes(recipe.id)) {
+                                  setSelectedRecipes(
+                                    selectedRecipes.filter(id => id !== recipe.id)
+                                  );
+                                } else {
+                                  setSelectedRecipes([...selectedRecipes, recipe.id]);
+                                }
+                              }}
+                              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                          </div>
+                        )}
                         <div className="flex-1">
                           <h3 className="text-xl font-semibold text-gray-900 mb-2">
                             {recipe.title}
@@ -474,6 +628,22 @@ export default function RecipesBrowser() {
                     </>
                   ) : (
                     <>
+                      {isSelectionMode && (
+                        <div className="flex items-center mr-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedRecipes.includes(recipe.id)}
+                            onChange={() => {
+                              if (selectedRecipes.includes(recipe.id)) {
+                                setSelectedRecipes(selectedRecipes.filter(id => id !== recipe.id));
+                              } else {
+                                setSelectedRecipes([...selectedRecipes, recipe.id]);
+                              }
+                            }}
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                        </div>
+                      )}
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div>
