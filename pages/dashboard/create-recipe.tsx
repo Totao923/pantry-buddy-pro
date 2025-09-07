@@ -46,10 +46,6 @@ export default function CreateRecipe() {
         setStep(2); // Skip to step 2 (cuisine selection) since ingredients are pre-populated
 
         console.log('🤖 AI Suggested mode activated with ingredients:', parsedIngredients);
-        console.log(
-          '🤖 Main ingredient:',
-          parsedIngredients.find(ing => ing.notes?.includes('Main ingredient'))
-        );
       } catch (error) {
         console.error('Failed to parse suggested ingredients:', error);
         setError('Failed to load AI suggested ingredients');
