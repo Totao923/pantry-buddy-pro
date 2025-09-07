@@ -151,24 +151,7 @@ Please consider this feedback when making enhancements.`;
 
     const categorized = this.categorizeIngredients(ingredients);
 
-    // Check if this is an AI-suggested recipe (has ingredients with AI notes)
-    const hasAISuggestedIngredients = ingredients.some(
-      ing => ing.notes && ing.notes.includes('AI Nutritionist')
-    );
-
     let section = 'AVAILABLE INGREDIENTS:\n';
-
-    // If AI suggested, emphasize the main ingredient
-    if (hasAISuggestedIngredients) {
-      const mainIngredient = ingredients.find(
-        ing => ing.notes && ing.notes.includes('Main ingredient suggested by AI Nutritionist')
-      );
-
-      if (mainIngredient) {
-        section += `\n🌟 MAIN INGREDIENT (AI SUGGESTED): ${mainIngredient.name} (${mainIngredient.quantity} ${mainIngredient.unit})\n`;
-        section += `This is the primary ingredient that should be the STAR of the recipe. Build the entire dish around this ingredient.\n\n`;
-      }
-    }
 
     Object.entries(categorized).forEach(([category, items]) => {
       if (items.length > 0) {
