@@ -537,9 +537,8 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
           id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: comp.name,
           category: comp.category,
-          quantity: comp.quantity,
+          quantity: comp.quantity.toString(),
           unit: comp.unit,
-          notes: `Complementary ingredient for ${mainIngredient}`,
         });
       });
     } else if (title.includes('fiber')) {
@@ -555,9 +554,8 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
           id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: comp.name,
           category: comp.category,
-          quantity: comp.quantity,
+          quantity: comp.quantity.toString(),
           unit: comp.unit,
-          notes: `Complementary ingredient for ${mainIngredient}`,
         });
       });
     } else {
