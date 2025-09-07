@@ -103,7 +103,9 @@ class EnvironmentConfig {
         encryptionKey: process.env.ENCRYPTION_KEY || '',
         nextAuthSecret: process.env.NEXTAUTH_SECRET || '',
         nextAuthUrl:
-          process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          process.env.NEXTAUTH_URL ||
+          process.env.NEXT_PUBLIC_APP_URL ||
+          (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
       },
       features: {
         enableAIRecipes: isServerSide
@@ -122,7 +124,9 @@ class EnvironmentConfig {
       },
       environment:
         (process.env.NODE_ENV as 'development' | 'production' | 'staging') || 'development',
-      appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      appUrl:
+        process.env.NEXT_PUBLIC_APP_URL ||
+        (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'),
     };
   }
 

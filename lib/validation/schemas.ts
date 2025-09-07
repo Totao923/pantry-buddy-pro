@@ -58,6 +58,12 @@ export const GenerateRecipeSchema = z.object({
       experienceLevel: z.enum(['beginner', 'intermediate', 'advanced', 'expert']).optional(),
     })
     .optional(),
+  aiSuggestedContext: z
+    .object({
+      recommendationTitle: z.string().max(200).optional(),
+      isAISuggested: z.boolean(),
+    })
+    .optional(),
 });
 
 // Ingredient validation schemas

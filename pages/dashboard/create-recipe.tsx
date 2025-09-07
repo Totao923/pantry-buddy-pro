@@ -30,6 +30,32 @@ export default function CreateRecipe() {
     experienceLevel: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'expert',
   });
   const [showModeSelection, setShowModeSelection] = useState(subscription?.tier === 'premium');
+  const [aiSuggestedMode, setAiSuggestedMode] = useState(false);
+  const [recommendationTitle, setRecommendationTitle] = useState<string>('');
+
+  // Handle AI suggested mode from query parameters
+  useEffect(() => {
+    const { mode, suggestedIngredients, recommendationTitle: title } = router.query;
+
+    if (mode === 'ai-suggested' && suggestedIngredients) {
+      try {
+        const parsedIngredients = JSON.parse(suggestedIngredients as string);
+        setIngredients(parsedIngredients);
+        setAiSuggestedMode(true);
+        setRecommendationTitle((title as string) || 'AI Suggested Recipe');
+        setStep(2); // Skip to step 2 (cuisine selection) since ingredients are pre-populated
+
+        console.log('🤖 AI Suggested mode activated with ingredients:', parsedIngredients);
+        console.log(
+          '🤖 Main ingredient:',
+          parsedIngredients.find(ing => ing.notes?.includes('Main ingredient'))
+        );
+      } catch (error) {
+        console.error('Failed to parse suggested ingredients:', error);
+        setError('Failed to load AI suggested ingredients');
+      }
+    }
+  }, [router.query]);
 
   // Fill pantry function - saves temporary ingredients to permanent pantry
   const fillPantry = async (tempIngredients: Ingredient[]) => {
@@ -172,6 +198,13 @@ export default function CreateRecipe() {
               dietary: [],
             },
             userId: user.id,
+            // Pass AI nutritionist context if available
+            aiSuggestedContext: aiSuggestedMode
+              ? {
+                  recommendationTitle: recommendationTitle,
+                  isAISuggested: true,
+                }
+              : undefined,
           });
 
           const timeoutPromise = new Promise<never>((_, reject) =>
@@ -472,9 +505,13 @@ export default function CreateRecipe() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Add Your Ingredients</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {aiSuggestedMode ? 'AI Suggested Ingredients' : 'Add Your Ingredients'}
+              </h2>
               <p className="text-gray-600">
-                Tell us what you have in your pantry and we'll create the perfect recipe
+                {aiSuggestedMode
+                  ? 'These ingredients were suggested by your AI Nutritionist. You can modify them or add more.'
+                  : "Tell us what you have in your pantry and we'll create the perfect recipe"}
               </p>
             </div>
             <SmartPantry
@@ -620,6 +657,25 @@ export default function CreateRecipe() {
               Follow these steps to generate your perfect personalized recipe
             </p>
           </div>
+
+          {/* AI Suggested Mode Indicator */}
+          {aiSuggestedMode && (
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6">
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <span className="text-2xl">🤖</span>
+                <h3 className="text-lg font-semibold text-purple-900">AI Suggested Recipe</h3>
+              </div>
+              <p className="text-center text-purple-700 mb-4">
+                Based on your AI Nutritionist recommendation:{' '}
+                <strong>"{recommendationTitle}"</strong>
+              </p>
+              <div className="text-center">
+                <p className="text-sm text-purple-600">
+                  ✅ Ingredients pre-selected • Ready to generate your personalized recipe
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Progress Steps */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">

@@ -259,8 +259,16 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
       case 'Generate Quick Recipe':
       case 'Generate Protein Recipe':
       case 'Generate High-Fiber Recipe':
-        // Navigate to create recipe page with AI suggestions
-        router.push('/dashboard/create-recipe?mode=ai-suggested');
+        // Navigate to create recipe page with AI suggestions and suggested ingredients
+        const suggestedIngredients = getSuggestedIngredientsFromRecommendation(recommendation);
+        router.push({
+          pathname: '/dashboard/create-recipe',
+          query: {
+            mode: 'ai-suggested',
+            suggestedIngredients: JSON.stringify(suggestedIngredients),
+            recommendationTitle: recommendation.title,
+          },
+        });
         break;
 
       default:
@@ -272,30 +280,50 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
     // Try to extract specific ingredient names from the recommendation
     const fullText = `${rec.title} ${rec.description}`.toLowerCase();
 
+    console.log('🔍 Extracting ingredient from recommendation:', {
+      title: rec.title,
+      description: rec.description,
+      fullText: fullText,
+    });
+
     // Common ingredient patterns - check for specific ingredient mentions first
     const ingredientPatterns = [
-      // Proteins
-      { pattern: /(chicken breast|chicken)/i, ingredient: 'chicken breast' },
-      { pattern: /(salmon|fish|tuna)/i, ingredient: 'salmon' },
+      // Proteins - more specific patterns first
+      { pattern: /(chicken breast)/i, ingredient: 'chicken breast' },
+      { pattern: /(chicken)/i, ingredient: 'chicken breast' },
+      { pattern: /(salmon)/i, ingredient: 'salmon' },
+      { pattern: /(fish|tuna)/i, ingredient: 'salmon' },
       { pattern: /(eggs|egg)/i, ingredient: 'eggs' },
-      { pattern: /(tofu|soy)/i, ingredient: 'tofu' },
+      { pattern: /(tofu)/i, ingredient: 'tofu' },
+      { pattern: /(black beans)/i, ingredient: 'black beans' },
       { pattern: /(beans|lentils|chickpeas)/i, ingredient: 'black beans' },
-      { pattern: /(greek yogurt|yogurt)/i, ingredient: 'Greek yogurt' },
+      { pattern: /(greek yogurt)/i, ingredient: 'Greek yogurt' },
+      { pattern: /(yogurt)/i, ingredient: 'Greek yogurt' },
 
-      // Vegetables
-      { pattern: /(spinach|leafy greens)/i, ingredient: 'spinach' },
+      // Vegetables - more specific patterns first
+      { pattern: /(spinach)/i, ingredient: 'spinach' },
+      { pattern: /(leafy greens)/i, ingredient: 'spinach' },
       { pattern: /(broccoli)/i, ingredient: 'broccoli' },
-      { pattern: /(sweet potato|potatoes)/i, ingredient: 'sweet potato' },
-      { pattern: /(bell pepper|peppers)/i, ingredient: 'bell peppers' },
-      { pattern: /(tomatoes|tomato)/i, ingredient: 'tomatoes' },
-      { pattern: /(carrots|carrot)/i, ingredient: 'carrots' },
-      { pattern: /(onions|onion)/i, ingredient: 'onions' },
+      { pattern: /(sweet potato)/i, ingredient: 'sweet potato' },
+      { pattern: /(potatoes)/i, ingredient: 'sweet potato' },
+      { pattern: /(bell pepper)/i, ingredient: 'bell peppers' },
+      { pattern: /(peppers)/i, ingredient: 'bell peppers' },
+      { pattern: /(tomatoes)/i, ingredient: 'tomatoes' },
+      { pattern: /(tomato)/i, ingredient: 'tomatoes' },
+      { pattern: /(carrots)/i, ingredient: 'carrots' },
+      { pattern: /(carrot)/i, ingredient: 'carrots' },
+      { pattern: /(onions)/i, ingredient: 'onions' },
+      { pattern: /(onion)/i, ingredient: 'onions' },
 
-      // Fruits
-      { pattern: /(oranges|orange|citrus)/i, ingredient: 'oranges' },
-      { pattern: /(bananas|banana)/i, ingredient: 'bananas' },
+      // Fruits - more specific patterns first
+      { pattern: /(oranges)/i, ingredient: 'oranges' },
+      { pattern: /(orange|citrus)/i, ingredient: 'oranges' },
+      { pattern: /(bananas)/i, ingredient: 'bananas' },
+      { pattern: /(banana)/i, ingredient: 'bananas' },
+      { pattern: /(mixed berries)/i, ingredient: 'mixed berries' },
       { pattern: /(berries|blueberries|strawberries)/i, ingredient: 'mixed berries' },
-      { pattern: /(apples|apple)/i, ingredient: 'apples' },
+      { pattern: /(apples)/i, ingredient: 'apples' },
+      { pattern: /(apple)/i, ingredient: 'apples' },
 
       // Grains & Starches
       { pattern: /(quinoa)/i, ingredient: 'quinoa' },
@@ -348,16 +376,16 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
 
     // If all else fails, provide a reasonable default based on recommendation type
     if (rec.type === 'ingredient') {
-      if (fullText.includes('protein')) return 'protein sources';
-      if (fullText.includes('fiber')) return 'high-fiber foods';
-      if (fullText.includes('vitamin')) return 'vitamin-rich foods';
-      if (fullText.includes('calcium')) return 'calcium-rich foods';
+      if (fullText.includes('protein')) return 'chicken breast'; // Specific protein instead of generic
+      if (fullText.includes('fiber')) return 'black beans'; // Specific fiber source instead of generic
+      if (fullText.includes('vitamin')) return 'spinach'; // Specific vitamin source instead of generic
+      if (fullText.includes('calcium')) return 'Greek yogurt'; // Specific calcium source instead of generic
     }
 
     console.warn(
-      `⚠️ Could not extract specific ingredient from "${rec.title}" - using generic fallback`
+      `⚠️ Could not extract specific ingredient from "${rec.title}" - using chicken breast as fallback`
     );
-    return 'healthy ingredients';
+    return 'chicken breast'; // Specific fallback instead of generic
   };
 
   const getDefaultUnit = (ingredientName: string): string => {
@@ -448,6 +476,141 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
     if (title.includes('vegetable')) return 'vegetables';
 
     return 'healthy';
+  };
+
+  const getSuggestedIngredientsFromRecommendation = (
+    rec: NutritionRecommendation
+  ): Ingredient[] => {
+    // Extract suggested ingredients based on the recommendation type
+    const suggestedIngredients: Ingredient[] = [];
+
+    // Get the main ingredient from the recommendation
+    const mainIngredient = extractIngredientFromRecommendation(rec);
+
+    // Create a base ingredient object with larger quantity to make it prominent
+    const baseIngredient: Ingredient = {
+      id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: mainIngredient,
+      category: getDefaultCategory(mainIngredient),
+      quantity: getMainIngredientQuantity(mainIngredient), // Larger quantity for main ingredient
+      unit: getDefaultUnit(mainIngredient),
+      isProtein: getDefaultCategory(mainIngredient) === 'protein',
+      isVegetarian: !['chicken', 'fish', 'salmon', 'beef', 'pork'].some(meat =>
+        mainIngredient.toLowerCase().includes(meat)
+      ),
+      isVegan: ![
+        'chicken',
+        'fish',
+        'salmon',
+        'beef',
+        'pork',
+        'milk',
+        'cheese',
+        'yogurt',
+        'eggs',
+      ].some(item => mainIngredient.toLowerCase().includes(item)),
+      isGlutenFree: !['bread', 'wheat', 'flour', 'pasta'].some(gluten =>
+        mainIngredient.toLowerCase().includes(gluten)
+      ),
+      isDairyFree: !['milk', 'cheese', 'yogurt', 'butter'].some(dairy =>
+        mainIngredient.toLowerCase().includes(dairy)
+      ),
+      purchaseDate: new Date(),
+      expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      storageLocation: 'pantry',
+      notes: `Main ingredient suggested by AI Nutritionist: ${rec.title}`,
+      isRunningLow: false,
+      isExpiring: false,
+    };
+
+    suggestedIngredients.push(baseIngredient);
+
+    // Add ONLY 2-3 complementary ingredients to keep focus on main ingredient
+    const title = rec.title.toLowerCase();
+
+    if (title.includes('protein')) {
+      // Add minimal complementary ingredients for protein recipes
+      const complementaryIngredients = [
+        { name: 'onions', category: 'vegetables' as const, quantity: 1, unit: 'medium' },
+        { name: 'garlic', category: 'vegetables' as const, quantity: 2, unit: 'cloves' },
+      ];
+
+      complementaryIngredients.forEach(comp => {
+        suggestedIngredients.push({
+          ...baseIngredient,
+          id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: comp.name,
+          category: comp.category,
+          quantity: comp.quantity,
+          unit: comp.unit,
+          notes: `Complementary ingredient for ${mainIngredient}`,
+        });
+      });
+    } else if (title.includes('fiber')) {
+      // Add minimal complementary ingredients for high-fiber recipes
+      const complementaryIngredients = [
+        { name: 'brown rice', category: 'grains' as const, quantity: 1, unit: 'cup' },
+        { name: 'sweet potato', category: 'vegetables' as const, quantity: 1, unit: 'medium' },
+      ];
+
+      complementaryIngredients.forEach(comp => {
+        suggestedIngredients.push({
+          ...baseIngredient,
+          id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: comp.name,
+          category: comp.category,
+          quantity: comp.quantity,
+          unit: comp.unit,
+          notes: `Complementary ingredient for ${mainIngredient}`,
+        });
+      });
+    } else {
+      // Add minimal basic ingredients for general recipes
+      const basicIngredients = [
+        { name: 'onions', category: 'vegetables' as const, quantity: 1, unit: 'medium' },
+        { name: 'garlic', category: 'vegetables' as const, quantity: 2, unit: 'cloves' },
+      ];
+
+      basicIngredients.forEach(basic => {
+        suggestedIngredients.push({
+          ...baseIngredient,
+          id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: basic.name,
+          category: basic.category,
+          quantity: basic.quantity,
+          unit: basic.unit,
+          notes: `Complementary ingredient for ${mainIngredient}`,
+        });
+      });
+    }
+
+    return suggestedIngredients;
+  };
+
+  const getMainIngredientQuantity = (ingredientName: string): number => {
+    const name = ingredientName.toLowerCase();
+
+    // Give larger quantities for main ingredients to make them prominent
+    if (name.includes('chicken') || name.includes('fish') || name.includes('salmon')) {
+      return 2; // 2 pieces/servings
+    }
+    if (name.includes('eggs')) {
+      return 4; // 4 eggs
+    }
+    if (name.includes('tofu') || name.includes('beans')) {
+      return 1.5; // 1.5 cups
+    }
+    if (name.includes('spinach') || name.includes('broccoli')) {
+      return 2; // 2 cups
+    }
+    if (name.includes('rice') || name.includes('quinoa')) {
+      return 2; // 2 cups
+    }
+    if (name.includes('milk') || name.includes('yogurt')) {
+      return 2; // 2 cups
+    }
+
+    return 2; // Default to 2 for prominence
   };
 
   const addToShoppingList = async () => {

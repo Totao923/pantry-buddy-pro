@@ -38,6 +38,10 @@ export interface RecipeGenerationParams {
     cookingFrequency?: 'daily' | 'weekly' | 'occasional';
     skillLevel?: number; // 1-10
   };
+  aiSuggestedContext?: {
+    recommendationTitle?: string;
+    isAISuggested: boolean;
+  };
 }
 
 // AI Response Types

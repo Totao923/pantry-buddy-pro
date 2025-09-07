@@ -6,9 +6,20 @@ export class PromptEngine {
    * Generate a comprehensive prompt for recipe creation
    */
   static generateRecipePrompt(params: RecipeGenerationParams): string {
-    const { ingredients, cuisine, servings, preferences = {}, userHistory = {} } = params;
+    const {
+      ingredients,
+      cuisine,
+      servings,
+      preferences = {},
+      userHistory = {},
+      aiSuggestedContext,
+    } = params;
 
     const sections = [
+      // If this is an AI nutritionist suggested recipe, add context at the top
+      aiSuggestedContext?.isAISuggested
+        ? this.buildAINutritionistSection(aiSuggestedContext)
+        : null,
       this.buildIngredientSection(ingredients),
       this.buildPreferencesSection(preferences, cuisine, servings),
       this.buildExperienceSection(preferences.experienceLevel || 'intermediate'),
@@ -18,6 +29,29 @@ export class PromptEngine {
     ];
 
     return sections.filter(Boolean).join('\n\n');
+  }
+
+  /**
+   * Build AI nutritionist context section to ensure recipe matches recommendation
+   */
+  private static buildAINutritionistSection(context: {
+    recommendationTitle?: string;
+    isAISuggested: boolean;
+  }): string {
+    return `🤖 AI NUTRITIONIST RECIPE REQUEST:
+You are generating a recipe based on a specific nutritionist recommendation. This is NOT a generic recipe request.
+
+RECOMMENDED RECIPE: "${context.recommendationTitle || 'AI Suggested Recipe'}"
+
+CRITICAL INSTRUCTIONS:
+- Create the EXACT recipe described in the recommendation title
+- Follow the specific dish concept mentioned in the recommendation
+- If the recommendation mentions specific cooking methods or ingredients, include them
+- The recipe title should closely match or be inspired by the recommendation title
+- This recipe is specifically designed to meet the user's nutritional goals
+- Focus on making this recommended recipe, not a generic recipe with the available ingredients
+
+The user specifically requested THIS recipe based on AI nutritionist guidance.`;
   }
 
   /**
@@ -117,7 +151,24 @@ Please consider this feedback when making enhancements.`;
 
     const categorized = this.categorizeIngredients(ingredients);
 
+    // Check if this is an AI-suggested recipe (has ingredients with AI notes)
+    const hasAISuggestedIngredients = ingredients.some(
+      ing => ing.notes && ing.notes.includes('AI Nutritionist')
+    );
+
     let section = 'AVAILABLE INGREDIENTS:\n';
+
+    // If AI suggested, emphasize the main ingredient
+    if (hasAISuggestedIngredients) {
+      const mainIngredient = ingredients.find(
+        ing => ing.notes && ing.notes.includes('Main ingredient suggested by AI Nutritionist')
+      );
+
+      if (mainIngredient) {
+        section += `\n🌟 MAIN INGREDIENT (AI SUGGESTED): ${mainIngredient.name} (${mainIngredient.quantity} ${mainIngredient.unit})\n`;
+        section += `This is the primary ingredient that should be the STAR of the recipe. Build the entire dish around this ingredient.\n\n`;
+      }
+    }
 
     Object.entries(categorized).forEach(([category, items]) => {
       if (items.length > 0) {
@@ -131,13 +182,25 @@ Please consider this feedback when making enhancements.`;
             );
             if (daysUntilExpiry <= 3) details.push('⚠️ Expires soon');
           }
-          section += `- ${item.name}${details.length ? ` (${details.join(', ')})` : ''}\n`;
+
+          // Mark AI suggested ingredients
+          const isAISuggested = item.notes && item.notes.includes('AI Nutritionist');
+          const marker = isAISuggested ? '🤖 ' : '- ';
+
+          section += `${marker}${item.name}${details.length ? ` (${details.join(', ')})` : ''}\n`;
         });
       }
     });
 
-    section +=
-      '\nPRIORITY: Please prioritize using ingredients that are expiring soon. Try to use as many available ingredients as possible while creating a delicious, cohesive recipe.';
+    if (hasAISuggestedIngredients) {
+      section +=
+        '\n🎯 AI RECIPE PRIORITY: Create a recipe that prominently features the main AI-suggested ingredient. The main ingredient should be the primary focus of the dish, not just a minor component. Make it the hero of the recipe!';
+      section +=
+        '\n⚠️ IMPORTANT: Do NOT create generic recipes like "olive oil dressing" or "basic sauce". The recipe must be built around and showcase the main AI-suggested ingredient.';
+    } else {
+      section +=
+        '\nPRIORITY: Please prioritize using ingredients that are expiring soon. Try to use as many available ingredients as possible while creating a delicious, cohesive recipe.';
+    }
 
     return section;
   }
@@ -175,9 +238,10 @@ Please consider this feedback when making enhancements.`;
       section += `\n- Nutrition goal: ${preferences.nutritionGoals}`;
     }
 
-    // Health goal integration
+    // Enhanced Health Goal Integration
     if (preferences.healthGoal) {
       section += `\n- Health Goal: ${preferences.healthGoal}`;
+      section += this.buildHealthGoalGuidance(preferences.healthGoal, preferences);
     }
 
     if (preferences.targetCalories) {
@@ -185,15 +249,15 @@ Please consider this feedback when making enhancements.`;
     }
 
     if (preferences.proteinFocus) {
-      section += `\n- IMPORTANT: High protein focus for muscle building/maintenance`;
+      section += `\n- IMPORTANT: High protein focus for muscle building/maintenance (aim for 25-30g protein per serving)`;
     }
 
     if (preferences.lowSodium) {
-      section += `\n- IMPORTANT: Low sodium for heart health (under 400mg sodium per serving)`;
+      section += `\n- IMPORTANT: Low sodium for heart health (under 400mg sodium per serving, use herbs/spices for flavor)`;
     }
 
     if (preferences.heartHealthy) {
-      section += `\n- IMPORTANT: Heart-healthy focus with omega-3 rich ingredients when possible`;
+      section += `\n- IMPORTANT: Heart-healthy focus with omega-3 rich ingredients (salmon, walnuts, olive oil, avocado)`;
     }
 
     // Meal plan mode specific guidance
@@ -279,6 +343,46 @@ Please consider this feedback when making enhancements.`;
     return section;
   }
 
+  private static buildHealthGoalGuidance(healthGoal: string, preferences: any): string {
+    const healthGoalGuidance: Record<string, string> = {
+      'General Wellness': `
+- BALANCED APPROACH: Create a well-rounded meal with lean protein, complex carbs, healthy fats, and vegetables
+- AIM FOR: 400-500 calories, 20-25g protein, 5-8g fiber, moderate sodium
+- FOCUS ON: Fresh ingredients, minimal processing, colorful vegetables
+- COOKING METHODS: Grilling, baking, steaming, or sautéing with minimal oil`,
+
+      'Weight Loss': `
+- LOW CALORIE, HIGH SATISFACTION: Create filling meals with fewer calories
+- AIM FOR: 350-450 calories, 25-30g protein, 8-12g fiber, under 400mg sodium
+- FOCUS ON: Lean proteins, fiber-rich vegetables, minimal added fats/sugars
+- COOKING METHODS: Grilling, baking, steaming - avoid frying or heavy sauces
+- KEY INGREDIENTS: Chicken breast, fish, leafy greens, cruciferous vegetables, beans`,
+
+      'Muscle Gain': `
+- HIGH PROTEIN, NUTRIENT DENSE: Support muscle building with quality protein
+- AIM FOR: 500-650 calories, 30-40g protein, moderate carbs for energy
+- FOCUS ON: Lean meats, eggs, dairy, quinoa, sweet potatoes, nuts
+- COOKING METHODS: Any method that preserves protein quality
+- KEY INGREDIENTS: Chicken, salmon, eggs, Greek yogurt, beans, quinoa, nuts`,
+
+      'Health Maintenance': `
+- NUTRITIONALLY BALANCED: Maintain current health with well-rounded nutrition
+- AIM FOR: 400-550 calories, 20-25g protein, 5-8g fiber
+- FOCUS ON: Variety, moderation, seasonal ingredients
+- COOKING METHODS: Mix of grilling, baking, sautéing for variety`,
+
+      'Heart Health': `
+- HEART-PROTECTIVE NUTRIENTS: Emphasize omega-3s, fiber, antioxidants
+- AIM FOR: 400-500 calories, under 300mg sodium, 8-10g fiber
+- FOCUS ON: Fatty fish, olive oil, avocado, nuts, whole grains, berries
+- COOKING METHODS: Baking, grilling, steaming - minimal added sodium
+- KEY INGREDIENTS: Salmon, olive oil, avocado, walnuts, oats, berries, leafy greens
+- AVOID: Processed foods, excessive sodium, trans fats`,
+    };
+
+    return healthGoalGuidance[healthGoal] || '';
+  }
+
   private static buildConstraintsSection(preferences: any): string {
     const constraints = [];
 
@@ -314,12 +418,19 @@ Please respond with ONLY a valid JSON object that matches the recipe schema. No 
 Ensure:
 - All ingredients have realistic amounts and proper units
 - Instructions are numbered and include estimated duration
-- Nutritional information is accurate and realistic  
+- Nutritional information is accurate and realistic AND matches health goal requirements
 - Dietary info correctly reflects the ingredients used
 - Tips are practical and helpful
 - The recipe is delicious, balanced, and achievable
+- Health goal requirements are met (calories, protein, sodium, fiber as specified)
+- Recipe title reflects the health focus when applicable
 
-The recipe should be inspiring and make the user excited to cook!`;
+VALIDATION REQUIREMENTS:
+- If health goal specified, recipe MUST meet the nutritional targets outlined above
+- Nutritional information should be calculated accurately based on ingredients
+- Recipe should clearly support the user's health objectives
+
+The recipe should be inspiring and make the user excited to cook while meeting their health goals!`;
   }
 
   private static categorizeIngredients(ingredients: Ingredient[]): Record<string, Ingredient[]> {

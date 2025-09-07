@@ -38,7 +38,7 @@ async function generateRecipeHandler(
   try {
     // Validate and sanitize input
     const validatedData = validateAndSanitize(GenerateRecipeSchema, req.body);
-    const { ingredients, cuisine, servings = 4, preferences } = validatedData;
+    const { ingredients, cuisine, servings = 4, preferences, aiSuggestedContext } = validatedData;
 
     // Use authenticated user ID
     const userId = req.user.id;
@@ -60,6 +60,7 @@ async function generateRecipeHandler(
         cuisine: cuisine as any,
         servings,
         preferences,
+        aiSuggestedContext, // Pass AI nutritionist context
       },
       userId
     );

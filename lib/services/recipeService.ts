@@ -13,6 +13,10 @@ interface RecipeGenerationOptions {
     experienceLevel?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   };
   userId?: string;
+  aiSuggestedContext?: {
+    recommendationTitle?: string;
+    isAISuggested: boolean;
+  };
 }
 
 interface RecipeEnhancementOptions {

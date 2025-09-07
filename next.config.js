@@ -66,9 +66,9 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              // Allow unsafe-eval in development for Next.js Fast Refresh, remove in production
+              // Allow unsafe-eval and unsafe-inline in development for Next.js Fast Refresh, remove in production
               process.env.NODE_ENV === 'development'
-                ? "script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net"
+                ? "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net"
                 : "script-src 'self' https://cdn.jsdelivr.net",
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
               "img-src 'self' data: https:",

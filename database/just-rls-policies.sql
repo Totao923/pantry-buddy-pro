@@ -28,7 +28,7 @@ CREATE POLICY "Users can update their own receipts" ON public.receipts
     WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete their own receipts" ON public.receipts
-    FOR DELETE 
+
     USING (auth.uid() = user_id);
 
 -- 4. Verify policies were created

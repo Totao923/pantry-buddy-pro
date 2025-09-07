@@ -405,13 +405,39 @@ export default function MealPlanner({
                               <div className="font-medium text-gray-800 mb-1 truncate">
                                 {recipe.title}
                               </div>
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between mb-1">
                                 <span className="text-gray-500">{meal.servings} servings</span>
                                 <span
                                   className={`px-2 py-1 rounded-full text-xs ${PREP_STATUS_CONFIG[meal.prepStatus].color}`}
                                 >
                                   {PREP_STATUS_CONFIG[meal.prepStatus].icon}
                                 </span>
+                              </div>
+                              <div className="flex items-center gap-1 print:hidden">
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setSelectedDate(date);
+                                    setSelectedMealType(mealType.value);
+                                    setShowAddMealModal(true);
+                                  }}
+                                  className="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                                  title="Replace recipe"
+                                >
+                                  🔄 Replace
+                                </button>
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    if (confirm('Remove this meal from your plan?')) {
+                                      onRemoveMealFromPlan(selectedPlan.id, meal.id);
+                                    }
+                                  }}
+                                  className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                                  title="Delete meal"
+                                >
+                                  🗑️ Delete
+                                </button>
                               </div>
                             </div>
                           ) : (
