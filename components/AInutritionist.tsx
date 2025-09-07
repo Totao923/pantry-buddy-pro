@@ -492,7 +492,7 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
       id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: mainIngredient,
       category: getDefaultCategory(mainIngredient),
-      quantity: getMainIngredientQuantity(mainIngredient), // Larger quantity for main ingredient
+      quantity: getMainIngredientQuantity(mainIngredient).toString(), // Larger quantity for main ingredient
       unit: getDefaultUnit(mainIngredient),
       isProtein: getDefaultCategory(mainIngredient) === 'protein',
       isVegetarian: !['chicken', 'fish', 'salmon', 'beef', 'pork'].some(meat =>
