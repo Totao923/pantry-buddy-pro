@@ -439,7 +439,7 @@ export default function CreateRecipe() {
       case 2:
         return ingredients.length > 0;
       case 3:
-        return ingredients.length > 0 && selectedCuisine;
+        return ingredients.length > 0 && !!selectedCuisine;
       case 4:
         return generatedRecipe !== null;
       default:
