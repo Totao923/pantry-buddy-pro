@@ -12,11 +12,16 @@ import { RecipeService } from '../../lib/services/recipeService';
 import { ingredientService } from '../../lib/services/ingredientService';
 // Removed direct databaseRecipeService import - using RecipeService instead
 import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
+import { useSuccessToast, useErrorToast } from '../../components/ui/Toast';
+import { IngredientSummary } from '../../components/ui/IngredientSummary';
+import { CuisineSummary } from '../../components/ui/CuisineSummary';
 import { Ingredient, Recipe, CuisineType } from '../../types';
 
 export default function CreateRecipe() {
   const router = useRouter();
   const { user, subscription } = useAuth();
+  const showSuccessToast = useSuccessToast();
+  const showErrorToast = useErrorToast();
   const [step, setStep] = useState(1);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]); // Temporary ingredients for recipe
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType>('any');
@@ -93,6 +98,9 @@ export default function CreateRecipe() {
     // for immediate UI feedback and synchronization
     console.log('🎯 Create Recipe: handleAddIngredient called with:', ingredient);
     console.log('🎯 Current ingredients count:', ingredients.length);
+
+    let wasUpdated = false;
+
     setIngredients(prev => {
       // Check if ingredient already exists by name only (case-insensitive)
       const existingIndex = prev.findIndex(
@@ -100,6 +108,7 @@ export default function CreateRecipe() {
       );
       if (existingIndex !== -1) {
         console.log('Ingredient already exists, updating:', ingredient.name);
+        wasUpdated = true;
         return prev.map((ing, index) =>
           index === existingIndex ? { ...ingredient, id: ing.id } : ing
         );
@@ -108,22 +117,35 @@ export default function CreateRecipe() {
       return [...prev, ingredient];
     });
 
+    // Show success toast with appropriate message
+    if (wasUpdated) {
+      showSuccessToast(`🔄 ${ingredient.name} updated!`, 'Ingredient details have been updated');
+    } else {
+      showSuccessToast(`🎯 ${ingredient.name} added!`, 'Added to your recipe ingredients');
+    }
+
     // In Create Recipe mode, we don't need to reload from database since we use temporary ingredients
   };
 
   const handleRemoveIngredient = async (id: string) => {
     try {
+      const ingredientToRemove = ingredients.find(ing => ing.id === id);
+      const ingredientName = ingredientToRemove?.name || 'ingredient';
+
       // For temporary ingredients (Create Recipe mode), just remove locally
       if (id.startsWith('temp_')) {
         setIngredients(ingredients.filter(ing => ing.id !== id));
+        showSuccessToast(`🗑️ ${ingredientName} removed`, 'Ingredient removed from recipe');
         return;
       }
 
       // For permanent ingredients, remove from database
       await ingredientService.deleteIngredient(id);
       setIngredients(ingredients.filter(ing => ing.id !== id));
+      showSuccessToast(`🗑️ ${ingredientName} removed`, 'Ingredient removed from recipe');
     } catch (error) {
       console.error('Error removing ingredient:', error);
+      showErrorToast('Failed to remove ingredient', 'Please try again');
       setError('Failed to remove ingredient');
     }
   };
@@ -510,6 +532,16 @@ export default function CreateRecipe() {
                   : "Tell us what you have in your pantry and we'll create the perfect recipe"}
               </p>
             </div>
+
+            {/* Mobile-Optimized Ingredient Summary - Moved to top */}
+            <IngredientSummary
+              ingredients={ingredients}
+              onRemoveIngredient={handleRemoveIngredient}
+              onContinue={() => setStep(2)}
+              continueButtonText="Continue to Cuisine Selection →"
+              className="mb-6"
+            />
+
             <SmartPantry
               ingredients={ingredients}
               onAddIngredient={handleAddIngredient}
@@ -550,6 +582,19 @@ export default function CreateRecipe() {
                 Select your preferred cuisine and customize your cooking preferences
               </p>
             </div>
+
+            {/* Mobile-Optimized Cuisine Summary - Moved to top */}
+            {selectedCuisine && (
+              <CuisineSummary
+                selectedCuisine={selectedCuisine}
+                onContinue={() => setStep(3)}
+                onGoBack={() => setStep(1)}
+                canProceed={canProceedToStep(3)}
+                continueButtonText="Continue to Recipe Generation →"
+                className="mb-6"
+              />
+            )}
+
             <AdvancedCuisineSelector
               selectedCuisine={selectedCuisine}
               onCuisineSelect={setSelectedCuisine}
