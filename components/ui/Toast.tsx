@@ -36,19 +36,20 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const duration = toast.duration ?? 3000; // Default 3 seconds
     const newToast: Toast = {
       ...toast,
       id,
-      duration: toast.duration ?? 3000, // Default 3 seconds
+      duration,
     };
 
     setToasts(prev => [...prev, newToast]);
 
     // Auto-remove toast after duration
-    if (newToast.duration > 0) {
+    if (duration > 0) {
       setTimeout(() => {
         removeToast(id);
-      }, newToast.duration);
+      }, duration);
     }
   }, []);
 
