@@ -63,7 +63,7 @@ export const PullToRefreshProvider: React.FC<PullToRefreshProviderProps> = ({ ch
   }, [pullToRefresh]);
 
   const setCustomRefreshHandler = useCallback((handler: () => Promise<void> | void) => {
-    setRefreshHandler(() => handler);
+    setRefreshHandler(handler);
   }, []);
 
   const value = {

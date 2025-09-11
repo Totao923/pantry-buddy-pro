@@ -90,7 +90,7 @@ export default function RecipesBrowser() {
   // Set the refresh handler for this page
   useEffect(() => {
     setRefreshHandler(handleRefresh);
-  }, [setRefreshHandler]);
+  }, [setRefreshHandler, handleRefresh]);
 
   const cuisines: CuisineType[] = [
     'italian',
