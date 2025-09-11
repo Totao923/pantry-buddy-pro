@@ -36,14 +36,14 @@ export const PullToRefreshProvider: React.FC<PullToRefreshProviderProps> = ({ ch
       if (refreshHandler) {
         await refreshHandler();
       } else {
-        // Default behavior: reload current page data
-        console.log('No custom refresh handler, using default behavior');
+        // Default behavior: reload current page
+        console.log('No custom refresh handler, reloading page');
 
-        // Simulate refresh delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Simulate refresh delay for visual feedback
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // For pages without custom handlers, we could trigger a page reload
-        // but that's aggressive, so we'll just do a gentle refresh indication
+        // Reload the current page to refresh data
+        window.location.reload();
       }
     } catch (error) {
       console.error('Error during global refresh:', error);
