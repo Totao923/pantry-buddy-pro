@@ -55,7 +55,7 @@ export const PullToRefreshProvider: React.FC<PullToRefreshProviderProps> = ({ ch
   const pullToRefresh = usePullToRefresh(handleGlobalRefresh, {
     threshold: 80,
     resistance: 2.5,
-    enabled: true,
+    enabled: false,
   });
 
   const triggerRefresh = useCallback(() => {

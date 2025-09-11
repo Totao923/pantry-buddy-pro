@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { useIngredients } from '../../contexts/IngredientsProvider';
-import { usePullToRefreshContext } from '../../contexts/PullToRefreshProvider';
 import QuickRecipeSuggestions from '../QuickRecipeSuggestions';
 
 interface DashboardLayoutProps {
@@ -16,7 +15,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { user, signOut, subscription } = useAuth();
   const { ingredients } = useIngredients(); // Use shared ingredients context
-  const { pullToRefresh } = usePullToRefreshContext();
   const router = useRouter();
 
   // Use ingredients from context instead of separate API call
@@ -132,18 +130,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Pull to refresh indicator */}
-      <div className="pull-to-refresh-indicator" style={pullToRefresh.getRefreshStyles()}>
-        <span
-          className={`text-lg ${pullToRefresh.getRefreshContent().spinning ? 'animate-spin' : ''}`}
-        >
-          {pullToRefresh.getRefreshContent().icon}
-        </span>
-        <span className="text-sm font-medium text-gray-700">
-          {pullToRefresh.getRefreshContent().text}
-        </span>
-      </div>
-
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -334,12 +320,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Page content */}
-        <main
-          ref={pullToRefresh.setContainerRef}
-          className="min-h-screen p-6 bg-gray-50 pull-to-refresh-container"
-        >
-          {children}
-        </main>
+        <main className="min-h-screen p-6 bg-gray-50">{children}</main>
       </div>
 
       {/* Quick Suggestions Modal */}
