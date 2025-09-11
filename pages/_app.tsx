@@ -3,6 +3,7 @@ import { AuthProvider } from '../lib/auth/AuthProvider';
 import { IngredientsProvider } from '../contexts/IngredientsProvider';
 import { HealthGoalProvider } from '../lib/contexts/HealthGoalContext';
 import { ToastProvider } from '../components/ui/Toast';
+import { PullToRefreshProvider } from '../contexts/PullToRefreshProvider';
 import '../styles/globals.css';
 import { useEffect } from 'react';
 
@@ -18,7 +19,9 @@ export default function App({ Component, pageProps }: AppProps) {
       <HealthGoalProvider>
         <IngredientsProvider>
           <ToastProvider>
-            <Component {...pageProps} />
+            <PullToRefreshProvider>
+              <Component {...pageProps} />
+            </PullToRefreshProvider>
           </ToastProvider>
         </IngredientsProvider>
       </HealthGoalProvider>

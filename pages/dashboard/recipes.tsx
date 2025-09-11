@@ -7,7 +7,7 @@ import AuthGuard from '../../components/auth/AuthGuard';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { RecipeService } from '../../lib/services/recipeService';
 import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
-import { usePullToRefresh } from '../../hooks/usePullToRefresh';
+import { usePullToRefreshContext } from '../../contexts/PullToRefreshProvider';
 import { Recipe, CuisineType } from '../../types';
 
 export default function RecipesBrowser() {
@@ -85,11 +85,12 @@ export default function RecipesBrowser() {
     }
   };
 
-  const pullToRefresh = usePullToRefresh(handleRefresh, {
-    threshold: 80,
-    resistance: 2.5,
-    enabled: true,
-  });
+  const { setRefreshHandler } = usePullToRefreshContext();
+
+  // Set the refresh handler for this page
+  useEffect(() => {
+    setRefreshHandler(handleRefresh);
+  }, [setRefreshHandler]);
 
   const cuisines: CuisineType[] = [
     'italian',
@@ -445,23 +446,7 @@ export default function RecipesBrowser() {
       </Head>
 
       <DashboardLayout>
-        {/* Pull-to-refresh indicator */}
-        {(pullToRefresh.isPulling || pullToRefresh.isRefreshing) && (
-          <div className="pull-to-refresh-indicator" style={pullToRefresh.getRefreshStyles()}>
-            <div
-              className={`w-4 h-4 rounded-full border-2 border-orange-500 ${
-                pullToRefresh.getRefreshContent().spinning
-                  ? 'animate-spin border-t-transparent'
-                  : ''
-              }`}
-            />
-            <span className="text-sm text-gray-700 font-medium">
-              {pullToRefresh.getRefreshContent().text}
-            </span>
-          </div>
-        )}
-
-        <div className="space-y-6 pull-to-refresh-container" ref={pullToRefresh.setContainerRef}>
+        <div className="space-y-6">
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
