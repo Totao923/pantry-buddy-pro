@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -32,7 +32,7 @@ export default function RecipesBrowser() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   // Pull-to-refresh functionality
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     console.log('Refreshing recipes...');
     setLoading(true);
 
@@ -83,14 +83,14 @@ export default function RecipesBrowser() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const { setRefreshHandler } = usePullToRefreshContext();
 
   // Set the refresh handler for this page
   useEffect(() => {
     setRefreshHandler(handleRefresh);
-  }, [setRefreshHandler, handleRefresh]);
+  }, [setRefreshHandler]);
 
   const cuisines: CuisineType[] = [
     'italian',
