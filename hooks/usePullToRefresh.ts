@@ -31,6 +31,15 @@ export const usePullToRefresh = (
   const containerRef = useRef<HTMLElement | null>(null);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Detect if running as PWA in standalone mode
+  const isPWAStandalone = useCallback(() => {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes('android-app://')
+    );
+  }, []);
+
   // Check if container is at the top (can pull to refresh)
   const isAtTop = useCallback(() => {
     if (!containerRef.current) return false;
@@ -56,8 +65,13 @@ export const usePullToRefresh = (
       };
 
       setState(prev => ({ ...prev, isPulling: false, pullDistance: 0 }));
+
+      // In PWA standalone mode, be more aggressive about preventing default
+      if (isPWAStandalone()) {
+        e.preventDefault();
+      }
     },
-    [enabled, isAtTop]
+    [enabled, isAtTop, isPWAStandalone]
   );
 
   // Handle touch move
@@ -70,6 +84,11 @@ export const usePullToRefresh = (
 
       // Only handle downward pulls
       if (deltaY <= 0) return;
+
+      // In PWA mode, prevent default more aggressively
+      if (isPWAStandalone() || deltaY > 5) {
+        e.preventDefault();
+      }
 
       // Prevent default scrolling when pulling down
       if (deltaY > 10) {
@@ -86,7 +105,7 @@ export const usePullToRefresh = (
         canRefresh,
       }));
     },
-    [enabled, isAtTop, calculatePullDistance, threshold]
+    [enabled, isAtTop, calculatePullDistance, threshold, isPWAStandalone]
   );
 
   // Handle touch end
@@ -176,8 +195,13 @@ export const usePullToRefresh = (
     const container = containerRef.current;
     if (!container || !enabled) return;
 
-    container.addEventListener('touchstart', handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    // In PWA standalone mode, use non-passive events for better control
+    const eventOptions = {
+      passive: !isPWAStandalone(),
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, eventOptions);
+    container.addEventListener('touchmove', handleTouchMove, eventOptions);
     container.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
@@ -185,7 +209,7 @@ export const usePullToRefresh = (
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd, isPWAStandalone]);
 
   // Calculate refresh indicator styles
   const getRefreshStyles = useCallback(() => {

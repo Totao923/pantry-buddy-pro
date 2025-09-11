@@ -7,6 +7,7 @@ import AuthGuard from '../../components/auth/AuthGuard';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { RecipeService } from '../../lib/services/recipeService';
 import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
+import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import { Recipe, CuisineType } from '../../types';
 
 export default function RecipesBrowser() {
@@ -29,6 +30,66 @@ export default function RecipesBrowser() {
   const [filter, setFilter] = useState<'all' | 'favorites' | 'recent' | 'meal-plan'>('all');
   const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+
+  // Pull-to-refresh functionality
+  const handleRefresh = async () => {
+    console.log('Refreshing recipes...');
+    setLoading(true);
+
+    try {
+      // Reload recipes
+      let allRecipes: Recipe[] = [];
+      const userId = user?.id || 'anonymous';
+
+      if (user?.id) {
+        try {
+          const dbAvailable = await databaseSettingsService.isAvailable();
+          if (dbAvailable) {
+            const savedResult = await RecipeService.getSavedRecipes(user.id);
+            if (savedResult.success && savedResult.data) {
+              allRecipes = [...allRecipes, ...savedResult.data];
+            }
+            const recentItems = await databaseSettingsService.getRecentItems('recipe', 20);
+            if (recentItems.length > 0) {
+              const recentRecipes = recentItems.map(item => item.data);
+              allRecipes = [...allRecipes, ...recentRecipes];
+            }
+          }
+        } catch (error) {
+          console.log('Database error, using localStorage');
+          const localStorageResult = await RecipeService.getSavedRecipes(userId);
+          if (localStorageResult.success && localStorageResult.data) {
+            allRecipes = [...allRecipes, ...localStorageResult.data];
+          }
+        }
+      } else {
+        const localStorageResult = await RecipeService.getSavedRecipes(userId);
+        if (localStorageResult.success && localStorageResult.data) {
+          allRecipes = [...allRecipes, ...localStorageResult.data];
+        }
+      }
+
+      const uniqueRecipes = allRecipes.filter(
+        (recipe, index, self) => index === self.findIndex(r => r.id === recipe.id)
+      );
+
+      const deletedRecipes = JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
+      const nonDeletedRecipes = uniqueRecipes.filter(recipe => !deletedRecipes.includes(recipe.id));
+
+      setRecipes(nonDeletedRecipes);
+      setFilteredRecipes(nonDeletedRecipes);
+    } catch (error) {
+      console.error('Error refreshing recipes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pullToRefresh = usePullToRefresh(handleRefresh, {
+    threshold: 80,
+    resistance: 2.5,
+    enabled: true,
+  });
 
   const cuisines: CuisineType[] = [
     'italian',
@@ -384,7 +445,23 @@ export default function RecipesBrowser() {
       </Head>
 
       <DashboardLayout>
-        <div className="space-y-6">
+        {/* Pull-to-refresh indicator */}
+        {(pullToRefresh.isPulling || pullToRefresh.isRefreshing) && (
+          <div className="pull-to-refresh-indicator" style={pullToRefresh.getRefreshStyles()}>
+            <div
+              className={`w-4 h-4 rounded-full border-2 border-orange-500 ${
+                pullToRefresh.getRefreshContent().spinning
+                  ? 'animate-spin border-t-transparent'
+                  : ''
+              }`}
+            />
+            <span className="text-sm text-gray-700 font-medium">
+              {pullToRefresh.getRefreshContent().text}
+            </span>
+          </div>
+        )}
+
+        <div className="space-y-6 pull-to-refresh-container" ref={pullToRefresh.setContainerRef}>
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>

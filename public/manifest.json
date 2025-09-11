@@ -35,5 +35,9 @@
   "background_color": "#ffffff",
   "orientation": "portrait-primary",
   "scope": "/",
-  "categories": ["food", "lifestyle", "utilities"]
+  "categories": ["food", "lifestyle", "utilities"],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
 }

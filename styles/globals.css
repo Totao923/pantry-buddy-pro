@@ -184,3 +184,48 @@ body {
 .recipe-card {
   @apply bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow;
 }
+
+/* PWA-specific styles for better pull-to-refresh behavior */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent bounce scrolling in PWA mode */
+  html {
+    overscroll-behavior: none;
+  }
+
+  /* Ensure touch targets are properly sized */
+  button,
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* Prevent zoom on iOS */
+    min-height: 44px;
+  }
+
+  /* Better touch handling for PWA */
+  .pull-to-refresh-container {
+    touch-action: pan-y;
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Enhanced pull-to-refresh styles */
+.pull-to-refresh-indicator {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: white;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease-out;
+}
