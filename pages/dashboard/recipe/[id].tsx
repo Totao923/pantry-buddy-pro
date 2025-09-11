@@ -11,6 +11,9 @@ import { Recipe, RecipeRating, RecipeReview } from '../../../types';
 import { databaseRecipeService } from '../../../lib/services/databaseRecipeService';
 import { databaseRatingsService } from '../../../lib/services/databaseRatingsService';
 import { databaseSettingsService } from '../../../lib/services/databaseSettingsService';
+import { useSwipeGesture } from '../../../hooks/useSwipeGesture';
+import { useHaptic } from '../../../hooks/useHaptic';
+import { RecipeService } from '../../../lib/services/recipeService';
 
 export default function RecipeDetail() {
   const router = useRouter();
@@ -22,19 +25,82 @@ export default function RecipeDetail() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState<RecipeRating | null>(null);
   const [review, setReview] = useState<RecipeReview | null>(null);
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const haptic = useHaptic();
 
-  // Set authenticated client and load recipe when ID is available (client optional for passed data)
+  // Set authenticated client and load recipes when ID is available
   useEffect(() => {
     if (id && typeof id === 'string') {
       // Set authenticated client if available
       if (supabaseClient) {
         databaseRecipeService.setSupabaseClient(supabaseClient);
         databaseRatingsService.setSupabaseClient(supabaseClient);
+        RecipeService.setSupabaseClient(supabaseClient);
       }
-      // Load the recipe (will use passed data if available, otherwise try database)
+      // Load all recipes first for navigation, then load specific recipe
+      loadAllRecipes();
       loadRecipe(id);
     }
   }, [id, supabaseClient, router.query.recipeData]);
+
+  const loadAllRecipes = async () => {
+    try {
+      const userId = user?.id || 'anonymous';
+      const result = await RecipeService.getSavedRecipes(userId);
+
+      if (result.success && result.data) {
+        const uniqueRecipes = result.data.filter(
+          (recipe, index, self) => index === self.findIndex(r => r.id === recipe.id)
+        );
+
+        setAllRecipes(uniqueRecipes);
+
+        // Find current recipe index
+        if (id && typeof id === 'string') {
+          const index = uniqueRecipes.findIndex(r => r.id === id);
+          if (index !== -1) {
+            setCurrentIndex(index);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading all recipes:', error);
+    }
+  };
+
+  const navigateToRecipe = (index: number) => {
+    if (index >= 0 && index < allRecipes.length) {
+      const targetRecipe = allRecipes[index];
+      haptic.medium();
+      router.push(`/dashboard/recipe/${targetRecipe.id}`);
+    }
+  };
+
+  const handleSwipeLeft = () => {
+    // Navigate to next recipe
+    if (currentIndex < allRecipes.length - 1) {
+      navigateToRecipe(currentIndex + 1);
+    }
+  };
+
+  const handleSwipeRight = () => {
+    // Navigate to previous recipe
+    if (currentIndex > 0) {
+      navigateToRecipe(currentIndex - 1);
+    }
+  };
+
+  const swipeHandlers = useSwipeGesture(
+    {
+      onSwipeLeft: handleSwipeLeft,
+      onSwipeRight: handleSwipeRight,
+    },
+    {
+      threshold: 80,
+      velocity: 0.5,
+    }
+  );
 
   const loadRecipe = async (recipeId: string) => {
     try {
@@ -401,7 +467,7 @@ export default function RecipeDetail() {
       </Head>
 
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="space-y-6" {...swipeHandlers}>
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-gray-600">
             <Link href="/dashboard" className="hover:text-orange-600">
@@ -429,6 +495,67 @@ export default function RecipeDetail() {
               </Link>
             </div>
           </div>
+
+          {/* Recipe Navigation Indicators */}
+          {allRecipes.length > 1 && (
+            <div className="flex items-center justify-center gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+              <button
+                onClick={() => navigateToRecipe(currentIndex - 1)}
+                disabled={currentIndex === 0}
+                className={`p-2 rounded-lg transition-colors ${
+                  currentIndex === 0
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                ← Previous
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">
+                  {currentIndex + 1} of {allRecipes.length}
+                </span>
+                <div className="flex gap-1">
+                  {allRecipes
+                    .slice(
+                      Math.max(0, currentIndex - 2),
+                      Math.min(allRecipes.length, currentIndex + 3)
+                    )
+                    .map((_, index) => {
+                      const actualIndex = Math.max(0, currentIndex - 2) + index;
+                      return (
+                        <button
+                          key={actualIndex}
+                          onClick={() => navigateToRecipe(actualIndex)}
+                          className={`w-2 h-2 rounded-full transition-colors ${
+                            actualIndex === currentIndex ? 'bg-orange-500' : 'bg-gray-300'
+                          }`}
+                        />
+                      );
+                    })}
+                </div>
+              </div>
+
+              <button
+                onClick={() => navigateToRecipe(currentIndex + 1)}
+                disabled={currentIndex === allRecipes.length - 1}
+                className={`p-2 rounded-lg transition-colors ${
+                  currentIndex === allRecipes.length - 1
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+
+          {/* Swipe Hint for Mobile */}
+          {allRecipes.length > 1 && (
+            <div className="block md:hidden text-center text-sm text-gray-500 bg-orange-50 rounded-lg p-3">
+              💡 Swipe left or right to navigate between recipes
+            </div>
+          )}
 
           {/* Recipe Card */}
           <EnhancedRecipeCard

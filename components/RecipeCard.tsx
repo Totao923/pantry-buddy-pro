@@ -1,21 +1,53 @@
 import React, { useState } from 'react';
 import { Recipe } from '../types';
 import CookingTracker from './cooking/CookingTracker';
+import { SwipeableCard, SWIPE_ACTIONS } from './ui/SwipeableCard';
+import { useHaptic } from '../hooks/useHaptic';
 
 interface RecipeCardProps {
   recipe: Recipe;
   onServingChange?: (servings: number) => void;
+  onFavorite?: (recipe: Recipe) => void;
+  onShare?: (recipe: Recipe) => void;
 }
 
-export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps) {
+export default function RecipeCard({
+  recipe,
+  onServingChange,
+  onFavorite,
+  onShare,
+}: RecipeCardProps) {
   const [currentServings, setCurrentServings] = useState(recipe.servings);
+  const haptic = useHaptic();
 
   const handleServingChange = (newServings: number) => {
     if (newServings >= 1 && newServings <= 12) {
       setCurrentServings(newServings);
       onServingChange?.(newServings);
+      haptic.light();
     }
   };
+
+  const handleFavorite = () => {
+    haptic.success();
+    onFavorite?.(recipe);
+  };
+
+  const handleShare = () => {
+    haptic.medium();
+    onShare?.(recipe);
+  };
+
+  const swipeActions = [
+    {
+      ...SWIPE_ACTIONS.favorite,
+      action: handleFavorite,
+    },
+    {
+      ...SWIPE_ACTIONS.share,
+      action: handleShare,
+    },
+  ];
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -31,7 +63,7 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
   };
 
   return (
-    <div className="recipe-card max-w-2xl mx-auto">
+    <SwipeableCard actions={swipeActions} className="recipe-card max-w-2xl mx-auto">
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div>
@@ -144,6 +176,6 @@ export default function RecipeCard({ recipe, onServingChange }: RecipeCardProps)
           </div>
         </div>
       </div>
-    </div>
+    </SwipeableCard>
   );
 }
