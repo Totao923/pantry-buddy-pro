@@ -276,6 +276,127 @@
 
 ---
 
+## ✅ COMPLETED: Recipe Deletion Persistence Problem
+
+**Problem:** When users delete recipes and leave the app, deleted recipes reappear when they return or refresh.
+
+**Root Cause:** The database service returned all recipes without respecting the localStorage `deletedRecipes` array.
+
+**Solution Implemented:**
+
+- Modified `RecipeService.getSavedRecipes()` to filter out deleted recipes after getting data from database
+- Applied the same `deletedRecipes` filter that works in localStorage mode
+- Simple fix that maintains existing architecture
+
+**Files Modified:**
+
+- `/lib/services/recipeService.ts` - Added deleted recipes filter after database query (lines 341-350)
+
+**Fix Details:**
+
+```typescript
+// After getting recipes from database, filter out deleted ones
+const deletedRecipes = JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
+const nonDeletedRecipes = databaseResult.data.filter(recipe => !deletedRecipes.includes(recipe.id));
+```
+
+## New Issue: Filter Scroll Position Reset
+
+**Problem:** When users click on filter tabs (All Recipes, Favorites, Recent, Meal Plans) in the recipes page, the list resets to the top instead of maintaining the user's scroll position.
+
+**Root Cause Analysis:**
+
+- Filter tabs trigger `setFilter()` which changes state
+- This triggers a `useEffect` that calls `setFilteredRecipes(filtered)`
+- React re-renders the entire recipes grid/list
+- Browser loses scroll position due to DOM changes in the recipes list
+
+**Solution Plan:**
+
+1. Store scroll position before filter changes
+2. Restore scroll position after filter renders complete
+3. Use a simple `useRef` to track the recipes container scroll position
+4. Implement scroll restoration in a `useEffect` after `filteredRecipes` changes
+
+**Files to Modify:**
+
+- `/pages/dashboard/recipes.tsx` - Add scroll position preservation logic
+
+**Technical Approach:**
+
+- Add `useRef` for recipes container
+- Store scroll position before `setFilter()` calls
+- Use `useEffect` with `setTimeout` to restore scroll position after re-render
+- Minimal change - just preserve user's current scroll position
+
+## ✅ COMPLETED: Sidebar Scroll Position Fix
+
+### Step 1: Analysis Complete ✅
+
+- [x] Identify the filter components causing scroll reset
+- [x] Understand the state flow: filter change → setFilteredRecipes → re-render → scroll reset
+- [x] Confirm issue is in recipes page filter tabs, not dashboard sidebar
+
+### Step 2: Implementation Complete ✅
+
+- [x] **2.1** Add scroll position tracking with useRef and state
+- [x] **2.2** Store scroll position before filter state changes
+- [x] **2.3** Restore scroll position after filteredRecipes re-render completes
+- [x] **2.4** Test scroll preservation across all filter tab changes
+
+**Implementation Summary:**
+
+- Added `recipesContainerRef` and `savedScrollPosition` state
+- Created `handleFilterChange()` function to save scroll position before filter changes
+- Added `useEffect` to restore scroll position after `filteredRecipes` updates
+- Updated filter tabs to use `handleFilterChange()` instead of direct `setFilter()`
+- Added ref to main container `<div ref={recipesContainerRef} className="space-y-6">`
+
+**Files Modified:**
+
+- `/pages/dashboard/recipes.tsx` - Added scroll preservation logic (lines 35-36, 274-297, 601)
+
+## ✅ COMPLETED: Email Confirmation Fix
+
+**Problem:** When users first sign up and get the email confirmation link, it's not properly handling the callback or redirecting them correctly.
+
+**Solution Implemented:**
+
+- Enhanced `/pages/auth/callback.tsx` to properly handle email confirmation URLs
+- Added URL hash parameter parsing to extract access_token and refresh_token
+- Implemented proper session creation using `supabase.auth.setSession()`
+- Added better user feedback with redirect to `/dashboard?welcome=true&confirmed=true`
+
+**Technical Implementation:**
+
+```typescript
+// Check for access token in URL hash (email confirmation flow)
+const accessToken = hashParams.get('access_token') || urlParams.get('access_token');
+const refreshToken = hashParams.get('refresh_token') || urlParams.get('refresh_token');
+
+if (accessToken && refreshToken) {
+  // Set the session with the tokens from the URL
+  const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+
+  // Successfully confirmed email and created session
+  router.push('/dashboard?welcome=true&confirmed=true');
+}
+```
+
+**Files Modified:**
+
+- `/pages/auth/callback.tsx` - Enhanced email confirmation handling (lines 13-55)
+
+**Email Confirmation Flow Now Works:**
+
+1. User signs up → receives email
+2. User clicks confirmation link → redirected to `/auth/callback#access_token=...`
+3. Callback extracts tokens → creates session → redirects to dashboard
+4. User is successfully signed in with confirmed email
+
 ## Review Section
 
 _This section will be updated as implementation progresses_

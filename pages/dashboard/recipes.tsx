@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -30,6 +30,10 @@ export default function RecipesBrowser() {
   const [filter, setFilter] = useState<'all' | 'favorites' | 'recent' | 'meal-plan'>('all');
   const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+
+  // Scroll position preservation
+  const recipesContainerRef = useRef<HTMLDivElement>(null);
+  const [savedScrollPosition, setSavedScrollPosition] = useState<number>(0);
 
   // Pull-to-refresh functionality
   const handleRefresh = useCallback(async () => {
@@ -267,6 +271,33 @@ export default function RecipesBrowser() {
     setFilteredRecipes(filtered);
   }, [recipes, searchQuery, selectedCuisine, sortBy, filter]);
 
+  // Restore scroll position after filtered recipes change
+  useEffect(() => {
+    if (savedScrollPosition > 0 && recipesContainerRef.current) {
+      // Use setTimeout to ensure the DOM has updated
+      const timer = setTimeout(() => {
+        if (recipesContainerRef.current) {
+          recipesContainerRef.current.scrollTop = savedScrollPosition;
+          setSavedScrollPosition(0); // Reset after restoring
+        }
+      }, 0);
+
+      return () => clearTimeout(timer);
+    }
+  }, [filteredRecipes, savedScrollPosition]);
+
+  // Handle filter changes while preserving scroll position
+  const handleFilterChange = (newFilter: typeof filter) => {
+    // Save current scroll position
+    if (recipesContainerRef.current) {
+      const scrollTop = recipesContainerRef.current.scrollTop;
+      setSavedScrollPosition(scrollTop);
+    }
+
+    // Apply filter change
+    setFilter(newFilter);
+  };
+
   const toggleFavorite = (recipeId: string) => {
     const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
     const isFavorite = favorites.includes(recipeId);
@@ -446,7 +477,7 @@ export default function RecipesBrowser() {
       </Head>
 
       <DashboardLayout>
-        <div className="space-y-6">
+        <div ref={recipesContainerRef} className="space-y-6">
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -567,7 +598,7 @@ export default function RecipesBrowser() {
             ].map(tab => (
               <button
                 key={tab.key}
-                onClick={() => setFilter(tab.key as typeof filter)}
+                onClick={() => handleFilterChange(tab.key as typeof filter)}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   filter === tab.key
                     ? 'bg-orange-100 text-orange-700'

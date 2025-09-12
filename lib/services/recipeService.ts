@@ -336,7 +336,21 @@ export class RecipeService {
       // Try to use database service first
       if (await databaseRecipeService.isAvailable()) {
         console.log('Loading recipes from Supabase database');
-        return await databaseRecipeService.getUserRecipes(userId);
+        const databaseResult = await databaseRecipeService.getUserRecipes(userId);
+
+        // If database query was successful, filter out deleted recipes
+        if (databaseResult.success && databaseResult.data) {
+          const deletedRecipes = JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
+          const nonDeletedRecipes = databaseResult.data.filter(
+            recipe => !deletedRecipes.includes(recipe.id)
+          );
+          return {
+            success: true,
+            data: nonDeletedRecipes,
+          };
+        }
+
+        return databaseResult;
       } else {
         console.log('Database not available, falling back to localStorage');
         return await this.getSavedRecipesFromLocalStorage(userId);
