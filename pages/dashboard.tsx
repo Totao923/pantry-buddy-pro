@@ -6,6 +6,7 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import AuthGuard from '../components/auth/AuthGuard';
 import { useAuth } from '../lib/auth/AuthProvider';
 import { useIngredients } from '../contexts/IngredientsProvider';
+import FeatureGate from '../components/FeatureGate';
 // Dynamic imports for heavy components to improve initial load time
 import dynamic from 'next/dynamic';
 
@@ -329,11 +330,13 @@ export default function Dashboard() {
           </div>
 
           {/* AI Nutritionist Section */}
-          <AInutritionistComponent
-            ingredients={ingredients}
-            recentRecipes={recentRecipes}
-            className="mb-8"
-          />
+          <FeatureGate feature="nutrition_tracking">
+            <AInutritionistComponent
+              ingredients={ingredients}
+              recentRecipes={recentRecipes}
+              className="mb-8"
+            />
+          </FeatureGate>
 
           {/* Recent Recipes */}
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">

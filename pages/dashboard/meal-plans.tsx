@@ -8,6 +8,7 @@ import MealPlanner from '../../components/MealPlanner';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { aiService } from '../../lib/ai/aiService';
 import { useIngredients } from '../../contexts/IngredientsProvider';
+import FeatureGate from '../../components/FeatureGate';
 import { useHealthGoal } from '../../lib/contexts/HealthGoalContext';
 import { HEALTH_GOALS } from '../../lib/health-goals';
 import { Modal } from '../../components/ui/Modal';
@@ -923,12 +924,6 @@ export default function MealPlans() {
     try {
       console.log('🍳 Generating AI meal plan with ingredients:', availableIngredients.length);
       console.log('🎯 Meal plan mode:', mealPlanMode);
-      console.log('🔒 Debug session object:', {
-        hasSession: !!session,
-        hasAccessToken: !!session?.access_token,
-        sessionKeys: session ? Object.keys(session) : 'none',
-        userEmail: session?.user?.email,
-      });
 
       if (mealPlanMode === 'health-goal') {
         console.log('🎯 Using health goal:', selectedGoal.name, `(${selectedGoal.id})`);
@@ -1216,16 +1211,18 @@ export default function MealPlans() {
                   </button>
                 </>
               )}
-              <button
-                onClick={() => setShowMealPlanner(!showMealPlanner)}
-                className={`px-6 py-2 rounded-xl font-medium transition-all ${
-                  showMealPlanner
-                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    : 'bg-purple-600 text-white hover:bg-purple-700'
-                }`}
-              >
-                {showMealPlanner ? 'Quick View' : '📋 Full Planner'}
-              </button>
+              <FeatureGate feature="meal_planning">
+                <button
+                  onClick={() => setShowMealPlanner(!showMealPlanner)}
+                  className={`px-6 py-2 rounded-xl font-medium transition-all ${
+                    showMealPlanner
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                  }`}
+                >
+                  {showMealPlanner ? 'Quick View' : '📋 Full Planner'}
+                </button>
+              </FeatureGate>
               <button
                 onClick={handleCreateMealPlan}
                 className="px-6 py-2 bg-gradient-to-r from-pantry-600 to-pantry-700 text-white rounded-xl hover:from-pantry-700 hover:to-pantry-800 transition-all font-medium"
@@ -1299,20 +1296,22 @@ export default function MealPlans() {
 
           {/* MealPlanner Component */}
           {showMealPlanner && user && (
-            <MealPlanner
-              mealPlans={mealPlans}
-              recipes={availableRecipes}
-              currentMealPlan={currentMealPlan || undefined}
-              onCreateMealPlan={handleCreateMealPlanFromPlanner}
-              onUpdateMealPlan={handleUpdateMealPlan}
-              onDeleteMealPlan={handleDeleteMealPlan}
-              onAddMealToPlan={handleAddMealToPlan}
-              onUpdateMeal={handleUpdateMeal}
-              onRemoveMealFromPlan={handleRemoveMealFromPlan}
-              userId={user.id}
-              selectedHealthGoal={selectedGoal}
-              mealPlanMode={mealPlanMode}
-            />
+            <FeatureGate feature="meal_planning">
+              <MealPlanner
+                mealPlans={mealPlans}
+                recipes={availableRecipes}
+                currentMealPlan={currentMealPlan || undefined}
+                onCreateMealPlan={handleCreateMealPlanFromPlanner}
+                onUpdateMealPlan={handleUpdateMealPlan}
+                onDeleteMealPlan={handleDeleteMealPlan}
+                onAddMealToPlan={handleAddMealToPlan}
+                onUpdateMeal={handleUpdateMeal}
+                onRemoveMealFromPlan={handleRemoveMealFromPlan}
+                userId={user.id}
+                selectedHealthGoal={selectedGoal}
+                mealPlanMode={mealPlanMode}
+              />
+            </FeatureGate>
           )}
 
           {/* Week View */}
@@ -1415,97 +1414,99 @@ export default function MealPlans() {
 
               {/* Quick Actions */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-pantry-50 to-pantry-100 rounded-2xl p-6 border border-pantry-200">
-                  <div className="text-2xl mb-3">🤖</div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Meal Planning</h3>
-                  <p className="text-gray-600 text-sm mb-4">
-                    Let AI create a balanced meal plan. Choose your planning approach below.
-                  </p>
+                <FeatureGate feature="meal_planning">
+                  <div className="bg-gradient-to-br from-pantry-50 to-pantry-100 rounded-2xl p-6 border border-pantry-200">
+                    <div className="text-2xl mb-3">🤖</div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Meal Planning</h3>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Let AI create a balanced meal plan. Choose your planning approach below.
+                    </p>
 
-                  {/* Meal Planning Mode Selector */}
-                  <div className="mb-3 p-3 bg-white rounded-lg border border-pantry-200">
-                    <div className="text-xs font-semibold text-gray-700 mb-3">
-                      MEAL PLANNING MODE
+                    {/* Meal Planning Mode Selector */}
+                    <div className="mb-3 p-3 bg-white rounded-lg border border-pantry-200">
+                      <div className="text-xs font-semibold text-gray-700 mb-3">
+                        MEAL PLANNING MODE
+                      </div>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="mealPlanMode"
+                            value="pantry-based"
+                            checked={mealPlanMode === 'pantry-based'}
+                            onChange={e => handleMealPlanModeChange(e.target.value as any)}
+                            className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">🥫 Pantry-Based</div>
+                            <div className="text-xs text-gray-600">
+                              Use what you have - original smart meal planning
+                            </div>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="mealPlanMode"
+                            value="health-goal"
+                            checked={mealPlanMode === 'health-goal'}
+                            onChange={e => handleMealPlanModeChange(e.target.value as any)}
+                            className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                              🎯 Health-Focused
+                              {mealPlanMode === 'health-goal' && (
+                                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                  {selectedGoal.name}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              Personalized nutrition based on your health goal
+                            </div>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="mealPlanMode"
+                            value="family-friendly"
+                            checked={mealPlanMode === 'family-friendly'}
+                            onChange={e => handleMealPlanModeChange(e.target.value as any)}
+                            className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">
+                              🍴 Family-Friendly
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              Balanced meals for the whole family
+                            </div>
+                          </div>
+                        </label>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="mealPlanMode"
-                          value="pantry-based"
-                          checked={mealPlanMode === 'pantry-based'}
-                          onChange={e => handleMealPlanModeChange(e.target.value as any)}
-                          className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">🥫 Pantry-Based</div>
-                          <div className="text-xs text-gray-600">
-                            Use what you have - original smart meal planning
-                          </div>
-                        </div>
-                      </label>
 
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="mealPlanMode"
-                          value="health-goal"
-                          checked={mealPlanMode === 'health-goal'}
-                          onChange={e => handleMealPlanModeChange(e.target.value as any)}
-                          className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                            🎯 Health-Focused
-                            {mealPlanMode === 'health-goal' && (
-                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                                {selectedGoal.name}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            Personalized nutrition based on your health goal
-                          </div>
-                        </div>
-                      </label>
-
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="mealPlanMode"
-                          value="family-friendly"
-                          checked={mealPlanMode === 'family-friendly'}
-                          onChange={e => handleMealPlanModeChange(e.target.value as any)}
-                          className="w-4 h-4 text-pantry-600 border-gray-300 focus:ring-pantry-500"
-                        />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">
-                            🍴 Family-Friendly
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            Balanced meals for the whole family
-                          </div>
-                        </div>
-                      </label>
-                    </div>
+                    <button
+                      onClick={() => {
+                        console.log('🔍 AI Button Debug:', {
+                          generatingPlan,
+                          availableIngredientsLength: availableIngredients.length,
+                          availableIngredients: availableIngredients.slice(0, 3),
+                          isDisabled: generatingPlan || availableIngredients.length === 0,
+                        });
+                        generateAIMealPlan();
+                      }}
+                      disabled={generatingPlan || availableIngredients.length === 0}
+                      className="w-full px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {generatingPlan ? 'Generating...' : 'Generate AI Plan'}
+                    </button>
                   </div>
-
-                  <button
-                    onClick={() => {
-                      console.log('🔍 AI Button Debug:', {
-                        generatingPlan,
-                        availableIngredientsLength: availableIngredients.length,
-                        availableIngredients: availableIngredients.slice(0, 3),
-                        isDisabled: generatingPlan || availableIngredients.length === 0,
-                      });
-                      generateAIMealPlan();
-                    }}
-                    disabled={generatingPlan || availableIngredients.length === 0}
-                    className="w-full px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {generatingPlan ? 'Generating...' : 'Generate AI Plan'}
-                  </button>
-                </div>
+                </FeatureGate>
 
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-6 border border-orange-200">
                   <div className="text-2xl mb-3">📝</div>

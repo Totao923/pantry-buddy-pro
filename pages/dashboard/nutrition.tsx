@@ -9,6 +9,7 @@ import { RecipeService } from '../../lib/services/recipeService';
 import { useIngredients } from '../../contexts/IngredientsProvider';
 import { Ingredient, Recipe } from '../../types';
 import { Card } from '../../components/ui/Card';
+import FeatureGate from '../../components/FeatureGate';
 
 interface NutritionDashboardProps {
   ingredients?: Ingredient[];
@@ -380,284 +381,288 @@ export default function NutritionDashboard({
       </Head>
 
       <DashboardLayout>
-        <div className="space-y-8">
-          {/* Page Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Nutrition Dashboard</h1>
-              <p className="text-gray-600 mt-2">
-                AI-powered insights into your nutritional health and cooking patterns
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              {process.env.NODE_ENV === 'development' && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={addSampleData}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    🧪 Add Sample Data
-                  </button>
-                  <div className="text-sm text-gray-600 flex items-center">
-                    Recipes: {recentRecipes.length} | With nutrition:{' '}
-                    {recentRecipes.filter(r => r.nutritionInfo).length}
+        <FeatureGate feature="nutrition_tracking">
+          <div className="space-y-8">
+            {/* Page Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Nutrition Dashboard</h1>
+                <p className="text-gray-600 mt-2">
+                  AI-powered insights into your nutritional health and cooking patterns
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={addSampleData}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      🧪 Add Sample Data
+                    </button>
+                    <div className="text-sm text-gray-600 flex items-center">
+                      Recipes: {recentRecipes.length} | With nutrition:{' '}
+                      {recentRecipes.filter(r => r.nutritionInfo).length}
+                    </div>
                   </div>
+                )}
+                <div className="text-5xl">🥗</div>
+              </div>
+            </div>
+
+            {/* AI Nutritionist - Full Width */}
+            <AInutritionist ingredients={ingredients} recentRecipes={recentRecipes} />
+
+            {/* Additional Nutrition Information */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Pantry Nutrition Overview */}
+              <Card className="p-6">
+                <h3 className="text-xl font-semibold mb-4">🏪 Pantry Nutrition Profile</h3>
+                <div className="space-y-4">
+                  {ingredients.length > 0 ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Total Ingredients</span>
+                        <span className="font-semibold">{ingredients.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Protein Sources</span>
+                        <span className="font-semibold">
+                          {ingredients.filter(ing => ing.isProtein).length}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Vegetarian Items</span>
+                        <span className="font-semibold">
+                          {ingredients.filter(ing => ing.isVegetarian).length}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Vegan Items</span>
+                        <span className="font-semibold">
+                          {ingredients.filter(ing => ing.isVegan).length}
+                        </span>
+                      </div>
+                      <div className="mt-4 pt-4 border-t">
+                        <h4 className="font-medium mb-2">Category Distribution</h4>
+                        <div className="space-y-1">
+                          {['protein', 'vegetables', 'fruits', 'grains', 'dairy'].map(category => {
+                            const count = ingredients.filter(
+                              ing => ing.category === category
+                            ).length;
+                            const percentage =
+                              ingredients.length > 0
+                                ? Math.round((count / ingredients.length) * 100)
+                                : 0;
+                            return (
+                              <div
+                                key={category}
+                                className="flex items-center justify-between text-sm"
+                              >
+                                <span className="capitalize text-gray-600">{category}</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full"
+                                      style={{ width: `${percentage}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs text-gray-500 w-8">{count}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="text-4xl mb-2">📦</div>
+                      <p className="mb-4">
+                        Your pantry is empty! Add ingredients to see nutrition insights.
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-gray-600">👇 Get started by adding some ingredients:</p>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                            🥩 Proteins
+                          </span>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                            🥬 Vegetables
+                          </span>
+                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">
+                            🍎 Fruits
+                          </span>
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
+                            🌾 Grains
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => (window.location.href = '/dashboard/pantry')}
+                        className="mt-4 px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm"
+                      >
+                        Add Ingredients to Pantry
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-              <div className="text-5xl">🥗</div>
-            </div>
-          </div>
+              </Card>
 
-          {/* AI Nutritionist - Full Width */}
-          <AInutritionist ingredients={ingredients} recentRecipes={recentRecipes} />
-
-          {/* Additional Nutrition Information */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Pantry Nutrition Overview */}
-            <Card className="p-6">
-              <h3 className="text-xl font-semibold mb-4">🏪 Pantry Nutrition Profile</h3>
-              <div className="space-y-4">
-                {ingredients.length > 0 ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Total Ingredients</span>
-                      <span className="font-semibold">{ingredients.length}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Protein Sources</span>
-                      <span className="font-semibold">
-                        {ingredients.filter(ing => ing.isProtein).length}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Vegetarian Items</span>
-                      <span className="font-semibold">
-                        {ingredients.filter(ing => ing.isVegetarian).length}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Vegan Items</span>
-                      <span className="font-semibold">
-                        {ingredients.filter(ing => ing.isVegan).length}
-                      </span>
-                    </div>
-                    <div className="mt-4 pt-4 border-t">
-                      <h4 className="font-medium mb-2">Category Distribution</h4>
-                      <div className="space-y-1">
-                        {['protein', 'vegetables', 'fruits', 'grains', 'dairy'].map(category => {
-                          const count = ingredients.filter(ing => ing.category === category).length;
-                          const percentage =
-                            ingredients.length > 0
-                              ? Math.round((count / ingredients.length) * 100)
-                              : 0;
-                          return (
-                            <div
-                              key={category}
-                              className="flex items-center justify-between text-sm"
-                            >
-                              <span className="capitalize text-gray-600">{category}</span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-20 bg-gray-200 rounded-full h-2">
-                                  <div
-                                    className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full"
-                                    style={{ width: `${percentage}%` }}
-                                  ></div>
-                                </div>
-                                <span className="text-xs text-gray-500 w-8">{count}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-2">📦</div>
-                    <p className="mb-4">
-                      Your pantry is empty! Add ingredients to see nutrition insights.
-                    </p>
-                    <div className="space-y-2 text-sm">
-                      <p className="text-gray-600">👇 Get started by adding some ingredients:</p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                          🥩 Proteins
-                        </span>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
-                          🥬 Vegetables
-                        </span>
-                        <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">
-                          🍎 Fruits
-                        </span>
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
-                          🌾 Grains
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => (window.location.href = '/dashboard/pantry')}
-                      className="mt-4 px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm"
-                    >
-                      Add Ingredients to Pantry
-                    </button>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Recipe Nutrition History */}
-            <Card className="p-6">
-              <h3 className="text-xl font-semibold mb-4">📊 Recent Recipe Nutrition</h3>
-              <div className="space-y-4">
-                {/* Debug info - development only (hidden from users) */}
-                {false && process.env.NODE_ENV === 'development' && (
-                  <div className="text-xs bg-gray-100 p-2 rounded mb-4">
-                    <strong>Debug:</strong> Total recipes: {recentRecipes.length}, With nutrition:{' '}
-                    {recentRecipes.filter(recipe => recipe.nutritionInfo).length}
-                    {recentRecipes.length > 0 && (
-                      <div className="mt-1">
-                        Sample recipes:{' '}
-                        {recentRecipes
-                          .slice(0, 3)
-                          .map(r => r.title)
-                          .join(', ')}
-                      </div>
-                    )}
-                    {recentRecipes.length > 0 && (
-                      <div className="mt-2">
-                        <strong>Recipe structure sample:</strong>
-                        <div className="text-xs bg-gray-50 p-2 mt-1 rounded border">
-                          <div>Title: {recentRecipes[0]?.title}</div>
-                          <div>
-                            Has Nutrition: {!!recentRecipes[0]?.nutritionInfo ? 'Yes' : 'No'}
-                          </div>
-                          {recentRecipes[0]?.nutritionInfo && (
+              {/* Recipe Nutrition History */}
+              <Card className="p-6">
+                <h3 className="text-xl font-semibold mb-4">📊 Recent Recipe Nutrition</h3>
+                <div className="space-y-4">
+                  {/* Debug info - development only (hidden from users) */}
+                  {false && process.env.NODE_ENV === 'development' && (
+                    <div className="text-xs bg-gray-100 p-2 rounded mb-4">
+                      <strong>Debug:</strong> Total recipes: {recentRecipes.length}, With nutrition:{' '}
+                      {recentRecipes.filter(recipe => recipe.nutritionInfo).length}
+                      {recentRecipes.length > 0 && (
+                        <div className="mt-1">
+                          Sample recipes:{' '}
+                          {recentRecipes
+                            .slice(0, 3)
+                            .map(r => r.title)
+                            .join(', ')}
+                        </div>
+                      )}
+                      {recentRecipes.length > 0 && (
+                        <div className="mt-2">
+                          <strong>Recipe structure sample:</strong>
+                          <div className="text-xs bg-gray-50 p-2 mt-1 rounded border">
+                            <div>Title: {recentRecipes[0]?.title}</div>
                             <div>
-                              Sample: {recentRecipes[0].nutritionInfo?.calories} cal,{' '}
-                              {recentRecipes[0].nutritionInfo?.protein}g protein
+                              Has Nutrition: {!!recentRecipes[0]?.nutritionInfo ? 'Yes' : 'No'}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {recentRecipes.length > 0 ? (
-                  <>
-                    {recentRecipes.filter(recipe => recipe.nutritionInfo).length > 0 ? (
-                      <>
-                        <div className="text-sm text-gray-600 mb-3">
-                          Showing nutrition data from{' '}
-                          {recentRecipes.filter(recipe => recipe.nutritionInfo).length} of{' '}
-                          {recentRecipes.length} recipes
-                        </div>
-                        {recentRecipes
-                          .filter(recipe => recipe.nutritionInfo)
-                          .slice(0, 5)
-                          .map(recipe => (
-                            <div
-                              key={recipe.id}
-                              className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="font-medium text-sm">{recipe.title}</div>
-                                <div className="text-xs text-gray-500">{recipe.cuisine}</div>
+                            {recentRecipes[0]?.nutritionInfo && (
+                              <div>
+                                Sample: {recentRecipes[0].nutritionInfo?.calories} cal,{' '}
+                                {recentRecipes[0].nutritionInfo?.protein}g protein
                               </div>
-                              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-2">
-                                <div>🔥 Calories: {recipe.nutritionInfo?.calories || 0}</div>
-                                <div>🥩 Protein: {recipe.nutritionInfo?.protein || 0}g</div>
-                                <div>🌾 Carbs: {recipe.nutritionInfo?.carbs || 0}g</div>
-                                <div>🥑 Fat: {recipe.nutritionInfo?.fat || 0}g</div>
-                              </div>
-                              {recipe.nutritionInfo?.fiber && recipe.nutritionInfo?.sodium && (
-                                <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                                  <div>🌿 Fiber: {recipe.nutritionInfo.fiber}g</div>
-                                  <div>🧂 Sodium: {recipe.nutritionInfo.sodium}mg</div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                      </>
-                    ) : (
-                      <div className="text-center py-6 text-gray-500">
-                        <div className="text-3xl mb-2">📝</div>
-                        <p className="mb-2">
-                          You have {recentRecipes.length} recipes but none with nutrition data.
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Generate new AI recipes to get detailed nutrition information.
-                        </p>
-                        <button
-                          onClick={() => (window.location.href = '/dashboard/create-recipe')}
-                          className="mt-3 px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm"
-                        >
-                          Generate AI Recipe with Nutrition
-                        </button>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-2">📈</div>
-                    <p className="mb-4">No recent recipes with nutrition data found.</p>
-                    <div className="space-y-2 text-sm">
-                      <p className="text-gray-600">Start tracking nutrition by:</p>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="text-xs">🤖</span>
-                          <span>Generate AI recipes with nutrition info</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="text-xs">📝</span>
-                          <span>Create custom recipes with nutrition data</span>
-                        </div>
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="text-xs">🍳</span>
-                          <span>Track cooking sessions</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
-                    <button
-                      onClick={() => (window.location.href = '/dashboard/recipes')}
-                      className="mt-4 px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm"
-                    >
-                      Create Your First Recipe
-                    </button>
-                  </div>
-                )}
+                  )}
+
+                  {recentRecipes.length > 0 ? (
+                    <>
+                      {recentRecipes.filter(recipe => recipe.nutritionInfo).length > 0 ? (
+                        <>
+                          <div className="text-sm text-gray-600 mb-3">
+                            Showing nutrition data from{' '}
+                            {recentRecipes.filter(recipe => recipe.nutritionInfo).length} of{' '}
+                            {recentRecipes.length} recipes
+                          </div>
+                          {recentRecipes
+                            .filter(recipe => recipe.nutritionInfo)
+                            .slice(0, 5)
+                            .map(recipe => (
+                              <div
+                                key={recipe.id}
+                                className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="font-medium text-sm">{recipe.title}</div>
+                                  <div className="text-xs text-gray-500">{recipe.cuisine}</div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-2">
+                                  <div>🔥 Calories: {recipe.nutritionInfo?.calories || 0}</div>
+                                  <div>🥩 Protein: {recipe.nutritionInfo?.protein || 0}g</div>
+                                  <div>🌾 Carbs: {recipe.nutritionInfo?.carbs || 0}g</div>
+                                  <div>🥑 Fat: {recipe.nutritionInfo?.fat || 0}g</div>
+                                </div>
+                                {recipe.nutritionInfo?.fiber && recipe.nutritionInfo?.sodium && (
+                                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                                    <div>🌿 Fiber: {recipe.nutritionInfo.fiber}g</div>
+                                    <div>🧂 Sodium: {recipe.nutritionInfo.sodium}mg</div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </>
+                      ) : (
+                        <div className="text-center py-6 text-gray-500">
+                          <div className="text-3xl mb-2">📝</div>
+                          <p className="mb-2">
+                            You have {recentRecipes.length} recipes but none with nutrition data.
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Generate new AI recipes to get detailed nutrition information.
+                          </p>
+                          <button
+                            onClick={() => (window.location.href = '/dashboard/create-recipe')}
+                            className="mt-3 px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm"
+                          >
+                            Generate AI Recipe with Nutrition
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="text-4xl mb-2">📈</div>
+                      <p className="mb-4">No recent recipes with nutrition data found.</p>
+                      <div className="space-y-2 text-sm">
+                        <p className="text-gray-600">Start tracking nutrition by:</p>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-xs">🤖</span>
+                            <span>Generate AI recipes with nutrition info</span>
+                          </div>
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-xs">📝</span>
+                            <span>Create custom recipes with nutrition data</span>
+                          </div>
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-xs">🍳</span>
+                            <span>Track cooking sessions</span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => (window.location.href = '/dashboard/recipes')}
+                        className="mt-4 px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 transition-colors text-sm"
+                      >
+                        Create Your First Recipe
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* Quick Tips */}
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4">💡 Nutrition Tips</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-2xl mb-2">🥛</div>
+                  <h4 className="font-medium">Stay Hydrated</h4>
+                  <p className="text-sm text-gray-600">
+                    Aim for 8 glasses of water daily to support your cooking and nutrition goals.
+                  </p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-2xl mb-2">🌈</div>
+                  <h4 className="font-medium">Eat the Rainbow</h4>
+                  <p className="text-sm text-gray-600">
+                    Include colorful fruits and vegetables to maximize nutrient variety.
+                  </p>
+                </div>
+                <div className="bg-orange-50 p-4 rounded-lg">
+                  <div className="text-2xl mb-2">⚖️</div>
+                  <h4 className="font-medium">Balance Macros</h4>
+                  <p className="text-sm text-gray-600">
+                    Aim for a balanced ratio of proteins, carbs, and healthy fats in each meal.
+                  </p>
+                </div>
               </div>
             </Card>
           </div>
-
-          {/* Quick Tips */}
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4">💡 Nutrition Tips</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-2xl mb-2">🥛</div>
-                <h4 className="font-medium">Stay Hydrated</h4>
-                <p className="text-sm text-gray-600">
-                  Aim for 8 glasses of water daily to support your cooking and nutrition goals.
-                </p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-2xl mb-2">🌈</div>
-                <h4 className="font-medium">Eat the Rainbow</h4>
-                <p className="text-sm text-gray-600">
-                  Include colorful fruits and vegetables to maximize nutrient variety.
-                </p>
-              </div>
-              <div className="bg-orange-50 p-4 rounded-lg">
-                <div className="text-2xl mb-2">⚖️</div>
-                <h4 className="font-medium">Balance Macros</h4>
-                <p className="text-sm text-gray-600">
-                  Aim for a balanced ratio of proteins, carbs, and healthy fats in each meal.
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
+        </FeatureGate>
       </DashboardLayout>
     </AuthGuard>
   );

@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { useIngredients } from '../../contexts/IngredientsProvider';
 import QuickRecipeSuggestions from '../QuickRecipeSuggestions';
+import FeatureGate from '../FeatureGate';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -64,6 +65,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       href: '/dashboard/meal-plans',
       icon: '📅',
       description: 'Plan your meals',
+      isPremium: true,
     },
     {
       name: 'Shopping Lists',
@@ -235,7 +237,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   >
                     <span className="text-lg">{item.icon}</span>
                     <div className="flex-1">
-                      <p className="font-medium">{item.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{item.name}</p>
+                        {item.isPremium && (subscription?.tier === 'free' || !subscription) && (
+                          <span className="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full">
+                            PRO
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs opacity-75">{item.description}</p>
                     </div>
                   </div>
@@ -325,13 +334,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Quick Suggestions Modal */}
       {showSuggestions && (
-        <QuickRecipeSuggestions
-          showAsModal={true}
-          onClose={() => setShowSuggestions(false)}
-          onRecipeSelected={() => {
-            setShowSuggestions(false);
-          }}
-        />
+        <FeatureGate feature="advanced_ai">
+          <QuickRecipeSuggestions
+            showAsModal={true}
+            onClose={() => setShowSuggestions(false)}
+            onRecipeSelected={() => {
+              setShowSuggestions(false);
+            }}
+          />
+        </FeatureGate>
       )}
     </div>
   );
