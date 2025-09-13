@@ -216,6 +216,91 @@ export default function Settings() {
     }));
   };
 
+  const handleExportData = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/account/export', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to export data');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `pantry-buddy-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      setMessage({ type: 'success', text: 'Data exported successfully!' });
+    } catch (error) {
+      console.error('Export error:', error);
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to export data',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmationText = prompt(
+      'This action cannot be undone! Type "DELETE MY ACCOUNT" to confirm:'
+    );
+
+    if (confirmationText !== 'DELETE MY ACCOUNT') {
+      alert('Account deletion cancelled.');
+      return;
+    }
+
+    const finalConfirm = confirm(
+      'Are you absolutely sure? This will permanently delete all your data, recipes, meal plans, and cancel any active subscriptions.'
+    );
+
+    if (!finalConfirm) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          confirmationText: 'DELETE MY ACCOUNT',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete account');
+      }
+
+      alert('Account deleted successfully. You will be redirected to the home page.');
+
+      // Redirect to home page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Delete account error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <AuthGuard>
@@ -598,6 +683,70 @@ export default function Settings() {
                   </Link>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Data Export & Account Management */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Data & Privacy</h2>
+
+            {/* Data Export */}
+            <div className="mb-8">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Export Your Data</h3>
+              <p className="text-gray-600 mb-4">
+                Download a complete copy of your account data including recipes, meal plans,
+                preferences, and more. This includes all the information associated with your
+                account in JSON format.
+              </p>
+              <button
+                onClick={handleExportData}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Exporting...' : 'Export My Data'}
+              </button>
+            </div>
+
+            {/* Account Deletion Warning Section */}
+            <div className="border-t border-gray-200 pt-8">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <div className="flex items-start gap-3">
+                  <div className="text-red-500 text-xl">⚠️</div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-red-900 mb-2">Delete Account</h3>
+                    <p className="text-red-700 mb-4">
+                      Permanently delete your account and all associated data. This action{' '}
+                      <strong>cannot be undone</strong>.
+                    </p>
+
+                    <div className="bg-red-100 border border-red-300 rounded-lg p-4 mb-4">
+                      <h4 className="font-semibold text-red-900 mb-2">
+                        This will permanently delete:
+                      </h4>
+                      <ul className="text-red-800 text-sm space-y-1">
+                        <li>• Your account and profile information</li>
+                        <li>• All your recipes and meal plans</li>
+                        <li>• Your pantry items and shopping lists</li>
+                        <li>• Your cooking history and preferences</li>
+                        <li>• Your active subscription (if any)</li>
+                        <li>• All data associated with your account</li>
+                      </ul>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleDeleteAccount}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                      >
+                        Delete My Account
+                      </button>
+                      <span className="text-sm text-red-600">
+                        We recommend exporting your data first
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
