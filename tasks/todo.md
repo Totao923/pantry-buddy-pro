@@ -397,6 +397,66 @@ if (accessToken && refreshToken) {
 3. Callback extracts tokens → creates session → redirects to dashboard
 4. User is successfully signed in with confirmed email
 
+## ✅ COMPLETED: CLI-Based Stripe Setup for Payment Processing
+
+**Status:** Stripe is now fully operational and ready for payments!
+
+### ✅ Phase 1: Install and Configure Stripe CLI
+
+- Downloaded and installed Stripe CLI v1.21.8
+- Successfully authenticated with Stripe account (acct_1RvUe7CwdkB5okXQ)
+- CLI connected to test environment
+
+### ✅ Phase 2: Webhook Testing with CLI
+
+- Set up webhook forwarding: `./stripe listen --forward-to 127.0.0.1:3001/api/stripe/webhook`
+- Webhook signing secret verified: `whsec_7ef82c3587ac16f9ee39f6c936625449cc83cc564b9d831b5b4387e66673504e`
+- Tested key events successfully:
+  - `customer.subscription.created` ✅ HTTP 200
+  - `invoice.payment_succeeded` ✅ HTTP 200
+  - `checkout.session.completed` ✅ HTTP 200
+- All webhook events properly received and processed
+
+### ✅ Phase 3: Payment Flow Verification
+
+- Subscription page accessible: `http://localhost:3001/dashboard/subscription`
+- Checkout API endpoint working with proper authentication
+- Database sync confirmed with webhook processing
+- Security working: unauthorized requests properly rejected
+
+### ✅ Phase 4: Documentation and CLI Commands
+
+**Quick Start Commands:**
+
+```bash
+# Install Stripe CLI (macOS)
+curl -L "https://github.com/stripe/stripe-cli/releases/download/v1.21.8/stripe_1.21.8_mac-os_x86_64.tar.gz" -o stripe.tar.gz
+tar -xzf stripe.tar.gz && rm stripe.tar.gz
+
+# Login to Stripe
+./stripe login
+
+# Start webhook forwarding for development
+./stripe listen --forward-to 127.0.0.1:3001/api/stripe/webhook
+
+# Test webhook events
+./stripe trigger customer.subscription.created
+./stripe trigger checkout.session.completed
+./stripe trigger invoice.payment_succeeded
+```
+
+**Current Integration Status:**
+
+- 🟢 **Test Environment**: Fully operational
+- 🟢 **Products**: Premium ($9.99), Family ($19.99), Chef ($39.99)
+- 🟢 **Webhooks**: Real-time processing working
+- 🟢 **Security**: Signature validation active
+- 🟢 **API Endpoints**: Checkout and portal ready
+- 🟢 **Database Sync**: Subscription updates working
+
+**Ready for Production:**
+The payment system is production-ready. Simply switch to live API keys in `.env.local` when ready to accept real payments.
+
 ## Review Section
 
 _This section will be updated as implementation progresses_
