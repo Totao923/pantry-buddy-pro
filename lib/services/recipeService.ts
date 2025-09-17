@@ -11,6 +11,7 @@ interface RecipeGenerationOptions {
     dietary?: string[];
     spiceLevel?: 'mild' | 'medium' | 'hot' | 'extra-hot';
     experienceLevel?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    isChildFriendly?: boolean;
   };
   userId?: string;
   aiSuggestedContext?: {
@@ -344,6 +345,9 @@ export class RecipeService {
           const nonDeletedRecipes = databaseResult.data.filter(
             recipe => !deletedRecipes.includes(recipe.id)
           );
+          console.log(
+            `Database recipes filtered: ${databaseResult.data.length} -> ${nonDeletedRecipes.length} (${deletedRecipes.length} deleted filtered out)`
+          );
           return {
             success: true,
             data: nonDeletedRecipes,
@@ -426,13 +430,14 @@ export class RecipeService {
       if (await databaseRecipeService.isAvailable()) {
         try {
           console.log('Attempting database deletion');
-          // Note: Database deletion would go here when databaseRecipeService.deleteRecipe is implemented
-          // For now, we'll just log this
-          console.log(
-            'Database deletion not yet implemented, proceeding with localStorage cleanup'
-          );
+          const dbDeleteResult = await databaseRecipeService.deleteRecipe(recipeId);
+          if (dbDeleteResult.success) {
+            console.log(`Successfully deleted recipe ${recipeId} from database`);
+          } else {
+            console.log('Database deletion failed:', dbDeleteResult.error);
+          }
         } catch (error) {
-          console.log('Database deletion failed, continuing with localStorage cleanup');
+          console.log('Database deletion failed, continuing with localStorage cleanup:', error);
         }
       }
 
@@ -462,6 +467,9 @@ export class RecipeService {
         console.log(`Added recipe ${recipeId} to deleted recipes list`);
       }
 
+      // Invalidate analytics cache to ensure fresh count
+      this.invalidateAnalyticsCache(userId);
+
       // Remove from favorites
       const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
       const updatedFavorites = favorites.filter((id: string) => id !== recipeId);
@@ -478,5 +486,30 @@ export class RecipeService {
         error: 'Failed to delete recipe',
       };
     }
+  }
+
+  /**
+   * Clear all deleted recipe tracking (for debugging purposes)
+   */
+  static clearDeletedRecipesTracking(): void {
+    localStorage.removeItem('deletedRecipes');
+    console.log('Cleared deleted recipes tracking');
+  }
+
+  /**
+   * Get current deleted recipes list (for debugging)
+   */
+  static getDeletedRecipesList(): string[] {
+    return JSON.parse(localStorage.getItem('deletedRecipes') || '[]');
+  }
+
+  /**
+   * Invalidate analytics cache to ensure fresh recipe counts
+   */
+  private static invalidateAnalyticsCache(userId: string): void {
+    const cacheKey = `analytics-${userId}`;
+    localStorage.removeItem(cacheKey);
+    localStorage.removeItem(`${cacheKey}-timestamp`);
+    console.log(`Invalidated analytics cache for user ${userId}`);
   }
 }

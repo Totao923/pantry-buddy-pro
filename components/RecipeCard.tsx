@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Recipe } from '../types';
 import CookingTracker from './cooking/CookingTracker';
 import { SwipeableCard, SWIPE_ACTIONS } from './ui/SwipeableCard';
+import { SwipeDirection } from '../hooks/useSwipeGesture';
 import { useHaptic } from '../hooks/useHaptic';
 
 interface RecipeCardProps {
@@ -9,6 +10,9 @@ interface RecipeCardProps {
   onServingChange?: (servings: number) => void;
   onFavorite?: (recipe: Recipe) => void;
   onShare?: (recipe: Recipe) => void;
+  onAddToCollection?: (recipe: Recipe, collectionId: string) => void;
+  showCollectionOption?: boolean;
+  showChildFriendlyIndicator?: boolean;
 }
 
 export default function RecipeCard({
@@ -16,6 +20,9 @@ export default function RecipeCard({
   onServingChange,
   onFavorite,
   onShare,
+  onAddToCollection,
+  showCollectionOption = false,
+  showChildFriendlyIndicator = false,
 }: RecipeCardProps) {
   const [currentServings, setCurrentServings] = useState(recipe.servings);
   const haptic = useHaptic();
@@ -38,6 +45,11 @@ export default function RecipeCard({
     onShare?.(recipe);
   };
 
+  const handleAddToCollection = (collectionId: string) => {
+    haptic.success();
+    onAddToCollection?.(recipe, collectionId);
+  };
+
   const swipeActions = [
     {
       ...SWIPE_ACTIONS.favorite,
@@ -47,6 +59,20 @@ export default function RecipeCard({
       ...SWIPE_ACTIONS.share,
       action: handleShare,
     },
+    ...(showCollectionOption
+      ? [
+          {
+            direction: 'right' as SwipeDirection,
+            label: 'Add to Collection',
+            icon: '📚',
+            color: 'bg-purple-500',
+            action: () => {
+              // This will be handled by a dropdown in the UI instead
+              haptic.light();
+            },
+          },
+        ]
+      : []),
   ];
 
   const getDifficultyColor = (difficulty: string) => {
@@ -81,6 +107,11 @@ export default function RecipeCard({
               >
                 {recipe.difficulty}
               </span>
+              {showChildFriendlyIndicator && recipe.isChildFriendly && (
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium flex items-center gap-1">
+                  👶 Kid-Friendly
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -162,9 +193,22 @@ export default function RecipeCard({
               <div className="text-sm text-gray-500">
                 Prep: {recipe.prepTime}min • Cook: {recipe.cookTime}min
               </div>
-              <button className="bg-accent-500 text-white px-6 py-2 rounded-lg hover:bg-accent-600 transition-colors">
-                Save Recipe
-              </button>
+              <div className="flex gap-2">
+                {showCollectionOption && (
+                  <button
+                    onClick={() => {
+                      // This would open a collection selection modal/dropdown
+                      console.log('Add to collection clicked');
+                    }}
+                    className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors text-sm"
+                  >
+                    📚 Add to Collection
+                  </button>
+                )}
+                <button className="bg-accent-500 text-white px-6 py-2 rounded-lg hover:bg-accent-600 transition-colors">
+                  Save Recipe
+                </button>
+              </div>
             </div>
 
             {/* Cooking Tracker */}

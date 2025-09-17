@@ -23,6 +23,7 @@ export class AdvancedRecipeEngine {
       dietary?: string[];
       spiceLevel?: 'mild' | 'medium' | 'hot' | 'extra-hot';
       experienceLevel?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      isChildFriendly?: boolean;
     }
   ): Promise<Recipe> {
     // Advanced ingredient analysis

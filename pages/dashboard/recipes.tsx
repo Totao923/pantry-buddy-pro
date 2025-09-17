@@ -7,8 +7,10 @@ import AuthGuard from '../../components/auth/AuthGuard';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { RecipeService } from '../../lib/services/recipeService';
 import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
+import { favoritesService } from '../../lib/services/favoritesService';
 import { usePullToRefreshContext } from '../../contexts/PullToRefreshProvider';
 import { Recipe, CuisineType } from '../../types';
+import ChildFriendlyFilter from '../../components/family/ChildFriendlyFilter';
 
 export default function RecipesBrowser() {
   const router = useRouter();
@@ -30,6 +32,11 @@ export default function RecipesBrowser() {
   const [filter, setFilter] = useState<'all' | 'favorites' | 'recent' | 'meal-plan'>('all');
   const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [childFriendlyFilters, setChildFriendlyFilters] = useState({
+    age: undefined as number | undefined,
+    excludeAllergens: [] as string[],
+    showChildFriendlyOnly: false,
+  });
 
   // Scroll position preservation
   const recipesContainerRef = useRef<HTMLDivElement>(null);
@@ -268,8 +275,33 @@ export default function RecipesBrowser() {
       }
     });
 
+    // Apply child-friendly filters
+    if (childFriendlyFilters.showChildFriendlyOnly) {
+      filtered = filtered.filter(recipe => recipe.isChildFriendly === true);
+    }
+
+    // Apply age filter
+    if (childFriendlyFilters.age !== undefined) {
+      filtered = filtered.filter(recipe => {
+        if (!recipe.isChildFriendly) return false;
+        if (!recipe.ageAppropriateFrom) return true; // No age restriction
+        return recipe.ageAppropriateFrom <= childFriendlyFilters.age!;
+      });
+    }
+
+    // Apply allergen exclusion filter
+    if (childFriendlyFilters.excludeAllergens.length > 0) {
+      filtered = filtered.filter(recipe => {
+        if (!recipe.allergenInfo || !Array.isArray(recipe.allergenInfo)) return true;
+        const recipeAllergens = recipe.allergenInfo.map(a => a.toLowerCase());
+        return !childFriendlyFilters.excludeAllergens.some(allergen =>
+          recipeAllergens.includes(allergen.toLowerCase())
+        );
+      });
+    }
+
     setFilteredRecipes(filtered);
-  }, [recipes, searchQuery, selectedCuisine, sortBy, filter]);
+  }, [recipes, searchQuery, selectedCuisine, sortBy, filter, childFriendlyFilters]);
 
   // Restore scroll position after filtered recipes change
   useEffect(() => {
@@ -530,6 +562,12 @@ export default function RecipesBrowser() {
             </div>
           </div>
 
+          {/* Child-Friendly Filter */}
+          <ChildFriendlyFilter
+            onFilterChange={setChildFriendlyFilters}
+            initialFilters={childFriendlyFilters}
+          />
+
           {/* Filters and Search */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex flex-col lg:flex-row gap-4">
@@ -699,6 +737,11 @@ export default function RecipesBrowser() {
                         <span>⏱️ {recipe.totalTime}m</span>
                         <span className="capitalize">{recipe.cuisine}</span>
                         <span>👥 {recipe.servings}</span>
+                        {recipe.isChildFriendly && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                            👶 Kid-Friendly
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -748,6 +791,11 @@ export default function RecipesBrowser() {
                               <span>⏱️ {recipe.totalTime}m</span>
                               <span className="capitalize">{recipe.cuisine}</span>
                               <span>👥 {recipe.servings}</span>
+                              {recipe.isChildFriendly && (
+                                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                  👶 Kid-Friendly
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

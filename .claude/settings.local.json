@@ -43,7 +43,24 @@
       "Bash(./stripe trigger customer.subscription.created)",
       "Bash(kill:*)",
       "Bash(PORT=3000 npm run dev)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(./stripe trigger checkout.session.completed)",
+      "Bash(./stripe listen:*)",
+      "Bash(./stripe config --list)",
+      "Bash(./stripe --help)",
+      "Bash(./stripe products create --name \"Pantry Buddy Premium\" --description \"Unlimited AI recipes, advanced features, and nutrition tracking\" --live)",
+      "Read(//Users/user/Desktop/**)",
+      "WebFetch(domain:pantry-buddy-pro.vercel.app)",
+      "Bash(/dev/null)",
+      "Bash(./stripe products list --limit 10)",
+      "Bash(./stripe prices list --product prod_SsMKLxpZaGzwu6)",
+      "Bash(./stripe trigger customer.subscription.created --add subscription:items:0:price=price_1RwbbaCwdkB5okXQsh3EHWeq)",
+      "Bash(./stripe products list --live --limit 10)",
+      "Bash(./stripe prices list --live --product prod_T2nQpaTUr1gcn1)",
+      "Bash(./stripe products create:*)",
+      "Bash(./stripe resources help)",
+      "Bash(./stripe products --help)",
+      "Bash(./stripe prices list --live --product prod_T4PwVgYLIOOh0i)"
     ],
     "deny": []
   }

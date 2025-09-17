@@ -3,7 +3,15 @@ import { useAuth } from '../lib/auth/AuthProvider';
 import Link from 'next/link';
 
 interface FeatureGateProps {
-  feature: 'advanced_ai' | 'nutrition_tracking' | 'meal_planning' | 'photo_uploads';
+  feature:
+    | 'advanced_ai'
+    | 'nutrition_tracking'
+    | 'meal_planning'
+    | 'photo_uploads'
+    | 'family_management'
+    | 'family_collections'
+    | 'bulk_shopping'
+    | 'family_nutrition';
   children: React.ReactNode;
   fallback?: React.ReactNode;
   className?: string;
@@ -31,6 +39,27 @@ const featureDescriptions = {
     title: 'Photo Uploads',
     description: 'Upload and share photos of your cooking creations and ingredient preparations.',
     icon: '📸',
+  },
+  family_management: {
+    title: 'Family Management',
+    description: 'Share recipes, meal plans, and nutrition tracking with up to 6 family members.',
+    icon: '👨‍👩‍👧‍👦',
+  },
+  family_collections: {
+    title: 'Family Recipe Collections',
+    description: 'Create and share organized recipe collections with your family members.',
+    icon: '📚',
+  },
+  bulk_shopping: {
+    title: 'Bulk Shopping Lists',
+    description: 'Generate combined shopping lists from multiple meal plans and family recipes.',
+    icon: '🛒',
+  },
+  family_nutrition: {
+    title: 'Family Nutrition Tracking',
+    description:
+      'Monitor nutrition and health metrics across all family members with detailed analytics.',
+    icon: '📊',
   },
 };
 

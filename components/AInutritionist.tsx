@@ -620,7 +620,7 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
         notes: 'Added from AI nutritionist recommendation',
       };
 
-      ShoppingListService.addItemToActiveList(newItem);
+      await ShoppingListService.addItemToActiveList(newItem);
 
       // Show success message
       alert(`✅ Added "${pendingShoppingItem}" to your shopping list!`);

@@ -9,6 +9,7 @@ interface AdvancedCuisineSelectorProps {
     maxTime: number;
     difficulty: string;
     experienceLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    isChildFriendly: boolean;
   }) => void;
 }
 
@@ -146,6 +147,7 @@ export default function AdvancedCuisineSelector({
     maxTime: 60,
     difficulty: 'any',
     experienceLevel: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'expert',
+    isChildFriendly: false,
   });
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -212,7 +214,7 @@ export default function AdvancedCuisineSelector({
         <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">Cooking Preferences</h3>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
             {/* Experience Level - NEW */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -287,6 +289,25 @@ export default function AdvancedCuisineSelector({
                 <option value="Hard">Hard</option>
                 <option value="Expert">Expert</option>
               </select>
+            </div>
+            {/* Child-Friendly Toggle */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Child-Friendly Recipe
+              </label>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="childFriendly"
+                  checked={preferences.isChildFriendly}
+                  onChange={e => handlePreferenceChange('isChildFriendly', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="childFriendly" className="ml-2 text-sm text-gray-700">
+                  👶 Kid-friendly ingredients and mild flavors
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Suitable for children and picky eaters</p>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Recipe, DifficultyLevel } from '../types';
 import CookingTracker from './cooking/CookingTracker';
+import { favoritesService } from '../lib/services/favoritesService';
 
 interface EnhancedRecipeCardProps {
   recipe: Recipe;
@@ -10,6 +11,9 @@ interface EnhancedRecipeCardProps {
   onRateRecipe?: (rating: number) => void;
   onOpenRatingModal?: () => void;
   showFavoriteButton?: boolean;
+  onAddToCollection?: (recipe: Recipe, collectionId: string) => void;
+  showCollectionOption?: boolean;
+  showChildFriendlyIndicator?: boolean;
 }
 
 export default function EnhancedRecipeCard({
@@ -20,6 +24,9 @@ export default function EnhancedRecipeCard({
   onRateRecipe,
   onOpenRatingModal,
   showFavoriteButton = true,
+  onAddToCollection,
+  showCollectionOption = false,
+  showChildFriendlyIndicator = false,
 }: EnhancedRecipeCardProps) {
   const [currentServings, setCurrentServings] = useState(recipe.servings);
   const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions' | 'nutrition' | 'tips'>(
@@ -30,23 +37,50 @@ export default function EnhancedRecipeCard({
   const [userRating, setUserRating] = useState(0);
   const [showVariations, setShowVariations] = useState(false);
 
-  // Favorite functionality
-  const toggleFavorite = (recipeId: string) => {
-    const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
-    const isFavorite = favorites.includes(recipeId);
+  // Favorite functionality with Supabase + localStorage fallback
+  const toggleFavorite = async (recipeId: string) => {
+    try {
+      // Try Supabase first
+      const isAuthenticated = await favoritesService.isAuthenticated();
 
-    if (isFavorite) {
-      const updatedFavorites = favorites.filter((id: string) => id !== recipeId);
-      localStorage.setItem('favoriteRecipes', JSON.stringify(updatedFavorites));
-    } else {
-      favorites.push(recipeId);
-      localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
+      if (isAuthenticated) {
+        await favoritesService.toggleFavorite(recipeId);
+      } else {
+        // Fallback to localStorage for unauthenticated users
+        const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+        const isFav = favorites.includes(recipeId);
+
+        if (isFav) {
+          const updatedFavorites = favorites.filter((id: string) => id !== recipeId);
+          localStorage.setItem('favoriteRecipes', JSON.stringify(updatedFavorites));
+        } else {
+          favorites.push(recipeId);
+          localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
+        }
+      }
+
+      // Force re-render
+      setUserRating(prev => prev); // Trigger re-render
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // Fallback to localStorage on error
+      const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+      const isFav = favorites.includes(recipeId);
+
+      if (isFav) {
+        const updatedFavorites = favorites.filter((id: string) => id !== recipeId);
+        localStorage.setItem('favoriteRecipes', JSON.stringify(updatedFavorites));
+      } else {
+        favorites.push(recipeId);
+        localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
+      }
+      setUserRating(prev => prev);
     }
-    // Force re-render
-    setUserRating(prev => prev); // Trigger re-render
   };
 
   const isFavorite = (recipeId: string) => {
+    // Note: This is synchronous for immediate UI updates
+    // For authenticated users, favorites will sync in background
     const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
     return favorites.includes(recipeId);
   };
@@ -151,6 +185,18 @@ export default function EnhancedRecipeCard({
               />
             </svg>
           </button>
+          {showCollectionOption && (
+            <button
+              onClick={() => {
+                // This would open a collection selection modal/dropdown
+                console.log('Add to collection clicked');
+              }}
+              className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+              title="Add to Family Collection"
+            >
+              📚
+            </button>
+          )}
           <button className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -182,6 +228,12 @@ export default function EnhancedRecipeCard({
               <span className="text-lg">⏱️</span>
               <span className="font-medium">{formatTime(recipe.totalTime)}</span>
             </div>
+            {showChildFriendlyIndicator && recipe.isChildFriendly && (
+              <div className="px-3 py-1 bg-white/20 rounded-full border border-white/30 font-medium">
+                <span className="text-lg mr-1">👶</span>
+                Kid-Friendly
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -386,6 +438,46 @@ export default function EnhancedRecipeCard({
         {activeTab === 'tips' && (
           <div>
             <h3 className="text-xl font-bold text-gray-800 mb-6">Chef's Tips & Techniques</h3>
+
+            {/* Child-Friendly Information */}
+            {showChildFriendlyIndicator && recipe.isChildFriendly && (
+              <div className="mb-8">
+                <h4 className="text-lg font-semibold text-gray-700 mb-4">
+                  👶 Child-Friendly Recipe
+                </h4>
+                <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-blue-600 text-lg">👶</span>
+                    <span className="font-medium text-blue-800">Safe for kids</span>
+                    {recipe.ageAppropriateFrom && (
+                      <span className="text-sm text-blue-600">
+                        (Ages {Math.floor(recipe.ageAppropriateFrom / 12)}+ years)
+                      </span>
+                    )}
+                  </div>
+                  {recipe.childFriendlyNotes && (
+                    <p className="text-blue-700 text-sm mb-3">{recipe.childFriendlyNotes}</p>
+                  )}
+                  {recipe.allergenInfo && recipe.allergenInfo.length > 0 && (
+                    <div>
+                      <span className="text-sm font-medium text-blue-800">
+                        Contains allergens:{' '}
+                      </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {recipe.allergenInfo.map((allergen, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs"
+                          >
+                            {allergen}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {recipe.tips && recipe.tips.length > 0 && (
               <div className="mb-8">

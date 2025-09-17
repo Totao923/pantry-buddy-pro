@@ -65,6 +65,11 @@ export interface Recipe {
   tips?: string[];
   variations?: RecipeVariation[];
   dietaryInfo: DietaryInfo;
+  // Child-friendly properties
+  isChildFriendly?: boolean;
+  childFriendlyNotes?: string;
+  allergenInfo?: string[];
+  ageAppropriateFrom?: number; // age in months
 }
 
 export interface InstructionStep {

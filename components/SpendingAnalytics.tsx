@@ -132,6 +132,22 @@ export default function SpendingAnalytics({ receipts, className = '' }: Spending
   }, [filteredReceipts, timeRange]);
 
   const categorySpending = useMemo(() => {
+    console.log('🏷️ SpendingAnalytics: Calculating category spending...', {
+      filteredReceiptsCount: filteredReceipts.length,
+      totalItems: filteredReceipts.reduce((sum, r) => sum + (r.items?.length || 0), 0),
+      sampleReceipt: filteredReceipts[0]
+        ? {
+            storeName: filteredReceipts[0].storeName,
+            itemCount: filteredReceipts[0].items?.length,
+            sampleItems: filteredReceipts[0].items?.slice(0, 2).map(item => ({
+              name: item.name,
+              category: item.category,
+              price: item.price,
+            })),
+          }
+        : null,
+    });
+
     const categoryTotals = new Map<IngredientCategory, { amount: number; items: number }>();
 
     filteredReceipts.forEach(receipt => {
@@ -145,7 +161,7 @@ export default function SpendingAnalytics({ receipts, className = '' }: Spending
       });
     });
 
-    return Array.from(categoryTotals.entries())
+    const result = Array.from(categoryTotals.entries())
       .map(([category, data]) => ({
         category: category.charAt(0).toUpperCase() + category.slice(1),
         amount: data.amount,
@@ -153,6 +169,13 @@ export default function SpendingAnalytics({ receipts, className = '' }: Spending
         color: categoryColors[category],
       }))
       .sort((a, b) => b.amount - a.amount);
+
+    console.log('🏷️ SpendingAnalytics: Category spending result:', {
+      categoriesFound: result.length,
+      categories: result.map(c => ({ category: c.category, amount: c.amount, items: c.items })),
+    });
+
+    return result;
   }, [filteredReceipts]);
 
   const storeSpending = useMemo(() => {

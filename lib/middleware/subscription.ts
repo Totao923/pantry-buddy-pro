@@ -50,6 +50,11 @@ export function withSubscription(handler: SubscriptionHandler) {
             return limits.has_photo_uploads;
           case 'ad_free':
             return limits.has_ad_free_experience;
+          case 'family_management':
+          case 'family_collections':
+          case 'bulk_shopping':
+          case 'family_nutrition':
+            return tier === 'family' || tier === 'chef';
           default:
             return false;
         }

@@ -33,6 +33,7 @@ export default function CreateRecipe() {
     maxTime: 60,
     difficulty: 'any',
     experienceLevel: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'expert',
+    isChildFriendly: false,
   });
   const [showModeSelection, setShowModeSelection] = useState(subscription?.tier === 'premium');
   const [aiSuggestedMode, setAiSuggestedMode] = useState(false);
@@ -214,6 +215,7 @@ export default function CreateRecipe() {
               spiceLevel: cookingPreferences.spiceLevel,
               experienceLevel: cookingPreferences.experienceLevel,
               dietary: [],
+              isChildFriendly: cookingPreferences.isChildFriendly,
             },
             userId: user.id,
             // Pass AI nutritionist context if available
@@ -369,6 +371,7 @@ export default function CreateRecipe() {
                 : undefined,
             spiceLevel: cookingPreferences.spiceLevel,
             experienceLevel: cookingPreferences.experienceLevel,
+            isChildFriendly: cookingPreferences.isChildFriendly,
           }
         );
       }

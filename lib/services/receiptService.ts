@@ -1278,7 +1278,27 @@ class ReceiptService {
           ),
         });
 
-        return filteredReceipts;
+        // Transform localStorage data to match ExtractedReceiptData interface
+        const transformedReceipts = filteredReceipts.map((receipt: any) => ({
+          ...receipt,
+          receiptDate: new Date(receipt.receiptDate || receipt.createdAt),
+          totalAmount: Number(receipt.totalAmount || 0),
+          taxAmount: Number(receipt.taxAmount || 0),
+          items: Array.isArray(receipt.items) ? receipt.items : [],
+        }));
+
+        console.log('🧾 ReceiptService: Transformed receipts for proper format:', {
+          count: transformedReceipts.length,
+          sampleTransformed: transformedReceipts.slice(0, 1).map(r => ({
+            id: r.id,
+            storeName: r.storeName,
+            receiptDate: r.receiptDate,
+            totalAmount: r.totalAmount,
+            itemCount: r.items?.length,
+          })),
+        });
+
+        return transformedReceipts;
       }
     } catch (localError) {
       console.log('🧾 ReceiptService: localStorage read failed, will try database:', localError);

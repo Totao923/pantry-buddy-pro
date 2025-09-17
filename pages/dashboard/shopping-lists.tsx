@@ -5,6 +5,9 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import AuthGuard from '../../components/auth/AuthGuard';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { IngredientCategory } from '../../types';
+import FamilyShoppingList from '../../components/family/FamilyShoppingList';
+import BulkShoppingModal from '../../components/family/BulkShoppingModal';
+import FeatureGate from '../../components/FeatureGate';
 
 interface ShoppingListItem {
   id: string;
@@ -39,6 +42,8 @@ export default function ShoppingLists() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [newListName, setNewListName] = useState('');
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [familyListsKey, setFamilyListsKey] = useState(0);
   const [newItem, setNewItem] = useState({
     name: '',
     quantity: 1,
@@ -281,6 +286,27 @@ export default function ShoppingLists() {
     );
   };
 
+  // Family shopping list handlers
+  const handleCreateFamilyList = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleEditFamilyList = (list: any) => {
+    // For now, just show the create modal for editing
+    // In a full implementation, you'd pre-populate the form with the list data
+    setShowCreateModal(true);
+  };
+
+  const handleCreateBulkList = () => {
+    setShowBulkModal(true);
+  };
+
+  const handleBulkListSuccess = () => {
+    setShowBulkModal(false);
+    // Refresh family lists
+    setFamilyListsKey(prev => prev + 1);
+  };
+
   const getPriorityColor = (priority: 'low' | 'medium' | 'high') => {
     switch (priority) {
       case 'high':
@@ -331,6 +357,16 @@ export default function ShoppingLists() {
               </button>
             </div>
           </div>
+
+          {/* Family Shopping Lists */}
+          <FeatureGate feature="family_management">
+            <FamilyShoppingList
+              key={familyListsKey}
+              onCreateList={handleCreateFamilyList}
+              onEditList={handleEditFamilyList}
+              onCreateBulkList={handleCreateBulkList}
+            />
+          </FeatureGate>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Lists Sidebar */}
@@ -702,6 +738,15 @@ export default function ShoppingLists() {
             </div>
           </div>
         )}
+
+        {/* Bulk Shopping Modal */}
+        <FeatureGate feature="bulk_shopping">
+          <BulkShoppingModal
+            isOpen={showBulkModal}
+            onClose={() => setShowBulkModal(false)}
+            onSuccess={handleBulkListSuccess}
+          />
+        </FeatureGate>
       </DashboardLayout>
     </AuthGuard>
   );

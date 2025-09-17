@@ -80,6 +80,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       description: 'Scan receipts & track spending',
     },
     {
+      name: 'Family',
+      href: '/dashboard/family',
+      icon: '👨‍👩‍👧‍👦',
+      description: 'Family management',
+      isPremium: true,
+      tierRequired: 'family',
+      subItems: [
+        { name: 'Overview', href: '/dashboard/family' },
+        { name: 'Recipe Collections', href: '/dashboard/family-collections' },
+        { name: 'Shopping Lists', href: '/dashboard/family-shopping' },
+        { name: 'Nutrition Tracking', href: '/dashboard/family-nutrition' },
+      ],
+    },
+    {
       name: 'Analytics',
       href: '/dashboard/analytics',
       icon: '📊',
