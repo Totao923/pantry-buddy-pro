@@ -339,7 +339,7 @@ export default function QuickRecipeSuggestions({
       };
 
       const userId = user?.id || 'anonymous';
-      console.log('Saving recipe with userId:', userId, 'Recipe:', recipe.name);
+      // Recipe saving initiated
 
       const saveResult = await RecipeService.saveRecipe(recipeData, userId);
 
@@ -348,7 +348,7 @@ export default function QuickRecipeSuggestions({
         throw new Error(saveResult.error || 'Failed to save recipe');
       }
 
-      console.log('Recipe saved successfully:', recipe.name, 'UserId:', userId);
+      // Recipe saved successfully
 
       if (onRecipeSelected) {
         onRecipeSelected(recipe);
@@ -381,7 +381,7 @@ export default function QuickRecipeSuggestions({
     try {
       // Track suggestion usage for analytics
       if (user?.id) {
-        console.log('🔍 DEBUG: Tracking suggestion usage for user:', user.id);
+        // Tracking suggestion usage
         quickSuggestionsService.trackSuggestionUsed(user.id, recipe);
       }
 
@@ -436,7 +436,7 @@ export default function QuickRecipeSuggestions({
       };
 
       const userId = user?.id || 'anonymous';
-      console.log('🔍 DEBUG: Saving recipe with userId:', userId, 'Recipe:', recipe.name);
+      // Saving recipe from suggestion
       console.log('🔍 DEBUG: Recipe data structure:', recipeData);
 
       const saveResult = await RecipeService.saveRecipe(recipeData, userId);
@@ -447,7 +447,7 @@ export default function QuickRecipeSuggestions({
         throw new Error(saveResult.error || 'Failed to save recipe');
       }
 
-      console.log('🔍 DEBUG: Recipe saved successfully:', recipe.name, 'UserId:', userId);
+      // Recipe from suggestion saved successfully
 
       // Check localStorage immediately after save
       const userRecipes = localStorage.getItem('userRecipes');
