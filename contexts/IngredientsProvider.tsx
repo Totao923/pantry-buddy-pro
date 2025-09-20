@@ -8,7 +8,11 @@ import React, {
   useCallback,
 } from 'react';
 import { Ingredient } from '../types';
-import { getIngredientService } from '../lib/services/ingredientServiceFactory';
+import {
+  getIngredientService,
+  ingredientServiceFactory,
+} from '../lib/services/ingredientServiceFactory';
+import { useAuth } from '../lib/auth/AuthProvider';
 
 interface IngredientsContextType {
   ingredients: Ingredient[];
@@ -24,6 +28,7 @@ interface IngredientsProviderProps {
 }
 
 export const IngredientsProvider: React.FC<IngredientsProviderProps> = ({ children }) => {
+  const { user } = useAuth();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,13 +38,41 @@ export const IngredientsProvider: React.FC<IngredientsProviderProps> = ({ childr
       setLoading(true);
       setError(null);
       console.log('🔄 IngredientsProvider: Loading ingredients...');
+      console.log('🔄 IngredientsProvider: User state:', { hasUser: !!user, userId: user?.id });
+
+      // Force factory re-initialization when user state changes
+      if (user) {
+        console.log('🔄 IngredientsProvider: User authenticated, forcing factory re-init...');
+        await ingredientServiceFactory.reinitialize();
+      }
 
       const ingredientService = await getIngredientService();
-      const userIngredients = await ingredientService.getAllIngredients();
+      let userIngredients = await ingredientService.getAllIngredients();
+
+      // TEMPORARY FIX: If no ingredients from service, try direct API call
+      if (userIngredients.length === 0) {
+        console.log('🔄 IngredientsProvider: No ingredients from service, trying direct API...');
+        try {
+          const response = await fetch('/api/get-user-ingredients');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.ingredients) {
+              userIngredients = data.ingredients;
+              console.log(
+                '✅ IngredientsProvider: Loaded from direct API:',
+                userIngredients.length
+              );
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ Direct API call failed:', error);
+        }
+      }
 
       console.log('✅ IngredientsProvider: Loaded ingredients:', {
         count: userIngredients.length,
         service: 'Service Factory',
+        serviceType: ingredientServiceFactory.getCurrentServiceType(),
       });
 
       setIngredients(userIngredients);
@@ -51,7 +84,7 @@ export const IngredientsProvider: React.FC<IngredientsProviderProps> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     loadIngredients();

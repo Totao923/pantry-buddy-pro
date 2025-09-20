@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExtractedReceiptData } from '../types/ExtractedReceiptData';
+import { ExtractedReceiptData } from '../lib/services/receiptService';
 import {
   PieChart,
   Pie,
@@ -69,7 +69,9 @@ function createSyntheticReceiptsFromIngredients(ingredients: any[]): ExtractedRe
         name: ing.name,
         price: (ing.price || 0) * parseFloat(ing.quantity || '1'), // Total price for this item
         quantity: parseFloat(ing.quantity || '1'),
+        unit: ing.unit || 'piece',
         category: ing.category,
+        confidence: 0.95,
       }));
 
       return {
@@ -222,7 +224,7 @@ export default function SpendingAnalytics({ receipts, className = '' }: Spending
                   cy="50%"
                   outerRadius={80}
                   dataKey="totalSpent"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                 >
                   {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -348,7 +350,7 @@ export default function SpendingAnalytics({ receipts, className = '' }: Spending
               <YAxis tickFormatter={value => `$${value}`} />
               <Tooltip
                 formatter={(value, name) => [
-                  value > 0 ? `$${Number(value).toFixed(2)}` : 'No purchase',
+                  Number(value) > 0 ? `$${Number(value).toFixed(2)}` : 'No purchase',
                   name,
                 ]}
                 labelFormatter={label => `Date: ${label}`}

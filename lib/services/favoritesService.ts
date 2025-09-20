@@ -119,7 +119,7 @@ class FavoritesService {
         throw new Error(handled.message);
       }
 
-      return (data || []).map(item => item.recipe_id);
+      return (data || []).map((item: any) => item.recipe_id);
     } catch (error) {
       console.error('Error getting favorite recipe IDs:', error);
       return [];

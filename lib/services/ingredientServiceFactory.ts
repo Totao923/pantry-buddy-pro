@@ -1,12 +1,14 @@
 import { ingredientService as mockIngredientService } from './ingredientService';
 import { databaseIngredientService } from './databaseIngredientService';
 import { isAuthEnabled } from '../config/environment';
+import { createSupabaseClient } from '../supabase/client';
 
 export type IngredientServiceInterface = typeof mockIngredientService;
 
 class IngredientServiceFactory {
   private _currentService: IngredientServiceInterface | null = null;
   private _initialized = false;
+  private supabase = createSupabaseClient();
 
   async getService(): Promise<IngredientServiceInterface> {
     console.log('🏭 Factory getService called - initialized:', this._initialized);
@@ -65,8 +67,25 @@ class IngredientServiceFactory {
   // Check if database service is available
   async isDatabaseAvailable(): Promise<boolean> {
     try {
-      return await databaseIngredientService.isAvailable();
-    } catch {
+      // For browser-side usage, check if we have a user in the Supabase client
+      if (!this.supabase) return false;
+
+      const {
+        data: { user },
+        error,
+      } = await this.supabase.auth.getUser();
+      const hasUser = !error && !!user;
+
+      console.log('🏭 Factory browser auth check:', {
+        hasUser,
+        userId: user?.id,
+        email: user?.email,
+        error: error?.message,
+      });
+
+      return hasUser;
+    } catch (error) {
+      console.warn('🏭 Factory auth check failed:', error);
       return false;
     }
   }

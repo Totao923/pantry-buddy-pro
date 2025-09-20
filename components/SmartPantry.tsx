@@ -104,7 +104,7 @@ const SmartPantry = React.memo(function SmartPantry({
     expiryDate: string;
     originalPrice?: number;
     originalQuantity?: string;
-    priceSource?: string;
+    priceSource?: 'receipt' | 'estimated';
   }>({
     name: '',
     category: 'other',
