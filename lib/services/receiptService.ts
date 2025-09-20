@@ -1241,70 +1241,8 @@ class ReceiptService {
   async getUserReceipts(userId: string, supabaseClient?: any): Promise<ExtractedReceiptData[]> {
     console.log('🧾 ReceiptService: getUserReceipts called for userId:', userId);
 
-    // For analytics reliability, try localStorage first
-    console.log('🧾 ReceiptService: Checking localStorage first for better reliability...');
-    try {
-      const receipts = JSON.parse(localStorage.getItem('userReceipts') || '[]');
-      console.log('🧾 ReceiptService: localStorage check:', {
-        totalCount: receipts.length,
-        userId,
-        sample: receipts.slice(0, 2).map((r: any) => ({
-          id: r.id,
-          storeName: r.storeName,
-          totalAmount: r.totalAmount,
-          userId: r.userId,
-          hasUserId: !!r.userId,
-        })),
-      });
-
-      if (receipts.length > 0) {
-        // Use localStorage data if available - much more reliable
-        console.log(
-          '🧾 ReceiptService: Using localStorage data directly (more reliable than database)'
-        );
-        const filteredReceipts = receipts
-          .filter((receipt: any) => !userId || !receipt.userId || receipt.userId === userId)
-          .sort(
-            (a: any, b: any) =>
-              new Date(b.createdAt || b.receiptDate).getTime() -
-              new Date(a.createdAt || a.receiptDate).getTime()
-          );
-
-        console.log('🧾 ReceiptService: localStorage receipts after processing:', {
-          count: filteredReceipts.length,
-          totalSpent: filteredReceipts.reduce(
-            (sum: number, r: any) => sum + (r.totalAmount || 0),
-            0
-          ),
-        });
-
-        // Transform localStorage data to match ExtractedReceiptData interface
-        const transformedReceipts = filteredReceipts.map((receipt: any) => ({
-          ...receipt,
-          receiptDate: new Date(receipt.receiptDate || receipt.createdAt),
-          totalAmount: Number(receipt.totalAmount || 0),
-          taxAmount: Number(receipt.taxAmount || 0),
-          items: Array.isArray(receipt.items) ? receipt.items : [],
-        }));
-
-        console.log('🧾 ReceiptService: Transformed receipts for proper format:', {
-          count: transformedReceipts.length,
-          sampleTransformed: transformedReceipts.slice(0, 1).map((r: any) => ({
-            id: r.id,
-            storeName: r.storeName,
-            receiptDate: r.receiptDate,
-            totalAmount: r.totalAmount,
-            itemCount: r.items?.length,
-          })),
-        });
-
-        return transformedReceipts;
-      }
-    } catch (localError) {
-      console.log('🧾 ReceiptService: localStorage read failed, will try database:', localError);
-    }
-
-    // Fallback to database if localStorage is empty
+    // Try database first to ensure deleted receipts stay deleted
+    console.log('🧾 ReceiptService: Checking database first for most up-to-date data...');
     try {
       const supabase = supabaseClient || getSupabaseClient();
 

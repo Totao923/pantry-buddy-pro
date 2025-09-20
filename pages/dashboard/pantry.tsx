@@ -20,7 +20,7 @@ import { Ingredient, IngredientCategory } from '../../types';
 
 export default function PantryManagement() {
   console.log('🏠 PANTRY COMPONENT: Initializing...');
-  const { user, supabaseClient } = useAuth();
+  const { user, supabaseClient, session } = useAuth();
   const { ingredients, loading: contextLoading, refetch } = useIngredients();
   const [loading, setLoading] = useState(false);
   const [deletingReceipts, setDeletingReceipts] = useState(false);
@@ -606,9 +606,21 @@ export default function PantryManagement() {
                                 setDeletingReceipts(true);
                                 setReceipts([]); // Clear UI immediately for better UX
                                 localStorage.removeItem('userReceipts'); // Clear localStorage receipts
+
+                                console.log('🔑 Frontend auth debug:', {
+                                  hasSession: !!session,
+                                  hasAccessToken: !!session?.access_token,
+                                  tokenLength: session?.access_token?.length || 0,
+                                  hasUser: !!user,
+                                  userId: user?.id,
+                                });
+
                                 const response = await fetch('/api/delete-all-receipts', {
                                   method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    Authorization: `Bearer ${session?.access_token}`,
+                                  },
                                 });
                                 if (response.ok) {
                                   await loadReceipts(); // Refresh the list
