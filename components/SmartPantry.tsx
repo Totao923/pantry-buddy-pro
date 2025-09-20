@@ -102,12 +102,18 @@ const SmartPantry = React.memo(function SmartPantry({
     quantity: string;
     unit: string;
     expiryDate: string;
+    originalPrice?: number;
+    originalQuantity?: string;
+    priceSource?: string;
   }>({
     name: '',
     category: 'other',
     quantity: '',
     unit: '',
     expiryDate: '',
+    originalPrice: undefined,
+    originalQuantity: undefined,
+    priceSource: undefined,
   });
 
   // Usage tracking modal state
@@ -307,6 +313,9 @@ const SmartPantry = React.memo(function SmartPantry({
       expiryDate: ingredient.expiryDate
         ? new Date(ingredient.expiryDate).toISOString().split('T')[0]
         : '',
+      originalPrice: ingredient.price,
+      originalQuantity: ingredient.quantity || '1',
+      priceSource: ingredient.priceSource,
     });
   };
 
@@ -325,6 +334,18 @@ const SmartPantry = React.memo(function SmartPantry({
     if (!editingId) return;
 
     try {
+      // Calculate new price if quantity changed for receipt items
+      let newPrice = editForm.originalPrice;
+      if (editForm.originalPrice && editForm.priceSource === 'receipt') {
+        const originalQty = parseFloat(editForm.originalQuantity || '1');
+        const newQty = parseFloat(editForm.quantity || '1');
+        if (originalQty > 0) {
+          // Calculate price per unit and multiply by new quantity
+          const pricePerUnit = editForm.originalPrice / originalQty;
+          newPrice = pricePerUnit * newQty;
+        }
+      }
+
       const updatedIngredient: Ingredient = {
         id: editingId,
         name: editForm.name.trim(),
@@ -332,6 +353,8 @@ const SmartPantry = React.memo(function SmartPantry({
         quantity: editForm.quantity.trim() || undefined,
         unit: editForm.unit.trim() || undefined,
         expiryDate: editForm.expiryDate ? new Date(editForm.expiryDate) : undefined,
+        price: newPrice,
+        priceSource: editForm.priceSource,
         isVegetarian: isVegetarian(editForm.name, editForm.category),
         isVegan: isVegan(editForm.name, editForm.category),
         isProtein: editForm.category === 'protein',

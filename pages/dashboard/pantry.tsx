@@ -8,6 +8,7 @@ import QuickSuggestionsCard from '../../components/QuickSuggestionsCard';
 import ReceiptScanner from '../../components/ReceiptScanner';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import ReceiptReview, { ConfirmedReceiptItem } from '../../components/ReceiptReview';
+import SpendingAnalytics from '../../components/SpendingAnalytics';
 import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
 import type { CreateIngredientRequest } from '../../lib/services/ingredientService';
 import { useIngredients } from '../../contexts/IngredientsProvider';
@@ -22,12 +23,15 @@ export default function PantryManagement() {
   const { user, supabaseClient } = useAuth();
   const { ingredients, loading: contextLoading, refetch } = useIngredients();
   const [loading, setLoading] = useState(false);
+  const [deletingReceipts, setDeletingReceipts] = useState(false);
 
   console.log('🏠 PANTRY COMPONENT: Initial state - ingredients count:', ingredients.length);
+  const [activeTab, setActiveTab] = useState<'pantry' | 'receipts' | 'analytics'>('pantry');
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showReceiptReview, setShowReceiptReview] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState<ExtractedReceiptData | null>(null);
+  const [receipts, setReceipts] = useState<ExtractedReceiptData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     total: 0,
@@ -68,6 +72,21 @@ export default function PantryManagement() {
   useEffect(() => {
     calculateStats();
   }, [calculateStats]);
+
+  useEffect(() => {
+    loadReceipts();
+  }, [user]);
+
+  const loadReceipts = async () => {
+    if (!user) return;
+
+    try {
+      const userReceipts = await receiptService.getUserReceipts(user.id, supabaseClient);
+      setReceipts(userReceipts);
+    } catch (error) {
+      console.error('Failed to load receipts:', error);
+    }
+  };
 
   const handleAddIngredient = async (ingredient: Ingredient) => {
     try {
@@ -229,6 +248,33 @@ export default function PantryManagement() {
     setLoading(true);
 
     try {
+      // Calculate correct total from confirmed items (price × quantity)
+      const calculatedTotal = confirmedItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      );
+      const calculatedTax = calculatedTotal * 0.08; // 8% tax estimate
+
+      // Update receipt data with calculated totals
+      if (currentReceipt && user) {
+        const updatedReceipt = {
+          ...currentReceipt,
+          totalAmount: calculatedTotal,
+          taxAmount: calculatedTax,
+          items: confirmedItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price * item.quantity, // Total price for this item
+            quantity: item.quantity,
+            category: item.category,
+          })),
+        };
+
+        // Save updated receipt data to database
+        await receiptService.saveReceiptData(updatedReceipt, user.id, supabaseClient);
+        console.log('💾 Saved receipt with calculated total:', calculatedTotal);
+      }
+
       // Now properly add each confirmed item using the same flow as manual addition
       for (const item of confirmedItems) {
         const expirationDate = new Date();
@@ -241,7 +287,7 @@ export default function PantryManagement() {
           quantity: item.quantity?.toString(),
           unit: item.unit,
           expiryDate: expirationDate,
-          price: item.price,
+          price: item.price, // Keep individual item price for per-unit cost
           isVegetarian:
             item.category !== 'protein' ||
             ['tofu', 'beans', 'eggs'].some(v => item.name.toLowerCase().includes(v)),
@@ -255,7 +301,8 @@ export default function PantryManagement() {
         await handleAddIngredient(ingredient);
       }
 
-      // Show success and close review
+      // Reload receipts and show success
+      await loadReceipts();
       alert(`Successfully added ${confirmedItems.length} items to your pantry!`);
       setShowReceiptReview(false);
       setCurrentReceipt(null);
@@ -315,189 +362,361 @@ export default function PantryManagement() {
                 Organize your ingredients and track what's in your kitchen
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => setShowReceiptScanner(true)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium flex items-center gap-2"
-              >
-                <span>📄</span>
-                Scan Receipt
-              </button>
-              <button
-                onClick={() => setShowBarcodeScanner(true)}
-                className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-medium flex items-center gap-2"
-              >
-                <span>📱</span>
-                Scan Barcode
-              </button>
-              <button
-                onClick={handleClearAll}
-                disabled={ingredients.length === 0}
-                className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Clear All
-              </button>
-            </div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Ingredients</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">🥗</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Expiring Soon</p>
-                  <p className="text-3xl font-bold text-orange-600">{stats.expiringSoon}</p>
-                </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">⏰</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Categories</p>
-                  <p className="text-3xl font-bold text-green-600">{categoryStats.length}</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">📂</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Category Breakdown */}
-          {categoryStats.length > 0 && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Category Breakdown</h2>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {categoryStats.map(([category, count]) => (
-                  <div key={category} className="text-center p-3 bg-gray-50 rounded-lg">
-                    <p className="text-lg font-bold text-gray-900">{count}</p>
-                    <p className="text-sm text-gray-600 capitalize">{category}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Expiring Soon Alert */}
-          {stats.expiringSoon > 0 && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">⚠️</span>
-                <h3 className="text-lg font-semibold text-orange-800">
-                  {stats.expiringSoon} ingredient{stats.expiringSoon > 1 ? 's' : ''} expiring soon!
-                </h3>
-              </div>
-              <p className="text-orange-700 mb-4">
-                These ingredients are expiring within the next 3 days. Consider using them in your
-                next recipe.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {ingredients
-                  .filter(ingredient => {
-                    if (!ingredient.expiryDate) return false;
-                    const daysUntilExpiry = Math.ceil(
-                      (new Date(ingredient.expiryDate).getTime() - new Date().getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    );
-                    return daysUntilExpiry <= 3 && daysUntilExpiry >= 0;
-                  })
-                  .map(ingredient => (
-                    <span
-                      key={ingredient.id}
-                      className="px-3 py-1 bg-orange-200 text-orange-800 rounded-full text-sm font-medium"
-                    >
-                      {ingredient.name}
-                    </span>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Recipe Suggestions based on pantry */}
-          {ingredients.length >= 3 && <QuickSuggestionsCard />}
-
-          {/* Smart Pantry Component */}
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-200">
-            <SmartPantry
-              ingredients={ingredients}
-              onAddIngredient={handleAddIngredient}
-              onRemoveIngredient={handleRemoveIngredient}
-              onUpdateIngredient={handleUpdateIngredient}
-              onMarkAsUsed={handleMarkAsUsed}
-            />
-          </div>
-
-          {/* Empty State */}
-          {ingredients.length === 0 && (
-            <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-              <div className="text-6xl mb-4">🥗</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Your pantry is empty</h3>
-              <p className="text-gray-600 mb-6">
-                Start adding ingredients to build your virtual pantry and generate amazing recipes!
-              </p>
-              <div className="flex justify-center gap-4">
+            {activeTab === 'pantry' && (
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => setShowReceiptScanner(true)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium flex items-center gap-2"
                 >
                   <span>📄</span>
                   Scan Receipt
                 </button>
                 <button
                   onClick={() => setShowBarcodeScanner(true)}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                  className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-medium flex items-center gap-2"
                 >
                   <span>📱</span>
                   Scan Barcode
                 </button>
+                <button
+                  onClick={handleClearAll}
+                  disabled={ingredients.length === 0}
+                  className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Clear All
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
+            <div className="border-b border-gray-200">
+              <div className="flex space-x-8 px-6">
+                {[
+                  { key: 'pantry', label: 'Pantry', icon: '🥗' },
+                  { key: 'receipts', label: 'Receipt History', icon: '📂' },
+                  { key: 'analytics', label: 'Spending Analytics', icon: '📊' },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as any)}
+                    className={`py-4 px-2 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+                      activeTab === tab.key
+                        ? 'border-pantry-500 text-pantry-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <span>{tab.icon}</span>
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
 
-          {/* Tips Section */}
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">💡 Pantry Tips</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
-              <div className="flex gap-2">
-                <span>📄</span>
-                <span>Scan receipts to quickly add multiple ingredients at once</span>
-              </div>
-              <div className="flex gap-2">
-                <span>📱</span>
-                <span>Use barcode scanning for instant product identification</span>
-              </div>
-              <div className="flex gap-2">
-                <span>📅</span>
-                <span>Add expiry dates to track freshness and reduce waste</span>
-              </div>
-              <div className="flex gap-2">
-                <span>📊</span>
-                <span>Specify quantities to better plan your meals</span>
-              </div>
-              <div className="flex gap-2">
-                <span>🏷️</span>
-                <span>Use categories to organize and find ingredients quickly</span>
-              </div>
-              <div className="flex gap-2">
-                <span>🔄</span>
-                <span>Keep your pantry updated for the best recipe suggestions</span>
-              </div>
+            <div className="p-6">
+              {activeTab === 'pantry' && (
+                <div className="space-y-8">
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Total Ingredients</p>
+                          <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                          <span className="text-2xl">🥗</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Expiring Soon</p>
+                          <p className="text-3xl font-bold text-orange-600">{stats.expiringSoon}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                          <span className="text-2xl">⏰</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Categories</p>
+                          <p className="text-3xl font-bold text-green-600">
+                            {categoryStats.length}
+                          </p>
+                        </div>
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                          <span className="text-2xl">📂</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category Breakdown */}
+                  {categoryStats.length > 0 && (
+                    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                      <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                        Category Breakdown
+                      </h2>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        {categoryStats.map(([category, count]) => (
+                          <div key={category} className="text-center p-3 bg-gray-50 rounded-lg">
+                            <p className="text-lg font-bold text-gray-900">{count}</p>
+                            <p className="text-sm text-gray-600 capitalize">{category}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expiring Soon Alert */}
+                  {stats.expiringSoon > 0 && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-6">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">⚠️</span>
+                        <h3 className="text-lg font-semibold text-orange-800">
+                          {stats.expiringSoon} ingredient{stats.expiringSoon > 1 ? 's' : ''}{' '}
+                          expiring soon!
+                        </h3>
+                      </div>
+                      <p className="text-orange-700 mb-4">
+                        These ingredients are expiring within the next 3 days. Consider using them
+                        in your next recipe.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {ingredients
+                          .filter(ingredient => {
+                            if (!ingredient.expiryDate) return false;
+                            const daysUntilExpiry = Math.ceil(
+                              (new Date(ingredient.expiryDate).getTime() - new Date().getTime()) /
+                                (1000 * 60 * 60 * 24)
+                            );
+                            return daysUntilExpiry <= 3 && daysUntilExpiry >= 0;
+                          })
+                          .map(ingredient => (
+                            <span
+                              key={ingredient.id}
+                              className="px-3 py-1 bg-orange-200 text-orange-800 rounded-full text-sm font-medium"
+                            >
+                              {ingredient.name}
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recipe Suggestions based on pantry */}
+                  {ingredients.length >= 3 && <QuickSuggestionsCard />}
+
+                  {/* Smart Pantry Component */}
+                  <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-200">
+                    <SmartPantry
+                      ingredients={ingredients}
+                      onAddIngredient={handleAddIngredient}
+                      onRemoveIngredient={handleRemoveIngredient}
+                      onUpdateIngredient={handleUpdateIngredient}
+                      onMarkAsUsed={handleMarkAsUsed}
+                    />
+                  </div>
+
+                  {/* Empty State */}
+                  {ingredients.length === 0 && (
+                    <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+                      <div className="text-6xl mb-4">🥗</div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        Your pantry is empty
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        Start adding ingredients to build your virtual pantry and generate amazing
+                        recipes!
+                      </p>
+                      <div className="flex justify-center gap-4">
+                        <button
+                          onClick={() => setShowReceiptScanner(true)}
+                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                        >
+                          <span>📄</span>
+                          Scan Receipt
+                        </button>
+                        <button
+                          onClick={() => setShowBarcodeScanner(true)}
+                          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                        >
+                          <span>📱</span>
+                          Scan Barcode
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tips Section */}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">💡 Pantry Tips</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                      <div className="flex gap-2">
+                        <span>📄</span>
+                        <span>Scan receipts to quickly add multiple ingredients at once</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span>📱</span>
+                        <span>Use barcode scanning for instant product identification</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span>📅</span>
+                        <span>Add expiry dates to track freshness and reduce waste</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span>📊</span>
+                        <span>Specify quantities to better plan your meals</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span>🏷️</span>
+                        <span>Use categories to organize and find ingredients quickly</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span>🔄</span>
+                        <span>Keep your pantry updated for the best recipe suggestions</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {activeTab === 'receipts' && (
+                <div className="space-y-6">
+                  {receipts.length > 0 ? (
+                    <div className="space-y-4">
+                      {/* Delete All Button */}
+                      <div className="flex justify-end">
+                        <button
+                          onClick={async () => {
+                            if (
+                              window.confirm(
+                                'Are you sure you want to delete all receipts? This cannot be undone.'
+                              )
+                            ) {
+                              try {
+                                setDeletingReceipts(true);
+                                setReceipts([]); // Clear UI immediately for better UX
+                                localStorage.removeItem('userReceipts'); // Clear localStorage receipts
+                                const response = await fetch('/api/delete-all-receipts', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                });
+                                if (response.ok) {
+                                  await loadReceipts(); // Refresh the list
+                                  alert('All receipts deleted successfully!');
+                                } else {
+                                  alert('Failed to delete receipts');
+                                  await loadReceipts(); // Reload on error
+                                }
+                              } catch (error) {
+                                console.error('Error deleting receipts:', error);
+                                alert('Failed to delete receipts');
+                                await loadReceipts(); // Reload on error
+                              } finally {
+                                setDeletingReceipts(false);
+                              }
+                            }
+                          }}
+                          disabled={deletingReceipts || receipts.length === 0}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {deletingReceipts ? 'Deleting...' : 'Delete All Receipts'}
+                        </button>
+                      </div>
+                      {receipts.map(receipt => (
+                        <div
+                          key={receipt.id}
+                          className="bg-white rounded-2xl p-6 border border-gray-200 hover:shadow-lg transition-shadow"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-4">
+                              <span className="text-3xl">🧾</span>
+                              <div>
+                                <h3 className="text-xl font-semibold text-gray-900">
+                                  {receipt.storeName}
+                                </h3>
+                                <div className="text-sm text-gray-500">
+                                  {receipt.receiptDate.toLocaleDateString()} •{' '}
+                                  {receipt.items.length} items
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-gray-900">
+                                ${receipt.totalAmount.toFixed(2)}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                Tax: ${receipt.taxAmount.toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Items Preview */}
+                          <div className="bg-gray-50 rounded-xl p-4">
+                            <h4 className="font-medium text-gray-900 mb-3">
+                              Items ({receipt.items.length})
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {receipt.items.slice(0, 6).map(item => (
+                                <div
+                                  key={item.id}
+                                  className="flex items-center justify-between p-2 bg-white rounded-lg text-sm"
+                                >
+                                  <span className="text-gray-700 truncate">{item.name}</span>
+                                  <span className="font-medium text-gray-900">
+                                    ${item.price.toFixed(2)}
+                                  </span>
+                                </div>
+                              ))}
+                              {receipt.items.length > 6 && (
+                                <div className="p-2 text-center text-gray-500 text-sm">
+                                  +{receipt.items.length - 6} more items
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Confidence Indicator */}
+                          <div className="mt-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-500">Processing confidence:</span>
+                              <div
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  receipt.confidence > 0.8
+                                    ? 'bg-green-100 text-green-800'
+                                    : receipt.confidence > 0.6
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-red-100 text-red-800'
+                                }`}
+                              >
+                                {Math.round(receipt.confidence * 100)}%
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <span className="text-6xl mb-4 block">📂</span>
+                      <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                        No Receipt History
+                      </h3>
+                      <p className="text-gray-500">
+                        Start scanning receipts to see them appear here
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {activeTab === 'analytics' && <SpendingAnalytics receipts={receipts} />}
             </div>
           </div>
         </div>

@@ -1289,7 +1289,7 @@ class ReceiptService {
 
         console.log('🧾 ReceiptService: Transformed receipts for proper format:', {
           count: transformedReceipts.length,
-          sampleTransformed: transformedReceipts.slice(0, 1).map(r => ({
+          sampleTransformed: transformedReceipts.slice(0, 1).map((r: any) => ({
             id: r.id,
             storeName: r.storeName,
             receiptDate: r.receiptDate,

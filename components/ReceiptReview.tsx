@@ -188,7 +188,7 @@ export default function ReceiptReview({
   }, [confirmedItems, user, receiptData, supabaseClient, onClose, authLoading]);
 
   const totalItemsToAdd = confirmedItems.filter(item => item.addToPantry).length;
-  const totalValue = confirmedItems.reduce((sum, item) => sum + item.price, 0);
+  const totalValue = confirmedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const isLoading = loading || internalLoading || authLoading;
 
   return (
