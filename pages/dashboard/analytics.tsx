@@ -592,7 +592,7 @@ export default function Analytics() {
 
           // Pantry stats from API analytics or ingredients context fallback
           pantryItems: apiData?.analytics?.totalIngredients || ingredients.length,
-          expiringItems: (ingredientsForReceipts || ingredients).filter(ing => {
+          expiringItems: (ingredientsForReceipts || ingredients).filter((ing: any) => {
             if (!ing.expiryDate) return false;
             const expiryDate = new Date(ing.expiryDate);
             const daysUntilExpiry = Math.ceil(
