@@ -533,7 +533,10 @@ export default function Analytics() {
 
         console.log('🧾 Receipts Debug:', {
           userReceiptsLength: userReceipts.length,
-          userReceipts: userReceipts.map(r => ({ store: r.storeName, amount: r.totalAmount })),
+          userReceipts: userReceipts.map((r: any) => ({
+            store: r.storeName,
+            amount: r.totalAmount,
+          })),
           ingredientsForReceiptsLength: ingredientsForReceipts.length,
           willCreateSynthetic: userReceipts.length === 0,
         });
