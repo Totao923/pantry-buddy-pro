@@ -266,7 +266,9 @@ export default function PantryManagement() {
             name: item.name,
             price: item.price * item.quantity, // Total price for this item
             quantity: item.quantity,
+            unit: item.unit || 'piece',
             category: item.category,
+            confidence: item.confidence || 0.95,
           })),
         };
 
