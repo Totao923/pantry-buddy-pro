@@ -21,7 +21,6 @@ interface FormData {
   adPersonalization: boolean;
   emailNotifications: boolean;
   measurementUnits: 'imperial' | 'metric';
-  darkMode: boolean;
 }
 
 export default function Settings() {
@@ -41,36 +40,10 @@ export default function Settings() {
     adPersonalization: false,
     emailNotifications: true,
     measurementUnits: 'imperial',
-    darkMode: false,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // Initialize dark mode from localStorage
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-    setFormData(prev => ({ ...prev, darkMode: savedDarkMode }));
-
-    // Apply dark mode class to document
-    if (savedDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-
-  // Handle dark mode toggle
-  const toggleDarkMode = (enabled: boolean) => {
-    setFormData(prev => ({ ...prev, darkMode: enabled }));
-    localStorage.setItem('darkMode', enabled.toString());
-
-    if (enabled) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
 
   const cuisines: { id: CuisineType; name: string; icon: string }[] = [
     { id: 'italian', name: 'Italian', icon: '🍝' },
@@ -655,34 +628,6 @@ export default function Settings() {
                     <span className="ml-2 text-sm text-gray-700">Metric (ml, g, °C)</span>
                   </label>
                 </div>
-              </div>
-
-              {/* Dark Mode Toggle */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  🌙 Theme
-                </label>
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => toggleDarkMode(!formData.darkMode)}
-                    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-pantry-500 focus:ring-offset-2 ${
-                      formData.darkMode ? 'bg-pantry-600' : 'bg-gray-200'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${
-                        formData.darkMode ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                  <span className="ml-3 text-sm text-gray-700 dark:text-gray-300">
-                    {formData.darkMode ? 'Dark mode' : 'Light mode'}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Toggle between light and dark theme
-                </p>
               </div>
             </div>
           </div>
