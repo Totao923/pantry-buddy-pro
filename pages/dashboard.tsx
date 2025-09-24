@@ -11,6 +11,7 @@ import { receiptService } from '../lib/services/receiptService';
 import { RecipeService } from '../lib/services/recipeService';
 import { cookingSessionService } from '../lib/services/cookingSessionService';
 import { UsageTrackingService } from '../lib/services/usageTrackingService';
+import { databaseSettingsService } from '../lib/services/databaseSettingsService';
 import { ExtractedReceiptData } from '../lib/services/receiptService';
 import { Recipe, CuisineType, Ingredient } from '../types';
 import SpendingAnalytics from '../components/SpendingAnalytics';
