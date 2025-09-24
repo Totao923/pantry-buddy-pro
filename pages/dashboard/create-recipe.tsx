@@ -35,7 +35,11 @@ export default function CreateRecipe() {
     experienceLevel: 'intermediate' as 'beginner' | 'intermediate' | 'advanced' | 'expert',
     isChildFriendly: false,
   });
-  const [showModeSelection, setShowModeSelection] = useState(subscription?.tier === 'premium');
+  const [showModeSelection, setShowModeSelection] = useState(
+    subscription?.tier === 'premium' ||
+      subscription?.tier === 'family' ||
+      subscription?.tier === 'chef'
+  );
   const [aiSuggestedMode, setAiSuggestedMode] = useState(false);
   const [recommendationTitle, setRecommendationTitle] = useState<string>('');
 

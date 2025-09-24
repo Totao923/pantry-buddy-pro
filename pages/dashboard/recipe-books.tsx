@@ -21,7 +21,10 @@ export default function RecipeBooksPage() {
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isPremium = subscription?.tier === 'premium';
+  const isPremium =
+    subscription?.tier === 'premium' ||
+    subscription?.tier === 'family' ||
+    subscription?.tier === 'chef';
 
   useEffect(() => {
     if (supabaseClient) {

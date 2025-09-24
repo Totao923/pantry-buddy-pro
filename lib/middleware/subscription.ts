@@ -41,15 +41,20 @@ export function withSubscription(handler: SubscriptionHandler) {
       const hasFeature = (feature: string): boolean => {
         switch (feature) {
           case 'advanced_ai':
-            return limits.has_advanced_ai;
+            return limits.has_advanced_ai || tier === 'family' || tier === 'chef';
           case 'nutrition_tracking':
-            return limits.has_nutrition_tracking;
+            return limits.has_nutrition_tracking || tier === 'family' || tier === 'chef';
           case 'meal_planning':
-            return limits.has_meal_planning;
+            return limits.has_meal_planning || tier === 'family' || tier === 'chef';
           case 'photo_uploads':
-            return limits.has_photo_uploads;
+            return limits.has_photo_uploads || tier === 'family' || tier === 'chef';
           case 'ad_free':
-            return limits.has_ad_free_experience;
+            return (
+              limits.has_ad_free_experience ||
+              tier === 'premium' ||
+              tier === 'family' ||
+              tier === 'chef'
+            );
           case 'family_management':
           case 'family_collections':
           case 'bulk_shopping':

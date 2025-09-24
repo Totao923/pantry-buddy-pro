@@ -661,7 +661,11 @@ export const AInutritionist: React.FC<AInutritionistProps> = ({
 
   // Temporary: Allow testing of nutrition features in development
   const isDevelopment = process.env.NODE_ENV === 'development';
-  const hasPremiumAccess = subscription?.tier === 'premium' || isDevelopment;
+  const hasPremiumAccess =
+    subscription?.tier === 'premium' ||
+    subscription?.tier === 'family' ||
+    subscription?.tier === 'chef' ||
+    isDevelopment;
 
   if (!user || !subscription || (!hasPremiumAccess && subscription.tier === 'free')) {
     return (

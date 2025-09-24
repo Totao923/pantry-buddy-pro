@@ -125,7 +125,10 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
   const [showRecipeSelector, setShowRecipeSelector] = useState(false);
   const [bookToEdit, setBookToEdit] = useState<RecipeBook | null>(null);
 
-  const isPremium = subscription?.tier === 'premium';
+  const isPremium =
+    subscription?.tier === 'premium' ||
+    subscription?.tier === 'family' ||
+    subscription?.tier === 'chef';
   const maxBooks = isPremium ? 50 : 1;
 
   useEffect(() => {

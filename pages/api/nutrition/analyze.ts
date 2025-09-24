@@ -102,7 +102,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // Check if user has premium access (allow development mode)
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const hasPremiumAccess = userProfile?.subscription?.tier === 'premium' || isDevelopment;
+    const hasPremiumAccess =
+      userProfile?.subscription?.tier === 'premium' ||
+      userProfile?.subscription?.tier === 'family' ||
+      userProfile?.subscription?.tier === 'chef' ||
+      isDevelopment;
 
     if (
       !userProfile?.subscription ||
