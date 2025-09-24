@@ -23,10 +23,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigationItems = [
     {
-      name: 'Overview',
+      name: 'Home',
       href: '/dashboard',
       icon: '🏠',
-      description: 'Dashboard overview',
+      description: 'Home with insights',
     },
     {
       name: 'My Recipes',
@@ -86,12 +86,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { name: 'Shopping Lists', href: '/dashboard/family-shopping' },
         { name: 'Nutrition Tracking', href: '/dashboard/family-nutrition' },
       ],
-    },
-    {
-      name: 'Analytics',
-      href: '/dashboard/analytics',
-      icon: '📊',
-      description: 'Cooking insights',
     },
     {
       name: 'Settings',
@@ -157,23 +151,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center gap-3">
-              <div className="w-20 h-20 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-xl flex items-center justify-center overflow-hidden">
-                <Image
-                  src="/logo.png"
-                  alt="Pantry Buddy Logo"
-                  width={64}
-                  height={64}
-                  className="w-16 h-16 object-contain"
-                />
+            <Link href="/dashboard">
+              <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+                <div className="w-20 h-20 bg-gradient-to-br from-pantry-700 to-pantry-800 rounded-xl flex items-center justify-center overflow-hidden">
+                  <Image
+                    src="/logo.png"
+                    alt="Pantry Buddy Logo"
+                    width={64}
+                    height={64}
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-pantry-700 to-pantry-600 bg-clip-text text-transparent">
+                    Pantry Buddy
+                  </h1>
+                  <p className="text-base text-gray-500">Dashboard</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-pantry-700 to-pantry-600 bg-clip-text text-transparent">
-                  Pantry Buddy
-                </h1>
-                <p className="text-base text-gray-500">Dashboard</p>
-              </div>
-            </div>
+            </Link>
             <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden p-2 rounded-lg hover:bg-gray-100"

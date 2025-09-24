@@ -21,6 +21,7 @@ interface FormData {
   adPersonalization: boolean;
   emailNotifications: boolean;
   measurementUnits: 'imperial' | 'metric';
+  darkMode: boolean;
 }
 
 export default function Settings() {
@@ -40,10 +41,36 @@ export default function Settings() {
     adPersonalization: false,
     emailNotifications: true,
     measurementUnits: 'imperial',
+    darkMode: false,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Initialize dark mode from localStorage
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    setFormData(prev => ({ ...prev, darkMode: savedDarkMode }));
+
+    // Apply dark mode class to document
+    if (savedDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  // Handle dark mode toggle
+  const toggleDarkMode = (enabled: boolean) => {
+    setFormData(prev => ({ ...prev, darkMode: enabled }));
+    localStorage.setItem('darkMode', enabled.toString());
+
+    if (enabled) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   const cuisines: { id: CuisineType; name: string; icon: string }[] = [
     { id: 'italian', name: 'Italian', icon: '🍝' },
@@ -362,7 +389,7 @@ export default function Settings() {
           )}
 
           {/* Account Information */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -394,7 +421,7 @@ export default function Settings() {
           </div>
 
           {/* Cooking Preferences */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Cooking Preferences</h2>
 
             {/* Dietary Restrictions */}
@@ -545,7 +572,7 @@ export default function Settings() {
           </div>
 
           {/* Privacy & Notifications */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Privacy & Notifications</h2>
             <div className="space-y-4">
               <label className="flex items-center justify-between">
@@ -597,7 +624,7 @@ export default function Settings() {
           </div>
 
           {/* App Preferences */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">App Preferences</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -629,11 +656,39 @@ export default function Settings() {
                   </label>
                 </div>
               </div>
+
+              {/* Dark Mode Toggle */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  🌙 Theme
+                </label>
+                <div className="flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => toggleDarkMode(!formData.darkMode)}
+                    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-pantry-500 focus:ring-offset-2 ${
+                      formData.darkMode ? 'bg-pantry-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${
+                        formData.darkMode ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <span className="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                    {formData.darkMode ? 'Dark mode' : 'Light mode'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Toggle between light and dark theme
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Subscription Management */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Subscription</h2>
             <div className="space-y-4">
               {subscription ? (
@@ -687,7 +742,7 @@ export default function Settings() {
           </div>
 
           {/* Data Export & Account Management */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Data & Privacy</h2>
 
             {/* Data Export */}
