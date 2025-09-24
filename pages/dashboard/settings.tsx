@@ -45,6 +45,12 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Clean up any existing dark mode
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    localStorage.removeItem('darkMode');
+  }, []);
+
   const cuisines: { id: CuisineType; name: string; icon: string }[] = [
     { id: 'italian', name: 'Italian', icon: '🍝' },
     { id: 'asian', name: 'Asian', icon: '🥢' },
@@ -362,7 +368,7 @@ export default function Settings() {
           )}
 
           {/* Account Information */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -394,7 +400,7 @@ export default function Settings() {
           </div>
 
           {/* Cooking Preferences */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Cooking Preferences</h2>
 
             {/* Dietary Restrictions */}
@@ -545,7 +551,7 @@ export default function Settings() {
           </div>
 
           {/* Privacy & Notifications */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Privacy & Notifications</h2>
             <div className="space-y-4">
               <label className="flex items-center justify-between">
@@ -597,7 +603,7 @@ export default function Settings() {
           </div>
 
           {/* App Preferences */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">App Preferences</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -633,7 +639,7 @@ export default function Settings() {
           </div>
 
           {/* Subscription Management */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Subscription</h2>
             <div className="space-y-4">
               {subscription ? (
@@ -687,7 +693,7 @@ export default function Settings() {
           </div>
 
           {/* Data Export & Account Management */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Data & Privacy</h2>
 
             {/* Data Export */}
