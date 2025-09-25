@@ -1,38 +1,39 @@
-# TODO: Debug Analytics vs Pantry Store Count Discrepancy
+# TODO: Fix Persistent Analytics Dashboard Store Count Issue
 
 ## Problem Statement
 
-After copying the exact receipt loading logic from pantry dashboard to analytics dashboard, there's still a discrepancy:
+Despite implementing the timing fix, analytics dashboard still shows 2 stores while pantry dashboard shows the correct 3 stores. Server logs reveal analytics is still making calls to non-existent debug APIs.
 
-- **Analytics Dashboard**: Shows 2 stores
-- **Pantry Dashboard**: Shows correct 3 stores
+## Server Log Analysis
 
-Both should show the same data since they now use identical receipt loading logic.
+From localhost:3000 logs:
+
+- `GET /api/debug-all-receipts 404` - Analytics still trying to use old debug API
+- Analytics dashboard may still be using complex fallback logic instead of simple receiptService
+- Need to verify the timing fix is actually working
 
 ## Investigation Plan
 
-- [ ] Debug analytics vs pantry store count discrepancy (2 vs 3 stores)
-- [ ] Check if SpendingAnalytics component is filtering stores differently
-- [ ] Compare actual receipt data being passed to both components
-- [ ] Fix any remaining differences in data handling
-- [ ] Verify both dashboards show same store count
+- [x] Check server logs to identify why analytics still shows 2 stores vs pantry's 3
+- [ ] Examine if analytics dashboard is still using old complex logic instead of simple receiptService
+- [ ] Compare the exact receipt data being loaded in both dashboards using console logs
+- [ ] Fix any remaining differences in receipt loading between analytics and pantry
+- [ ] Verify both dashboards show identical store counts
 
-## Possible Causes
+## Key Findings
 
-1. **Timing Issues**: Analytics dashboard might be rendering before receipts are loaded
-2. **Component Props**: Different props being passed to SpendingAnalytics component
-3. **Data Filtering**: SpendingAnalytics component filtering stores differently in different contexts
-4. **State Updates**: Receipt loading happening at different times
-5. **Caching**: Old data being cached in analytics dashboard
+1. **API Call Issue**: Analytics dashboard making 404 calls to `/api/debug-all-receipts`
+2. **Logic Not Updated**: The complex emergency loading logic may still be present
+3. **Timing Fix**: May not be preventing the fallback to old logic
 
-## Investigation Areas
+## Next Steps
 
-1. **Receipt Loading Timing**: Check when receipts are loaded in both dashboards
-2. **SpendingAnalytics Component**: Examine if component behaves differently based on context
-3. **Console Logs**: Compare receipt data being logged in both locations
-4. **Component State**: Check if receipts state is being updated correctly
-5. **Data Flow**: Trace the complete data flow from loading to display
+1. Check if the analytics dashboard still has complex receipt loading code
+2. Verify the timing fix is working correctly
+3. Ensure both dashboards use identical receiptService.getUserReceipts() calls
+4. Compare actual receipt data being passed to SpendingAnalytics component
+5. Keep changes simple - minimal modifications only
 
 ## Expected Outcome
 
-Both analytics and pantry dashboards should show the exact same store count (3 stores) since they now use identical receipt loading logic.
+Both analytics and pantry dashboards should show exactly 3 stores using identical receipt loading logic.
