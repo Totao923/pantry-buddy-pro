@@ -9,9 +9,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     console.log('🗑️ Deleting all receipts...');
 
-    // Use service role client to bypass RLS for testing (same pattern as get-user-ingredients)
+    // Get authenticated user
     const supabase = createServerSupabaseClient();
-    const userId = '21fc3c81-a66a-4cf3-be35-c2b70a900864'; // hescoto@icloud.com
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated - please sign in first',
+      });
+    }
+
+    console.log(`✅ Authenticated user: ${user.email} (${user.id})`);
+    const userId = user.id;
 
     // Delete all receipts for the user
     const { data: deletedReceipts, error: deleteError } = await supabase
