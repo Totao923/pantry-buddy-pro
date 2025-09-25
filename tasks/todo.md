@@ -1,71 +1,33 @@
-# TODO: Fix Receipt Store Name Detection Issue
+# TODO: Fix Analytics Dashboard Store Recognition Issue
 
 ## Problem Statement
 
-Receipt scanning is not detecting/extracting the store name from newly scanned receipts. The OCR system should identify and capture store names for proper categorization and spending analytics.
+The spending analytics on the analytics dashboard is not recognizing new stores being added, but the spending analytics in the pantry dashboard works correctly. Need to copy the working logic exactly from pantry dashboard to analytics dashboard without breaking existing functionality.
 
 ## Analysis Plan
 
-- [x] Analyze receipt scanning functionality and OCR store name detection
-- [x] Review OCR API and store name extraction logic
-- [x] Test with recent receipt and identify why store name wasn't detected
-- [x] Fix store name detection in receipt processing
-- [x] Update todo.md with findings and solution
-- [ ] Add logo detection capability to OCR scanning
+- [ ] Analyze spending analytics logic differences between pantry and analytics dashboards
+- [ ] Examine pantry dashboard spending analytics implementation
+- [ ] Compare with analytics dashboard spending analytics
+- [ ] Copy working logic from pantry to analytics dashboard
+- [ ] Test and verify new stores are recognized in analytics dashboard
+- [ ] Update todo.md with changes made
 
-## Investigation Results
+## Investigation Areas
 
-### Root Cause Found
+1. **Pantry Dashboard**: Check how spending analytics loads and processes store data
+2. **Analytics Dashboard**: Compare current implementation and identify differences
+3. **Data Loading**: Examine receipt data loading mechanisms in both locations
+4. **Store Detection**: Compare how stores are extracted and categorized
+5. **Component Logic**: Find the exact logic differences causing the issue
 
-The `extractStoreName` function in `receiptService.ts` had very limited store name detection:
+## Files to Examine
 
-- Only recognized 7 specific store chains
-- Only checked first 5 lines of receipt
-- Poor fallback logic
-
-### Solution Implemented
-
-Enhanced store name detection with:
-
-1. **Expanded Store Patterns**: Added 20+ specific store chains including CVS, Walgreens, Home Depot, Aldi, etc.
-2. **Generic Pattern Detection**: Added patterns for MARKET, GROCERY, SUPERMARKET, PHARMACY, possessive stores (Leonard's), and business entities (INC, LLC, CORP)
-3. **Improved Line Analysis**: Now checks first 8 lines instead of 5
-4. **Better Filtering**: Skips address lines, phone numbers, and obvious non-store content
-5. **Smarter Fallback**: More intelligent selection of store-like lines
-
-### Changes Made
-
-- Modified `extractStoreName()` function in `lib/services/receiptService.ts` (lines 205-270)
-- Added comprehensive store pattern matching
-- Improved text filtering and line analysis
-- Build tested and successful
-
-## New Enhancement Request: Logo Detection
-
-### Problem
-
-Some stores have logos on receipts that might be detected by OCR as text or symbols that could help identify the store.
-
-### Proposed Solution
-
-1. **Logo Text Detection**: Use Google Vision's TEXT_DETECTION to identify logo text/symbols
-2. **Logo Pattern Matching**: Create patterns for common logo indicators (®, ™, specific symbols)
-3. **Fallback Logic**: If logo detection fails, use existing text-based store name detection
-4. **Integration**: Enhance the existing `extractStoreName` function to try logo detection first
-
-### Implementation Plan
-
-- Modify OCR processing to capture logo-related text
-- Add logo pattern recognition to store detection
-- Maintain backward compatibility with existing logic
-
-## Files Modified
-
-- `lib/services/receiptService.ts` - Enhanced store name extraction
+- Pantry dashboard spending analytics component
+- Analytics dashboard spending analytics component
+- Shared SpendingAnalytics component
+- Receipt loading services and data processing
 
 ## Expected Outcome
 
-- Store names properly detected from receipt text
-- Better coverage of store chains and local businesses
-- Potential logo detection for additional accuracy
-- Improved spending analytics and receipt organization
+Analytics dashboard spending analytics should recognize new stores exactly like the pantry dashboard does, maintaining all existing functionality while fixing the store recognition issue.

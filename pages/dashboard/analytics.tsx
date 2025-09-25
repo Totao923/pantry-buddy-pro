@@ -156,7 +156,7 @@ export default function Analytics() {
 
   const [apiLoading, setApiLoading] = useState(false);
 
-  const { user } = useAuth();
+  const { user, supabaseClient } = useAuth();
   const { ingredients } = useIngredients();
 
   console.log('📈 ANALYTICS COMPONENT DATA:', {
@@ -192,11 +192,28 @@ export default function Analytics() {
     categoryBreakdown: [],
   });
   const [receipts, setReceipts] = useState<ExtractedReceiptData[]>([]);
-  const [emergencyReceipts, setEmergencyReceipts] = useState<ExtractedReceiptData[]>([]);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '3m' | 'all'>('30d');
   const [activeTab, setActiveTab] = useState<'overview' | 'spending' | 'pantry' | 'cooking'>(
     'spending'
   );
+
+  // Load receipts using the same simple logic as pantry dashboard
+  useEffect(() => {
+    loadReceipts();
+  }, [user]);
+
+  const loadReceipts = async () => {
+    if (!user) return;
+
+    try {
+      console.log('🧾 Loading receipts for analytics dashboard using receiptService...');
+      const userReceipts = await receiptService.getUserReceipts(user.id, supabaseClient);
+      console.log('🧾 Analytics dashboard loaded receipts:', userReceipts.length);
+      setReceipts(userReceipts);
+    } catch (error) {
+      console.error('❌ Failed to load receipts in analytics dashboard:', error);
+    }
+  };
 
   // Debug logging for activeTab changes
   useEffect(() => {
@@ -440,7 +457,7 @@ export default function Analytics() {
           popularRecipes,
           todayUsage,
           receiptAnalytics,
-          userReceipts,
+          unusedPlaceholder,
           apiData,
         ] = await Promise.all([
           // Load saved recipes from Supabase
@@ -497,25 +514,8 @@ export default function Analytics() {
                 categoryTotals: {},
                 storeTotals: {},
               }),
-          // Load user receipts for SpendingAnalytics component - use API fallback since receiptService fails in server context
-          user?.id
-            ? fetch('/api/debug-all-receipts')
-                .then(res => res.json())
-                .then(data => {
-                  if (data.success && data.receipts && data.receipts.length > 0) {
-                    // Convert database receipts to ExtractedReceiptData format
-                    return data.receipts.map((r: any) => ({
-                      id: r.id,
-                      storeName: r.store_name,
-                      receiptDate: new Date(r.receipt_date),
-                      totalAmount: r.total_amount,
-                      items: [], // Items will be populated if needed
-                    }));
-                  }
-                  return [];
-                })
-                .catch(() => [])
-            : Promise.resolve([]),
+          // Receipts are now loaded separately using receiptService.getUserReceipts
+          Promise.resolve([]),
           // Load accurate pantry data from API (ingredients + analytics)
           user?.id
             ? fetch('/api/get-user-ingredients')
@@ -527,46 +527,8 @@ export default function Analytics() {
             : Promise.resolve(null),
         ]);
 
-        // Create synthetic receipts from ingredients if no receipts exist
-        // Use API ingredients if available, otherwise fall back to context ingredients
-        const ingredientsForReceipts = apiData?.ingredients || ingredients;
-
-        console.log('🧾 Receipts Debug:', {
-          userReceiptsLength: userReceipts.length,
-          userReceipts: userReceipts.map((r: any) => ({
-            store: r.storeName,
-            amount: r.totalAmount,
-          })),
-          ingredientsForReceiptsLength: ingredientsForReceipts.length,
-          willCreateSynthetic: userReceipts.length === 0,
-        });
-
-        // Use real receipts if available, otherwise create synthetic ones
-        let finalReceipts: ExtractedReceiptData[];
-        if (userReceipts.length > 0) {
-          console.log('🧾 Using REAL receipts from database');
-          finalReceipts = userReceipts;
-        } else {
-          console.log('🧾 Creating SYNTHETIC receipts from ingredients');
-          finalReceipts = createSyntheticReceiptsFromIngredients(
-            ingredientsForReceipts,
-            userReceipts
-          );
-        }
-
-        console.log('🧾 Final Receipts ANALYTICS:', {
-          finalReceiptsLength: finalReceipts.length,
-          finalReceipts: finalReceipts.map(r => ({
-            id: r.id,
-            storeName: r.storeName,
-            totalAmount: r.totalAmount,
-            itemCount: r.items?.length || 0,
-          })),
-        });
-
-        // 🚨 CRITICAL FIX: Update receipts state for SpendingAnalytics component
-        console.log('🚨 SETTING RECEIPTS STATE:', finalReceipts.length, 'receipts');
-        setReceipts(finalReceipts);
+        // Receipts are now loaded separately via loadReceipts() function
+        console.log('🧾 Receipts are loaded via separate loadReceipts() function');
 
         // Calculate comprehensive analytics from real Supabase data
         const realAnalyticsData = {
@@ -592,7 +554,7 @@ export default function Analytics() {
 
           // Pantry stats from API analytics or ingredients context fallback
           pantryItems: apiData?.analytics?.totalIngredients || ingredients.length,
-          expiringItems: (ingredientsForReceipts || ingredients).filter((ing: any) => {
+          expiringItems: ingredients.filter((ing: any) => {
             if (!ing.expiryDate) return false;
             const expiryDate = new Date(ing.expiryDate);
             const daysUntilExpiry = Math.ceil(
@@ -735,14 +697,6 @@ export default function Analytics() {
         };
 
         setAnalyticsData(realAnalyticsData);
-
-        console.log('🔧 SETTING RECEIPTS STATE:', {
-          finalReceiptsLength: finalReceipts?.length || 0,
-          finalReceiptsUndefined: finalReceipts === undefined,
-          settingTo: finalReceipts || [],
-        });
-
-        setReceipts(finalReceipts || []);
         setApiLoading(false);
       } catch (error) {
         // Fallback to basic data structure
@@ -1023,53 +977,8 @@ export default function Analytics() {
             </>
           )}
 
-          {/* Spending Analytics Tab */}
-          {activeTab === 'spending' &&
-            (() => {
-              console.log('🎯 RENDERING SPENDING TAB:', {
-                activeTab,
-                receiptsLength: receipts.length,
-                emergencyReceiptsLength: emergencyReceipts.length,
-                receipts: receipts.map(r => ({
-                  id: r.id,
-                  storeName: r.storeName,
-                  totalAmount: r.totalAmount,
-                })),
-              });
-
-              // 🚨 EMERGENCY: Load receipts directly if empty
-              if (emergencyReceipts.length === 0) {
-                console.log('🚨 EMERGENCY: Loading receipts directly via fetch...');
-                fetch('http://localhost:3000/api/debug-all-receipts')
-                  .then(res => res.json())
-                  .then(data => {
-                    if (data.success && data.receipts?.length > 0) {
-                      console.log('🚨 EMERGENCY: Got receipts directly:', data.receipts.length);
-                      const realReceipts = data.receipts.map((r: any) => ({
-                        id: r.id,
-                        storeName: r.store_name,
-                        receiptDate: new Date(r.receipt_date),
-                        totalAmount: r.total_amount,
-                        taxAmount: 0,
-                        items: [],
-                        rawText: `Receipt from ${r.store_name}`,
-                        confidence: 1.0,
-                      }));
-                      setEmergencyReceipts(realReceipts);
-                    }
-                  })
-                  .catch(err => console.error('🚨 EMERGENCY: Failed to load receipts:', err));
-              }
-
-              const activeReceipts = emergencyReceipts.length > 0 ? emergencyReceipts : receipts;
-              console.log('🎯 USING RECEIPTS:', {
-                emergencyCount: emergencyReceipts.length,
-                regularCount: receipts.length,
-                activeCount: activeReceipts.length,
-              });
-
-              return <SpendingAnalytics receipts={activeReceipts} className="mt-6" />;
-            })()}
+          {/* Spending Analytics Tab - Using exact same logic as pantry dashboard */}
+          {activeTab === 'spending' && <SpendingAnalytics receipts={receipts} />}
 
           {/* Pantry Insights Tab */}
           {activeTab === 'pantry' && (
