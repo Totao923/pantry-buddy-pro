@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createServerSupabaseClient } from '../../lib/supabase/server';
+import { createUserSupabaseClient } from '../../lib/supabase/server';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -9,8 +9,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     console.log('🗑️ Deleting all receipts...');
 
-    // Get authenticated user
-    const supabase = createServerSupabaseClient();
+    // Extract JWT token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Missing or invalid authorization header',
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'Missing authentication token',
+      });
+    }
+
+    // Get authenticated user using the user token
+    const supabase = createUserSupabaseClient(token);
     const {
       data: { user },
       error: authError,

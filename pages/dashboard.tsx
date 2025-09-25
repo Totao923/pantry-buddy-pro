@@ -178,7 +178,7 @@ interface AnalyticsData {
 
 export default function Dashboard() {
   // Force deployment update v1.0.1
-  const { user, loading: authLoading } = useAuth();
+  const { user, supabaseClient, loading: authLoading } = useAuth();
   const { ingredients } = useIngredients();
   const router = useRouter();
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
@@ -599,24 +599,9 @@ export default function Dashboard() {
                 categoryTotals: {},
                 storeTotals: {},
               }),
-          // Load user receipts for SpendingAnalytics component - use API fallback since receiptService fails in server context
+          // Load user receipts for SpendingAnalytics component using receiptService
           user?.id
-            ? fetch('/api/debug-all-receipts')
-                .then(res => res.json())
-                .then(data => {
-                  if (data.success && data.receipts && data.receipts.length > 0) {
-                    // Convert database receipts to ExtractedReceiptData format
-                    return data.receipts.map((r: any) => ({
-                      id: r.id,
-                      storeName: r.store_name,
-                      receiptDate: new Date(r.receipt_date),
-                      totalAmount: r.total_amount,
-                      items: [], // Items will be populated if needed
-                    }));
-                  }
-                  return [];
-                })
-                .catch(() => [])
+            ? receiptService.getUserReceipts(user.id, supabaseClient).catch(() => [])
             : Promise.resolve([]),
           // Load accurate pantry data from API (ingredients + analytics)
           user?.id

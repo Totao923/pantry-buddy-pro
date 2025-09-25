@@ -21,87 +21,14 @@ interface SpendingAnalyticsProps {
   className?: string;
 }
 
-// Function to create synthetic receipts from ingredients
-function createSyntheticReceiptsFromIngredients(ingredients: any[]): ExtractedReceiptData[] {
-  console.log('🔄 Creating synthetic receipts from ingredients:', ingredients.length);
-
-  if (!ingredients || ingredients.length === 0) {
-    console.log('❌ No ingredients available, returning empty array');
-    return [];
-  }
-
-  // Filter ingredients that have receipt pricing
-  const receiptIngredients = ingredients.filter(
-    ing => ing.priceSource === 'receipt' && ing.price && ing.price > 0
-  );
-
-  console.log('📦 Found receipt ingredients:', receiptIngredients.length);
-
-  if (receiptIngredients.length === 0) {
-    console.log('❌ No receipt ingredients found, returning empty array');
-    return [];
-  }
-
-  // Group ingredients by store (if available) or create single receipt
-  const storeGroups: { [storeName: string]: any[] } = {};
-
-  receiptIngredients.forEach(ingredient => {
-    const storeName = ingredient.storeName || 'Grocery Store';
-    if (!storeGroups[storeName]) {
-      storeGroups[storeName] = [];
-    }
-    storeGroups[storeName].push(ingredient);
-  });
-
-  const syntheticReceipts: ExtractedReceiptData[] = Object.entries(storeGroups).map(
-    ([storeName, ingredients], index) => {
-      const totalAmount = ingredients.reduce(
-        (sum, ing) => sum + (ing.price || 0) * parseFloat(ing.quantity || '1'),
-        0
-      );
-      const taxAmount = totalAmount * 0.08; // 8% tax estimate
-
-      const receiptDate = new Date();
-      receiptDate.setDate(receiptDate.getDate() - (index + 1)); // Different days for each receipt
-
-      const items = ingredients.map(ing => ({
-        id: ing.id || `item-${Math.random()}`,
-        name: ing.name,
-        price: (ing.price || 0) * parseFloat(ing.quantity || '1'), // Total price for this item
-        quantity: parseFloat(ing.quantity || '1'),
-        unit: ing.unit || 'piece',
-        category: ing.category,
-        confidence: 0.95,
-      }));
-
-      return {
-        id: `synthetic-${storeName.toLowerCase().replace(/\s+/g, '-')}-${index}`,
-        storeName,
-        receiptDate,
-        totalAmount,
-        taxAmount,
-        items,
-        rawText: `Synthetic receipt from ${storeName}`,
-        confidence: 0.95,
-      };
-    }
-  );
-
-  console.log('✅ Created synthetic receipts:', syntheticReceipts.length, syntheticReceipts);
-  return syntheticReceipts;
-}
-
 export default function SpendingAnalytics({ receipts, className = '' }: SpendingAnalyticsProps) {
   console.log('🚨🏪 SPENDING ANALYTICS DYNAMIC VERSION 🏪🚨');
   console.log('📦 Received receipts:', receipts?.length || 0, receipts);
 
   const { ingredients } = useIngredients();
 
-  // Use real receipts if available, otherwise create from ingredients
-  const enhancedReceipts: ExtractedReceiptData[] =
-    receipts && receipts.length > 0
-      ? receipts
-      : createSyntheticReceiptsFromIngredients(ingredients);
+  // Use real receipts only - no synthetic fallback
+  const enhancedReceipts: ExtractedReceiptData[] = receipts || [];
 
   const isUsingRealData = receipts && receipts.length > 0;
 
