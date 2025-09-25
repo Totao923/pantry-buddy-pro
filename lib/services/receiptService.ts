@@ -29,6 +29,7 @@ export interface OCRResult {
   text?: string;
   confidence?: number;
   error?: string;
+  logos?: string[];
 }
 
 class ReceiptService {
@@ -97,7 +98,7 @@ class ReceiptService {
 
       // Parse the extracted text
       console.log(`📝 Parsing extracted text (${ocrResult.text.length} characters)...`);
-      const receiptData = this.parseReceiptText(ocrResult.text);
+      const receiptData = this.parseReceiptText(ocrResult.text, ocrResult.logos);
 
       if (receiptData.items.length === 0) {
         console.warn('⚠️ No items found in receipt');
@@ -178,7 +179,8 @@ class ReceiptService {
   }
 
   private parseReceiptText(
-    text: string
+    text: string,
+    logos?: string[]
   ): Omit<ExtractedReceiptData, 'id' | 'rawText' | 'confidence'> {
     const lines = text
       .split('\n')
@@ -186,7 +188,7 @@ class ReceiptService {
       .filter(line => line.length > 0);
 
     // Extract store information
-    const storeName = this.extractStoreName(lines);
+    const storeName = this.extractStoreName(lines, logos);
     const receiptDate = this.extractDate(lines);
     const { totalAmount, taxAmount } = this.extractTotals(lines);
 
@@ -202,23 +204,86 @@ class ReceiptService {
     };
   }
 
-  private extractStoreName(lines: string[]): string {
+  private extractStoreName(lines: string[], logos?: string[]): string {
+    // First try to use detected logos if available
+    if (logos && logos.length > 0) {
+      console.log('🏪 Attempting logo-based store detection:', logos);
+
+      // Use the first detected logo as store name
+      const logoName = logos[0];
+      if (logoName && logoName.length > 2 && logoName.length < 50) {
+        console.log('✅ Store name from logo detection:', logoName);
+        return logoName;
+      }
+    }
+
+    // Fallback to text-based store name detection
+    console.log('🔤 Falling back to text-based store detection');
     // Look for common store patterns in first few lines
-    const storePatterns = [
+    const specificStorePatterns = [
       /^(WHOLE FOODS|TRADER JOE|SAFEWAY|KROGER|WALMART|TARGET|COSTCO)/i,
-      /MARKET$/i,
-      /GROCERY$/i,
+      /^(CVS|WALGREENS|RITE AID|DUANE READE)/i,
+      /^(HOME DEPOT|LOWES|MENARDS)/i,
+      /^(STOP & SHOP|FOOD LION|PUBLIX|WEGMANS|H-E-B)/i,
+      /^(ALDI|LIDL|FRESH MARKET|SPROUTS)/i,
+      /^(DOLLAR TREE|FAMILY DOLLAR|DOLLAR GENERAL)/i,
     ];
 
-    for (const line of lines.slice(0, 5)) {
-      for (const pattern of storePatterns) {
-        if (pattern.test(line)) {
-          return line;
+    const genericStorePatterns = [
+      /MARKET$/i,
+      /GROCERY$/i,
+      /SUPERMARKET$/i,
+      /PHARMACY$/i,
+      /\b(STORE|SHOP|MART|FOODS|COMPANY|INC|LLC|CORP)\b/i,
+      /'S$/i, // Possessive stores like "Leonard's", "Smith's"
+    ];
+
+    // First try specific store patterns in first 8 lines
+    for (const line of lines.slice(0, 8)) {
+      const cleanLine = line.trim();
+      if (cleanLine.length < 3) continue;
+
+      for (const pattern of specificStorePatterns) {
+        if (pattern.test(cleanLine)) {
+          return cleanLine;
         }
       }
     }
 
-    return lines[0] || 'Unknown Store';
+    // Then try generic patterns in first 8 lines
+    for (const line of lines.slice(0, 8)) {
+      const cleanLine = line.trim();
+      if (cleanLine.length < 3) continue;
+
+      // Skip lines that look like addresses or phone numbers
+      if (cleanLine.match(/^\d+\s+\w+|^\(\d{3}\)|\d{3}-\d{3}-\d{4}/)) continue;
+
+      // Skip lines with only numbers and symbols
+      if (cleanLine.match(/^[\d\s\-\(\)\.]+$/)) continue;
+
+      for (const pattern of genericStorePatterns) {
+        if (pattern.test(cleanLine)) {
+          return cleanLine;
+        }
+      }
+    }
+
+    // Fallback: find the first meaningful line that looks like a store name
+    for (const line of lines.slice(0, 5)) {
+      const cleanLine = line.trim();
+      if (cleanLine.length < 3) continue;
+
+      // Skip obvious non-store lines
+      if (cleanLine.match(/^\d+\s+\w+|^\(\d{3}\)|\d{3}-\d{3}-\d{4}|@|\.com|receipt|date|time/i))
+        continue;
+
+      // If line has letters and is reasonable length, use it
+      if (cleanLine.match(/[A-Za-z]/) && cleanLine.length > 2 && cleanLine.length < 50) {
+        return cleanLine;
+      }
+    }
+
+    return lines[0]?.trim() || 'Unknown Store';
   }
 
   private extractDate(lines: string[]): Date {

@@ -132,6 +132,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     type: 'DOCUMENT_TEXT_DETECTION',
                     maxResults: 1,
                   },
+                  {
+                    type: 'LOGO_DETECTION',
+                    maxResults: 10,
+                  },
                 ],
                 imageContext: {
                   languageHints: ['en'],
@@ -155,6 +159,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         responseCount: result.responses?.length || 0,
         hasTextAnnotations: !!result.responses?.[0]?.textAnnotations,
         textAnnotationCount: result.responses?.[0]?.textAnnotations?.length || 0,
+        hasLogoAnnotations: !!result.responses?.[0]?.logoAnnotations,
+        logoAnnotationCount: result.responses?.[0]?.logoAnnotations?.length || 0,
         error: result.error,
       });
 
@@ -171,6 +177,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const response0 = result.responses?.[0];
       let extractedText = '';
       let confidence = 0.8;
+      let detectedLogos: string[] = [];
+
+      // Extract detected logos
+      if (response0?.logoAnnotations && response0.logoAnnotations.length > 0) {
+        detectedLogos = response0.logoAnnotations.map((logo: any) => logo.description);
+        console.log('🏪 Detected logos:', detectedLogos);
+      }
 
       // Try DOCUMENT_TEXT_DETECTION result first (more complete)
       if (response0?.fullTextAnnotation?.text) {
@@ -193,6 +206,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           success: true,
           text: extractedText,
           confidence,
+          logos: detectedLogos,
           source: 'google-vision',
         });
       } else {
@@ -201,6 +215,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           success: false,
           error: 'No readable text found. Please ensure receipt is clear and well-lit.',
           source: 'google-vision',
+          logos: detectedLogos,
         });
       }
     } catch (fetchError: any) {
