@@ -1,33 +1,38 @@
-# TODO: Fix Analytics Dashboard Store Recognition Issue
+# TODO: Debug Analytics vs Pantry Store Count Discrepancy
 
 ## Problem Statement
 
-The spending analytics on the analytics dashboard is not recognizing new stores being added, but the spending analytics in the pantry dashboard works correctly. Need to copy the working logic exactly from pantry dashboard to analytics dashboard without breaking existing functionality.
+After copying the exact receipt loading logic from pantry dashboard to analytics dashboard, there's still a discrepancy:
 
-## Analysis Plan
+- **Analytics Dashboard**: Shows 2 stores
+- **Pantry Dashboard**: Shows correct 3 stores
 
-- [ ] Analyze spending analytics logic differences between pantry and analytics dashboards
-- [ ] Examine pantry dashboard spending analytics implementation
-- [ ] Compare with analytics dashboard spending analytics
-- [ ] Copy working logic from pantry to analytics dashboard
-- [ ] Test and verify new stores are recognized in analytics dashboard
-- [ ] Update todo.md with changes made
+Both should show the same data since they now use identical receipt loading logic.
+
+## Investigation Plan
+
+- [ ] Debug analytics vs pantry store count discrepancy (2 vs 3 stores)
+- [ ] Check if SpendingAnalytics component is filtering stores differently
+- [ ] Compare actual receipt data being passed to both components
+- [ ] Fix any remaining differences in data handling
+- [ ] Verify both dashboards show same store count
+
+## Possible Causes
+
+1. **Timing Issues**: Analytics dashboard might be rendering before receipts are loaded
+2. **Component Props**: Different props being passed to SpendingAnalytics component
+3. **Data Filtering**: SpendingAnalytics component filtering stores differently in different contexts
+4. **State Updates**: Receipt loading happening at different times
+5. **Caching**: Old data being cached in analytics dashboard
 
 ## Investigation Areas
 
-1. **Pantry Dashboard**: Check how spending analytics loads and processes store data
-2. **Analytics Dashboard**: Compare current implementation and identify differences
-3. **Data Loading**: Examine receipt data loading mechanisms in both locations
-4. **Store Detection**: Compare how stores are extracted and categorized
-5. **Component Logic**: Find the exact logic differences causing the issue
-
-## Files to Examine
-
-- Pantry dashboard spending analytics component
-- Analytics dashboard spending analytics component
-- Shared SpendingAnalytics component
-- Receipt loading services and data processing
+1. **Receipt Loading Timing**: Check when receipts are loaded in both dashboards
+2. **SpendingAnalytics Component**: Examine if component behaves differently based on context
+3. **Console Logs**: Compare receipt data being logged in both locations
+4. **Component State**: Check if receipts state is being updated correctly
+5. **Data Flow**: Trace the complete data flow from loading to display
 
 ## Expected Outcome
 
-Analytics dashboard spending analytics should recognize new stores exactly like the pantry dashboard does, maintaining all existing functionality while fixing the store recognition issue.
+Both analytics and pantry dashboards should show the exact same store count (3 stores) since they now use identical receipt loading logic.

@@ -192,6 +192,7 @@ export default function Analytics() {
     categoryBreakdown: [],
   });
   const [receipts, setReceipts] = useState<ExtractedReceiptData[]>([]);
+  const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '3m' | 'all'>('30d');
   const [activeTab, setActiveTab] = useState<'overview' | 'spending' | 'pantry' | 'cooking'>(
     'spending'
@@ -203,21 +204,40 @@ export default function Analytics() {
   }, [user]);
 
   const loadReceipts = async () => {
-    if (!user) return;
+    if (!user) {
+      setReceiptsLoading(false);
+      return;
+    }
 
     try {
       console.log('🧾 Loading receipts for analytics dashboard using receiptService...');
+      setReceiptsLoading(true);
       const userReceipts = await receiptService.getUserReceipts(user.id, supabaseClient);
       console.log('🧾 Analytics dashboard loaded receipts:', userReceipts.length);
       setReceipts(userReceipts);
     } catch (error) {
       console.error('❌ Failed to load receipts in analytics dashboard:', error);
+    } finally {
+      setReceiptsLoading(false);
     }
   };
 
   // Debug logging for activeTab changes
   useEffect(() => {
-    console.log('🎯 ACTIVE TAB CHANGED:', activeTab, 'receipts length:', receipts.length);
+    console.log(
+      '🎯 ANALYTICS DASHBOARD - ACTIVE TAB CHANGED:',
+      activeTab,
+      'receipts length:',
+      receipts.length
+    );
+    console.log(
+      '🎯 ANALYTICS DASHBOARD - Receipts data:',
+      receipts?.map(r => ({
+        id: r.id,
+        storeName: r.storeName,
+        totalAmount: r.totalAmount,
+      }))
+    );
   }, [activeTab, receipts.length]);
 
   // Helper function to create synthetic receipts from ingredients with receipt pricing
@@ -978,7 +998,17 @@ export default function Analytics() {
           )}
 
           {/* Spending Analytics Tab - Using exact same logic as pantry dashboard */}
-          {activeTab === 'spending' && <SpendingAnalytics receipts={receipts} />}
+          {activeTab === 'spending' &&
+            (receiptsLoading ? (
+              <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-2 border-pantry-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading spending analytics...</p>
+                </div>
+              </div>
+            ) : (
+              <SpendingAnalytics receipts={receipts} />
+            ))}
 
           {/* Pantry Insights Tab */}
           {activeTab === 'pantry' && (

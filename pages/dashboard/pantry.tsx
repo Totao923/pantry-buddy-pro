@@ -730,7 +730,20 @@ export default function PantryManagement() {
                   )}
                 </div>
               )}
-              {activeTab === 'analytics' && <SpendingAnalytics receipts={receipts} />}
+              {activeTab === 'analytics' && (
+                <>
+                  {console.log(
+                    '🎯 PANTRY DASHBOARD - Passing receipts to SpendingAnalytics:',
+                    receipts?.length,
+                    receipts?.map(r => ({
+                      id: r.id,
+                      storeName: r.storeName,
+                      totalAmount: r.totalAmount,
+                    }))
+                  )}
+                  <SpendingAnalytics receipts={receipts} />
+                </>
+              )}
             </div>
           </div>
         </div>
