@@ -1,0 +1,105 @@
+-- Receipt Management Migration
+-- Creates tables for receipt scanning, OCR processing, and spending analytics
+
+-- Create receipts table
+CREATE TABLE receipts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE NOT NULL,
+    store_name TEXT NOT NULL,
+    receipt_date DATE NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    tax_amount DECIMAL(10,2),
+    raw_text TEXT,
+    confidence DECIMAL(5,4),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create receipt_items table
+CREATE TABLE receipt_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    receipt_id UUID REFERENCES receipts(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    quantity DECIMAL(10,2) NOT NULL DEFAULT 1,
+    unit TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    category TEXT NOT NULL DEFAULT 'other' CHECK (category IN ('protein', 'vegetables', 'fruits', 'grains', 'dairy', 'spices', 'herbs', 'oils', 'pantry', 'other')),
+    confidence DECIMAL(5,4),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create indexes for performance
+CREATE INDEX idx_receipts_user_id ON receipts(user_id);
+CREATE INDEX idx_receipts_date ON receipts(receipt_date);
+CREATE INDEX idx_receipts_store_name ON receipts(store_name);
+CREATE INDEX idx_receipt_items_receipt_id ON receipt_items(receipt_id);
+CREATE INDEX idx_receipt_items_category ON receipt_items(category);
+CREATE INDEX idx_receipt_items_name ON receipt_items(name);
+
+-- Enable Row Level Security
+ALTER TABLE receipts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE receipt_items ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for receipts
+CREATE POLICY "Users can manage their own receipts" ON receipts
+    FOR ALL USING (auth.uid() = user_id);
+
+-- RLS Policies for receipt_items
+CREATE POLICY "Users can manage their own receipt items" ON receipt_items
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM receipts r
+            WHERE r.id = receipt_items.receipt_id
+            AND r.user_id = auth.uid()
+        )
+    );
+
+-- Add update trigger for receipts
+CREATE TRIGGER update_receipts_updated_at
+    BEFORE UPDATE ON receipts
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Function to get user spending summary
+CREATE OR REPLACE FUNCTION get_user_spending_summary(user_uuid UUID, days_back INTEGER DEFAULT 30)
+RETURNS JSON AS $$
+DECLARE
+    result JSON;
+BEGIN
+    WITH spending_data AS (
+        SELECT
+            COUNT(*) as total_receipts,
+            COALESCE(SUM(total_amount), 0) as total_spent,
+            COALESCE(AVG(total_amount), 0) as avg_receipt_value,
+            COALESCE(SUM(tax_amount), 0) as total_tax
+        FROM receipts
+        WHERE user_id = user_uuid
+        AND receipt_date >= CURRENT_DATE - INTERVAL '1 day' * days_back
+    ),
+    category_breakdown AS (
+        SELECT
+            ri.category,
+            COUNT(*) as item_count,
+            SUM(ri.price) as category_total
+        FROM receipt_items ri
+        JOIN receipts r ON r.id = ri.receipt_id
+        WHERE r.user_id = user_uuid
+        AND r.receipt_date >= CURRENT_DATE - INTERVAL '1 day' * days_back
+        GROUP BY ri.category
+        ORDER BY category_total DESC
+    )
+    SELECT JSON_BUILD_OBJECT(
+        'summary', (SELECT row_to_json(spending_data) FROM spending_data),
+        'category_breakdown', (
+            SELECT JSON_AGG(
+                JSON_BUILD_OBJECT(
+                    'category', category,
+                    'item_count', item_count,
+                    'total_amount', category_total
+                )
+            ) FROM category_breakdown
+        )
+    ) INTO result;
+
+    RETURN COALESCE(result, '{"summary": {"total_receipts": 0, "total_spent": 0, "avg_receipt_value": 0, "total_tax": 0}, "category_breakdown": []}'::JSON);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

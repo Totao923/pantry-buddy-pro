@@ -333,7 +333,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Page content */}
-        <main className="min-h-screen p-6 bg-gray-50">{children}</main>
+        <main className="min-h-screen p-6 pb-20 bg-gray-50">{children}</main>
       </div>
 
       {/* Quick Suggestions Modal */}

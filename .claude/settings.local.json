@@ -60,7 +60,15 @@
       "Bash(./stripe products create:*)",
       "Bash(./stripe resources help)",
       "Bash(./stripe products --help)",
-      "Bash(./stripe prices list --live --product prod_T4PwVgYLIOOh0i)"
+      "Bash(./stripe prices list --live --product prod_T4PwVgYLIOOh0i)",
+      "Bash(git config:*)",
+      "Bash(sudo pkill:*)",
+      "Bash(sudo lsof:*)",
+      "Bash(xargs:*)",
+      "Bash(awk:*)",
+      "Bash(supabase:*)",
+      "Bash(npx supabase:*)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }
