@@ -1,49 +1,40 @@
-# Remove Dark Mode Implementation - Simple Plan
+# TODO: Push Spending Analytics Fixes to Production
 
 ## Problem
 
-User wants to remove the poorly implemented dark mode feature from the settings page.
-
-## Current Status
-
-- ❌ Dark mode toggle exists in settings but is poorly implemented
-- ❌ Dark mode configuration in tailwind.config.js needs to be removed
-- ❌ All dark mode related code needs to be cleaned up
+The spending analytics on production app shows incorrect costs per store, but localhost:3000 works correctly. Need to push the working analytics code while excluding receipt history/deletion changes.
 
 ## Plan
 
-### 1. Remove dark mode from settings interface
+- [x] Analyze current changes and identify what to exclude (receipt history/deletion)
+- [ ] Examine spending analytics functionality on localhost:3000 vs production
+- [ ] Exclude receipt history and deletion related changes from commit
+- [ ] Stage and commit only the spending analytics fixes
+- [ ] Push changes to GitHub
 
-- Remove `darkMode: boolean` from FormData interface
-- Remove darkMode from initial state
-- Remove dark mode useEffect and toggleDarkMode function
-- Remove dark mode toggle UI from settings page
+## Analysis Results
 
-### 2. Remove dark mode from tailwind.config.js
+### Changes to EXCLUDE (Receipt History/Deletion related):
 
-- Remove `darkMode: 'class'` configuration
+1. **pages/dashboard/receipts.tsx** - Contains debug console.log statements for receipt loading
+2. **pages/api/debug-receipt-history.ts** - Debug API endpoint for receipt troubleshooting
+3. **tasks/session-summary.md** - Documentation file from previous session
 
-### 3. Test settings page functionality
+### Changes to INCLUDE (Spending Analytics fixes):
 
-- Verify settings page loads without errors
-- Ensure no dark mode references remain
+- The SpendingAnalytics.tsx component appears to be working correctly in localhost:3000
+- Need to identify what specific changes are needed for production fix
+- The component has proper store cost calculations in lines 133-155
 
-## Files to modify:
+## Strategy
 
-- `pages/dashboard/settings.tsx` - Remove all dark mode code
-- `tailwind.config.js` - Remove dark mode configuration
+1. Restore receipts.tsx to remove debug logs
+2. Delete the debug API file
+3. Commit only the spending analytics improvements
+4. Push to production
 
-## Safety measures:
+## Notes
 
-- Keep all other settings functionality intact
-- Test thoroughly before committing
-
-## Todo List
-
-- [ ] Remove darkMode from FormData interface in settings.tsx
-- [ ] Remove darkMode from initial state
-- [ ] Remove dark mode useEffect and toggleDarkMode function
-- [ ] Remove dark mode toggle UI from settings page
-- [ ] Remove darkMode config from tailwind.config.js
-- [ ] Test settings page loads properly
-- [ ] Commit changes
+- SpendingAnalytics component shows costs per store correctly in storeData calculation
+- Component creates proper store analysis with totalSpent, visits, avgPerVisit
+- The issue might be in how the component is being called or data passed to it
