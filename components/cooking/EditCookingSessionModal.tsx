@@ -166,7 +166,7 @@ export default function EditCookingSessionModal({
         would_cook_again: formData.would_cook_again,
         recipe_followed_exactly: formData.recipe_followed_exactly,
         modifications_made: formData.modifications_made || undefined,
-        photo_url: photoUrl || null,
+        photo_url: photoUrl || undefined,
       };
 
       if (existingSession) {

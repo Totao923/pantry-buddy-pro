@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import Quagga from 'quagga';
+import Quagga from '@ericblade/quagga2';
 import { Ingredient } from '../types';
 import { barcodeService, ProductInfo } from '../lib/services/barcodeService';
 
