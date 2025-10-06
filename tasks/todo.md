@@ -85,3 +85,39 @@ When you test on iOS, open Safari's console (Settings → Safari → Advanced �
 - Which barcode detection method is used
 
 This will help identify exactly where the issue is occurring.
+
+---
+
+## Second Round of Fixes - Camera View Not Showing
+
+### Problem Identified
+
+Camera permission was granted (red indicator showing) but the camera view wasn't displaying. The issue was a React timing problem - the video element wasn't mounted in the DOM before trying to set srcObject.
+
+### Additional Changes Made
+
+**`/components/BarcodeScanner.tsx`** (lines 13, 24-112, 368-410)
+
+1. **Added `cameraInitializing` state** (line 13)
+   - Tracks when camera is being initialized
+   - Separate from `isScanning` to control UI flow
+
+2. **Fixed Camera Initialization Flow** (lines 24-112)
+   - Set `isScanning(true)` immediately to mount video element in DOM
+   - Use setTimeout to ensure DOM update before accessing videoRef
+   - Added `cameraInitializing` state to show loading during setup
+   - Clear both states on error for proper cleanup
+
+3. **Added Camera Initializing UI** (lines 372-379)
+   - Shows spinner and "Initializing camera..." while setting up
+   - Hides scanning frame until camera is ready
+   - Better visual feedback for users
+
+4. **Updated Status Text** (lines 404-408)
+   - Shows "Starting camera..." during initialization
+   - Shows "Processing..." during barcode lookup
+   - Shows "Align barcode..." when ready to scan
+
+### Key Fix
+
+The critical issue was that React needs the video element to be in the DOM before we can set `srcObject`. By calling `setIsScanning(true)` first, we ensure the video element renders, then use setTimeout to give React time to update the DOM before accessing the video ref.

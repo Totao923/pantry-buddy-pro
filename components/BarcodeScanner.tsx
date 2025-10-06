@@ -10,6 +10,7 @@ interface BarcodeScannerProps {
 
 export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
+  const [cameraInitializing, setCameraInitializing] = useState(false);
   const [manualEntry, setManualEntry] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,76 +22,96 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const startScanning = useCallback(async () => {
-    try {
-      console.log('🎥 [iOS Debug] Starting camera...');
-      setError(null);
+    console.log('🎥 [iOS Debug] Starting camera...');
+    setError(null);
 
-      // Check if getUserMedia is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.error('🎥 [iOS Debug] getUserMedia not supported');
-        setError('Camera access not supported on this device. Please use manual entry.');
-        return;
+    // Show camera view immediately so video element is mounted
+    setCameraInitializing(true);
+    setIsScanning(true);
+
+    // Use setTimeout to ensure DOM updates before accessing video element
+    setTimeout(async () => {
+      try {
+        // Check if getUserMedia is available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.error('🎥 [iOS Debug] getUserMedia not supported');
+          setError('Camera access not supported on this device. Please use manual entry.');
+          setIsScanning(false);
+          setCameraInitializing(false);
+          return;
+        }
+
+        console.log('🎥 [iOS Debug] Requesting camera permission...');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment', // Use back camera
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+
+        console.log('🎥 [iOS Debug] Camera permission granted, stream received:', stream.id);
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          console.log('🎥 [iOS Debug] Setting video source...');
+          videoRef.current.srcObject = stream;
+
+          // Wait for video to be ready, then play (required for mobile browsers)
+          videoRef.current.onloadedmetadata = () => {
+            console.log('🎥 [iOS Debug] Video metadata loaded, attempting to play...');
+            videoRef.current
+              ?.play()
+              .then(() => {
+                console.log('🎥 [iOS Debug] Video playing successfully!');
+                setCameraInitializing(false);
+
+                // Start scanning for barcodes
+                scanIntervalRef.current = setInterval(() => {
+                  scanForBarcode();
+                }, 500);
+              })
+              .catch(error => {
+                console.error('🎥 [iOS Debug] Error playing video:', error);
+                setError('Unable to start camera playback. Please try again.');
+                setIsScanning(false);
+                setCameraInitializing(false);
+              });
+          };
+
+          videoRef.current.onerror = error => {
+            console.error('🎥 [iOS Debug] Video element error:', error);
+            setError('Video playback error. Please try again.');
+            setIsScanning(false);
+            setCameraInitializing(false);
+          };
+        } else {
+          console.error('🎥 [iOS Debug] Video ref is null!');
+          setError('Camera initialization failed. Please try again.');
+          setIsScanning(false);
+          setCameraInitializing(false);
+        }
+      } catch (error) {
+        console.error('🎥 [iOS Debug] Error accessing camera:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('🎥 [iOS Debug] Error details:', errorMessage);
+
+        if (
+          errorMessage.includes('Permission denied') ||
+          errorMessage.includes('NotAllowedError')
+        ) {
+          setError(
+            'Camera permission denied. Please allow camera access in your browser settings and try again.'
+          );
+        } else if (errorMessage.includes('NotFoundError')) {
+          setError('No camera found on this device. Please use manual entry.');
+        } else {
+          setError(`Unable to access camera: ${errorMessage}. Please try manual entry.`);
+        }
+        setIsScanning(false);
+        setCameraInitializing(false);
       }
-
-      console.log('🎥 [iOS Debug] Requesting camera permission...');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment', // Use back camera
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      });
-
-      console.log('🎥 [iOS Debug] Camera permission granted, stream received:', stream.id);
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        console.log('🎥 [iOS Debug] Setting video source...');
-        videoRef.current.srcObject = stream;
-
-        // Wait for video to be ready, then play (required for mobile browsers)
-        videoRef.current.onloadedmetadata = () => {
-          console.log('🎥 [iOS Debug] Video metadata loaded, attempting to play...');
-          videoRef.current
-            ?.play()
-            .then(() => {
-              console.log('🎥 [iOS Debug] Video playing successfully!');
-              setIsScanning(true);
-
-              // Start scanning for barcodes
-              scanIntervalRef.current = setInterval(() => {
-                scanForBarcode();
-              }, 500);
-            })
-            .catch(error => {
-              console.error('🎥 [iOS Debug] Error playing video:', error);
-              setError('Unable to start camera playback. Please try again.');
-            });
-        };
-
-        videoRef.current.onerror = error => {
-          console.error('🎥 [iOS Debug] Video element error:', error);
-          setError('Video playback error. Please try again.');
-        };
-      } else {
-        console.error('🎥 [iOS Debug] Video ref is null!');
-        setError('Camera initialization failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('🎥 [iOS Debug] Error accessing camera:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('🎥 [iOS Debug] Error details:', errorMessage);
-
-      if (errorMessage.includes('Permission denied') || errorMessage.includes('NotAllowedError')) {
-        setError(
-          'Camera permission denied. Please allow camera access in your browser settings and try again.'
-        );
-      } else if (errorMessage.includes('NotFoundError')) {
-        setError('No camera found on this device. Please use manual entry.');
-      } else {
-        setError(`Unable to access camera: ${errorMessage}. Please try manual entry.`);
-      }
-    }
+    }, 100);
   }, []);
 
   const stopScanning = useCallback(() => {
@@ -350,10 +371,22 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
                 {/* Scanning Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="relative">
+                    {/* Camera Initializing */}
+                    {cameraInitializing && (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <div className="text-white text-center bg-black bg-opacity-50 px-4 py-2 rounded-lg">
+                          <div className="text-sm">Initializing camera...</div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Scanning Frame */}
-                    <div className="w-64 h-32 border-2 border-white rounded-lg relative">
-                      <div className="absolute inset-x-0 top-1/2 h-0.5 bg-red-500 animate-pulse"></div>
-                    </div>
+                    {!cameraInitializing && (
+                      <div className="w-64 h-32 border-2 border-white rounded-lg relative">
+                        <div className="absolute inset-x-0 top-1/2 h-0.5 bg-red-500 animate-pulse"></div>
+                      </div>
+                    )}
 
                     {/* Loading Indicator */}
                     {loading && (
@@ -371,7 +404,11 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
                 <div className="absolute bottom-4 left-4 right-4 text-center">
                   <div className="bg-black bg-opacity-50 rounded-lg px-4 py-2">
                     <p className="text-white text-sm">
-                      {loading ? 'Processing...' : 'Align barcode within the frame'}
+                      {cameraInitializing
+                        ? 'Starting camera...'
+                        : loading
+                          ? 'Processing...'
+                          : 'Align barcode within the frame'}
                     </p>
                   </div>
                 </div>
