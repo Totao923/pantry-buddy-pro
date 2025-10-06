@@ -42,13 +42,28 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
         }
 
         console.log('🎥 [iOS Debug] Requesting camera permission...');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment', // Use back camera
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-        });
+
+        // Try to get back camera first, fallback to any camera if not available
+        let stream: MediaStream | null = null;
+        try {
+          // Try with back camera (environment)
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+        } catch (err) {
+          console.log('🎥 [iOS Debug] Back camera not available, trying any camera...');
+          // Fallback to any available camera
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+        }
 
         console.log('🎥 [iOS Debug] Camera permission granted, stream received:', stream.id);
         streamRef.current = stream;

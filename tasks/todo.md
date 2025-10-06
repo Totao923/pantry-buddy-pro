@@ -121,3 +121,28 @@ Camera permission was granted (red indicator showing) but the camera view wasn't
 ### Key Fix
 
 The critical issue was that React needs the video element to be in the DOM before we can set `srcObject`. By calling `setIsScanning(true)` first, we ensure the video element renders, then use setTimeout to give React time to update the DOM before accessing the video ref.
+
+---
+
+## Third Fix - NotFoundError on iOS Safari
+
+### Error from Console
+
+```
+🎥 [iOS Debug] Error accessing camera: NotFoundError: Requested device not found
+```
+
+### Root Cause
+
+iOS Safari was rejecting the camera request with `facingMode: 'environment'` as a hard requirement. Some iOS devices or Safari versions don't support this constraint format.
+
+### Fix Applied
+
+**`/components/BarcodeScanner.tsx`** (lines 44-66)
+
+Changed camera request to use progressive fallback:
+
+1. First try: `facingMode: { ideal: 'environment' }` - prefers back camera but doesn't require it
+2. Fallback: Remove facingMode constraint entirely - use any available camera
+
+This ensures the camera will work even if the device doesn't support the environment facing mode constraint.
