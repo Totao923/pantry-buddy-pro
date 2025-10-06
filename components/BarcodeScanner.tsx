@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import Quagga from 'quagga';
 import { Ingredient } from '../types';
 import { barcodeService, ProductInfo } from '../lib/services/barcodeService';
 
@@ -33,6 +34,15 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+
+        // Wait for video to be ready, then play (required for mobile browsers)
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(error => {
+            console.error('Error playing video:', error);
+            setError('Unable to start camera. Please try again.');
+          });
+        };
+
         setIsScanning(true);
 
         // Start scanning for barcodes
@@ -73,13 +83,9 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
 
-    // Convert canvas to ImageData for barcode scanning
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
     try {
-      // In a real implementation, this would use a library like QuaggaJS or ZXing
-      // For demo purposes, we'll simulate barcode detection
-      const barcode = await simulateBarcodeDetection(imageData);
+      // Use BarcodeDetector API if available (Chrome/Android)
+      const barcode = await detectBarcode(canvas);
 
       if (barcode && barcode !== lastScannedCode) {
         setLastScannedCode(barcode);
@@ -90,21 +96,67 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
     }
   }, [isScanning, lastScannedCode]);
 
-  const simulateBarcodeDetection = async (imageData: ImageData): Promise<string | null> => {
-    // Simulate barcode detection - in real implementation, use QuaggaJS or similar
-    await new Promise(resolve => setTimeout(resolve, 100));
+  const detectWithQuagga = async (canvas: HTMLCanvasElement): Promise<string | null> => {
+    return new Promise(resolve => {
+      try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
 
-    // Mock barcode detection based on image content
-    const mockBarcodes = [
-      '0123456789012', // Bananas
-      '0987654321098', // Milk
-      '1234567890123', // Bread
-      '9876543210987', // Eggs
-    ];
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Randomly "detect" a barcode (for demo)
-    if (Math.random() > 0.95) {
-      return mockBarcodes[Math.floor(Math.random() * mockBarcodes.length)];
+        Quagga.decodeSingle(
+          {
+            decoder: {
+              readers: [
+                'ean_reader',
+                'ean_8_reader',
+                'code_128_reader',
+                'upc_reader',
+                'upc_e_reader',
+              ],
+            },
+            locate: true,
+            src: canvas.toDataURL('image/png'),
+          },
+          (result: any) => {
+            if (result && result.codeResult) {
+              resolve(result.codeResult.code);
+            } else {
+              resolve(null);
+            }
+          }
+        );
+      } catch (err) {
+        console.error('QuaggaJS detection error:', err);
+        resolve(null);
+      }
+    });
+  };
+
+  const detectBarcode = async (canvas: HTMLCanvasElement): Promise<string | null> => {
+    try {
+      // Try native BarcodeDetector API first (Chrome/Android/Edge - faster)
+      if ('BarcodeDetector' in window) {
+        const barcodeDetector = new (window as any).BarcodeDetector({
+          formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'],
+        });
+
+        const barcodes = await barcodeDetector.detect(canvas);
+
+        if (barcodes.length > 0) {
+          return barcodes[0].rawValue;
+        }
+      } else {
+        // Fall back to QuaggaJS for Safari/iOS
+        return await detectWithQuagga(canvas);
+      }
+    } catch (err) {
+      console.error('Barcode detection error:', err);
+      // Try QuaggaJS as fallback on error
+      return await detectWithQuagga(canvas);
     }
 
     return null;
