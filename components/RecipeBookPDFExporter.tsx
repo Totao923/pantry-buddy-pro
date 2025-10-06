@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { RecipeBookWithRecipes, PDFTemplate } from '../types';
+import { cookingSessionService, CookingSession } from '../lib/services/cookingSessionService';
 import jsPDF from 'jspdf';
 
 interface RecipeBookPDFExporterProps {
@@ -8,48 +9,40 @@ interface RecipeBookPDFExporterProps {
   isPremiumUser?: boolean;
 }
 
-const PDF_TEMPLATES: PDFTemplate[] = [
-  {
-    id: 'minimalist',
-    name: 'Minimalist',
-    description: 'Clean, simple design perfect for everyday cooking',
-    isPremium: false,
-    thumbnail: '/templates/minimalist.png',
-  },
-  {
-    id: 'elegant',
-    name: 'Elegant',
-    description: 'Beautiful typography and spacing for special occasions',
-    isPremium: true,
-    thumbnail: '/templates/elegant.png',
-  },
-  {
-    id: 'family',
-    name: 'Family Style',
-    description: 'Warm, family-friendly design with personal touches',
-    isPremium: true,
-    thumbnail: '/templates/family.png',
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    description: 'Restaurant-quality layout for serious cooks',
-    isPremium: true,
-    thumbnail: '/templates/professional.png',
-  },
-];
-
 export function RecipeBookPDFExporter({
   recipeBook,
   onClose,
   isPremiumUser = false,
 }: RecipeBookPDFExporterProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState(recipeBook.template);
   const [includeNotes, setIncludeNotes] = useState(true);
   const [includeNutrition, setIncludeNutrition] = useState(true);
   const [includeTips, setIncludeTips] = useState(true);
+  const [includeCookingPhotos, setIncludeCookingPhotos] = useState(true);
   const [pageSize, setPageSize] = useState<'A4' | 'Letter'>('A4');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Helper function to load image as base64 for jsPDF
+  const loadImageAsBase64 = (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+          resolve(dataURL);
+        } else {
+          reject(new Error('Failed to get canvas context'));
+        }
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = url;
+    });
+  };
 
   // Premium template styling configurations
   const getTemplateConfig = (template: string) => {
@@ -239,496 +232,268 @@ export function RecipeBookPDFExporter({
     setIsGenerating(true);
 
     try {
+      // Load cooking session data and images for each recipe if photos are enabled
+      let cookingSessionsMap = new Map<string, CookingSession>();
+      let imageDataMap = new Map<string, string>();
+      if (includeCookingPhotos) {
+        try {
+          const allSessions = await cookingSessionService.getUserCookingSessions(200);
+          allSessions.forEach(session => {
+            // Store the most recent session for each recipe
+            if (
+              !cookingSessionsMap.has(session.recipe_id) ||
+              new Date(session.cooked_at) >
+                new Date(cookingSessionsMap.get(session.recipe_id)!.cooked_at)
+            ) {
+              cookingSessionsMap.set(session.recipe_id, session);
+            }
+          });
+
+          // Pre-load all images for recipes that have photos
+          const imageLoadPromises = Array.from(cookingSessionsMap.values())
+            .filter(session => session.photo_url)
+            .map(async session => {
+              try {
+                const imageData = await loadImageAsBase64(session.photo_url!);
+                imageDataMap.set(session.recipe_id, imageData);
+              } catch (error) {
+                console.warn('Failed to load image for recipe:', session.recipe_id, error);
+              }
+            });
+
+          await Promise.all(imageLoadPromises);
+        } catch (error) {
+          console.warn('Failed to load cooking sessions for photos:', error);
+        }
+      }
       const pdf = new jsPDF('p', 'mm', pageSize === 'A4' ? 'a4' : 'letter');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const templateConfig = getTemplateConfig(selectedTemplate);
+      const templateConfig = getTemplateConfig('elegant');
       const margin = templateConfig.margin;
       const contentWidth = pageWidth - 2 * margin;
 
       let currentY = margin;
 
-      // Premium template-specific cover page designs
-      if (selectedTemplate === 'minimalist') {
-        // Modern minimalist cover with geometric elements
-        currentY = pageHeight / 3;
-
-        // Clean geometric frame
-        pdf.setDrawColor(
-          templateConfig.secondaryColor[0],
-          templateConfig.secondaryColor[1],
-          templateConfig.secondaryColor[2]
-        );
-        pdf.setLineWidth(2);
-        pdf.rect(margin, currentY - 20, contentWidth, 80, 'S');
-
-        // Title with extra space
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.setFontSize(templateConfig.titleSize);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.text(recipeBook.name.toUpperCase(), pageWidth / 2, currentY + 10, { align: 'center' });
-
-        // Minimal description
-        if (recipeBook.description) {
-          pdf.setFontSize(templateConfig.bodySize + 2);
-          pdf.setFont(templateConfig.bodyFont, 'normal');
-          pdf.setTextColor(
-            templateConfig.secondaryColor[0],
-            templateConfig.secondaryColor[1],
-            templateConfig.secondaryColor[2]
-          );
-          pdf.text(recipeBook.description, pageWidth / 2, currentY + 35, { align: 'center' });
-        }
-
-        // Clean bottom info
-        currentY = pageHeight - 40;
-        pdf.setFontSize(templateConfig.bodySize);
-        pdf.setTextColor(
-          templateConfig.secondaryColor[0],
-          templateConfig.secondaryColor[1],
-          templateConfig.secondaryColor[2]
-        );
-        pdf.text(`${templateConfig.name} • Pantry Buddy Pro`, pageWidth / 2, currentY, {
-          align: 'center',
-        });
-        pdf.text(`${new Date().toLocaleDateString()}`, pageWidth / 2, currentY + 8, {
-          align: 'center',
-        });
-      } else if (selectedTemplate === 'elegant') {
-        // Ornate elegant cover with decorative borders
-        currentY = 40;
-
-        // Ornate border around entire cover
-        drawOrnateBorder(
-          pdf,
-          margin - 5,
-          currentY - 10,
-          contentWidth + 10,
-          pageHeight - 80,
-          templateConfig
-        );
-
+      // Elegant cover page
+      {
+        // Elegant cover with recipe book styling
         currentY = pageHeight / 2 - 40;
 
-        // Decorative title frame
-        const titleFrameWidth = contentWidth - 40;
-        const titleFrameHeight = 60;
-        const titleFrameX = pageWidth / 2 - titleFrameWidth / 2;
+        // Main title with recipe book styling (like table of contents)
+        pdf.setTextColor(139, 69, 19); // Warm brown color
+        pdf.setFontSize(28);
+        pdf.setFont('times', 'bold');
+        // Capitalize first letter of each word
+        const titleCase = recipeBook.name
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+        pdf.text(titleCase, pageWidth / 2, currentY, { align: 'center' });
 
-        drawOrnateBorder(
-          pdf,
-          titleFrameX,
-          currentY,
-          titleFrameWidth,
-          titleFrameHeight,
-          templateConfig
-        );
+        currentY += 15;
 
-        // Elegant title
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.setFontSize(templateConfig.titleSize);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.text(recipeBook.name, pageWidth / 2, currentY + 25, { align: 'center' });
+        // Decorative line under title
+        pdf.setLineWidth(0.5);
+        pdf.setDrawColor(139, 69, 19);
+        const lineWidth = 100;
+        pdf.line(pageWidth / 2 - lineWidth / 2, currentY, pageWidth / 2 + lineWidth / 2, currentY);
 
-        // Decorative flourishes
-        pdf.setFontSize(20);
-        pdf.text('❦', pageWidth / 2, currentY + 40, { align: 'center' });
+        currentY += 15;
 
-        currentY += 80;
-
-        // Elegant description
+        // Subtitle with elegant styling
         if (recipeBook.description) {
-          pdf.setFontSize(templateConfig.subtitleSize);
-          pdf.setFont(templateConfig.bodyFont, 'italic');
-          pdf.setTextColor(
-            templateConfig.secondaryColor[0],
-            templateConfig.secondaryColor[1],
-            templateConfig.secondaryColor[2]
-          );
-          pdf.text(recipeBook.description, pageWidth / 2, currentY + 20, { align: 'center' });
+          pdf.setTextColor(80, 80, 80);
+          pdf.setFontSize(14);
+          pdf.setFont('times', 'italic');
+          pdf.text(recipeBook.description, pageWidth / 2, currentY, { align: 'center' });
+          currentY += 20;
         }
 
-        // Elegant footer
+        // Decorative element
+        pdf.setTextColor(139, 69, 19);
+        pdf.setFontSize(18);
+        pdf.text('~ Recipe Collection ~', pageWidth / 2, currentY, { align: 'center' });
+
+        // Date with elegant styling
         currentY = pageHeight - 50;
-        pdf.setFontSize(templateConfig.bodySize + 1);
-        pdf.setFont(templateConfig.titleFont, 'normal');
-        pdf.text(`${templateConfig.name}`, pageWidth / 2, currentY, { align: 'center' });
-        pdf.text(`Created with Pantry Buddy Pro`, pageWidth / 2, currentY + 10, {
-          align: 'center',
-        });
-        pdf.text(`${new Date().toLocaleDateString()}`, pageWidth / 2, currentY + 20, {
-          align: 'center',
-        });
-      } else if (selectedTemplate === 'family') {
-        // Warm family-style cover
-        currentY = 50;
-
-        // Family-style card background
-        drawCard(pdf, margin - 5, currentY, contentWidth + 10, pageHeight - 100, templateConfig);
-
-        currentY = pageHeight / 2 - 30;
-
-        // Family title with decorations
-        drawFamilyDecoration(pdf, pageWidth / 2 - 40, currentY, templateConfig);
-        drawFamilyDecoration(pdf, pageWidth / 2 + 40, currentY, templateConfig);
-
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.setFontSize(templateConfig.titleSize);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.text(recipeBook.name, pageWidth / 2, currentY + 15, { align: 'center' });
-
-        // Personal touch
-        pdf.setFontSize(templateConfig.subtitleSize);
-        pdf.setFont(templateConfig.bodyFont, 'italic');
-        pdf.text('~ A Collection of Family Favorites ~', pageWidth / 2, currentY + 35, {
-          align: 'center',
-        });
-
-        if (recipeBook.description) {
-          pdf.setFontSize(templateConfig.bodySize + 1);
-          pdf.setFont(templateConfig.bodyFont, 'normal');
-          pdf.setTextColor(
-            templateConfig.secondaryColor[0],
-            templateConfig.secondaryColor[1],
-            templateConfig.secondaryColor[2]
-          );
-          pdf.text(recipeBook.description, pageWidth / 2, currentY + 50, { align: 'center' });
-        }
-
-        // Warm footer
-        currentY = pageHeight - 40;
-        pdf.setFontSize(templateConfig.bodySize);
-        pdf.text(`Made with ♥ using Pantry Buddy Pro`, pageWidth / 2, currentY, {
+        pdf.setTextColor(100, 100, 100);
+        pdf.setFontSize(12);
+        pdf.setFont('times', 'normal');
+        pdf.text(`Created with Pantry Buddy Pro`, pageWidth / 2, currentY, {
           align: 'center',
         });
         pdf.text(`${new Date().toLocaleDateString()}`, pageWidth / 2, currentY + 10, {
           align: 'center',
         });
-      } else if (selectedTemplate === 'professional') {
-        // Chef-style professional cover
-        currentY = 30;
-
-        // Professional header bar
-        pdf.setFillColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.rect(0, 0, pageWidth, 25, 'F');
-
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(14);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.text('PROFESSIONAL RECIPE COLLECTION', pageWidth / 2, 15, { align: 'center' });
-
-        currentY = pageHeight / 2 - 20;
-
-        // Clean professional title
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.setFontSize(templateConfig.titleSize);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.text(recipeBook.name, pageWidth / 2, currentY, { align: 'center' });
-
-        // Professional divider
-        pdf.setDrawColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.setLineWidth(1);
-        pdf.line(margin, currentY + 10, pageWidth - margin, currentY + 10);
-
-        if (recipeBook.description) {
-          pdf.setFontSize(templateConfig.subtitleSize);
-          pdf.setFont(templateConfig.bodyFont, 'normal');
-          pdf.setTextColor(
-            templateConfig.secondaryColor[0],
-            templateConfig.secondaryColor[1],
-            templateConfig.secondaryColor[2]
-          );
-          pdf.text(recipeBook.description, pageWidth / 2, currentY + 25, { align: 'center' });
-        }
-
-        // Professional info box
-        currentY = pageHeight - 70;
-        drawCard(pdf, margin, currentY, contentWidth, 40, templateConfig);
-
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.setFontSize(templateConfig.bodySize);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.text(`Template: ${templateConfig.name}`, margin + 10, currentY + 15);
-        pdf.text(`Generated: ${new Date().toLocaleDateString()}`, margin + 10, currentY + 25);
-        pdf.text(`Recipes: ${recipeBook.recipes.length}`, margin + 10, currentY + 35);
-      } else {
-        // Default basic cover
-        currentY = pageHeight / 2;
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.setFontSize(templateConfig.titleSize);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.text(recipeBook.name, pageWidth / 2, currentY, { align: 'center' });
-
-        if (recipeBook.description) {
-          pdf.setFontSize(templateConfig.subtitleSize);
-          pdf.text(recipeBook.description, pageWidth / 2, currentY + 20, { align: 'center' });
-        }
       }
 
-      // Table of Contents with template styling
+      // Table of Contents with recipe book styling
       pdf.addPage();
-      currentY = margin;
+      currentY = margin + 20;
 
-      pdf.setTextColor(
-        templateConfig.primaryColor[0],
-        templateConfig.primaryColor[1],
-        templateConfig.primaryColor[2]
-      );
-      pdf.setFontSize(templateConfig.subtitleSize + 4);
-      pdf.setFont(templateConfig.titleFont, 'bold');
+      // Table of Contents title with recipe book styling
+      pdf.setTextColor(139, 69, 19); // Warm brown color
+      pdf.setFontSize(24);
+      pdf.setFont('times', 'bold');
       pdf.text('Table of Contents', margin, currentY);
-      currentY += selectedTemplate === 'elegant' ? 20 : 15;
+      currentY += 25;
 
-      // Add decorative line under title for certain templates
-      if (selectedTemplate === 'elegant') {
-        pdf.setLineWidth(0.3);
-        pdf.setDrawColor(
-          templateConfig.secondaryColor[0],
-          templateConfig.secondaryColor[1],
-          templateConfig.secondaryColor[2]
-        );
-        pdf.line(margin, currentY - 5, margin + 80, currentY - 5);
-        currentY += 5;
-      }
+      // Decorative line under title
+      pdf.setLineWidth(0.5);
+      pdf.setDrawColor(139, 69, 19);
+      pdf.line(margin, currentY - 5, margin + 100, currentY - 5);
+      currentY += 10;
 
-      pdf.setFontSize(templateConfig.bodySize + 1);
-      pdf.setFont(templateConfig.bodyFont, 'normal');
-      pdf.setTextColor(
-        templateConfig.primaryColor[0],
-        templateConfig.primaryColor[1],
-        templateConfig.primaryColor[2]
-      );
+      // Recipe list with elegant styling
+      pdf.setFontSize(12);
+      pdf.setFont('times', 'normal');
+      pdf.setTextColor(60, 60, 60);
 
       recipeBook.recipes.forEach((recipe, index) => {
-        const spacing =
-          selectedTemplate === 'professional' ? 6 : selectedTemplate === 'elegant' ? 8 : 7;
-        pdf.text(`${index + 1}. ${recipe.title}`, margin + 5, currentY);
-        currentY += spacing;
+        pdf.text(`${index + 1}. ${recipe.title}`, margin + 10, currentY);
+        currentY += 8;
         if (currentY > pageHeight - margin) {
           pdf.addPage();
-          currentY = margin;
+          currentY = margin + 20;
         }
       });
 
-      // Recipes
+      // Recipes with simplified, reliable layout
       recipeBook.recipes.forEach((recipe, recipeIndex) => {
         pdf.addPage();
-        currentY = margin;
+        currentY = margin + 10;
 
-        // Recipe title with template styling
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
+        // No border for recipe card - clean layout
+
+        currentY += 10;
+
+        // Recipe title - recipe book styling
+        pdf.setTextColor(139, 69, 19); // Warm brown color
+        pdf.setFontSize(22);
+        pdf.setFont('times', 'bold');
+        pdf.text(recipe.title, margin + 15, currentY);
+        currentY += 25;
+
+        // Recipe info in one line - more compact
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(80, 80, 80);
+        pdf.text(
+          `Servings: ${recipe.servings}   •   Prep: ${recipe.prepTime} min   •   Cook: ${recipe.cookTime} min`,
+          margin + 15,
+          currentY
         );
-        pdf.setFontSize(templateConfig.subtitleSize + 2);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.text(`${recipeIndex + 1}. ${recipe.title}`, margin, currentY);
-        currentY += selectedTemplate === 'elegant' ? 15 : 10;
+        currentY += 15;
 
-        // Add decorative elements for recipe titles
-        if (selectedTemplate === 'elegant') {
-          pdf.setLineWidth(0.2);
-          pdf.setDrawColor(
-            templateConfig.secondaryColor[0],
-            templateConfig.secondaryColor[1],
-            templateConfig.secondaryColor[2]
-          );
-          pdf.line(margin, currentY - 2, pageWidth - margin, currentY - 2);
-          currentY += 5;
-        }
-
-        // Recipe description with template styling
+        // Description - more compact
         if (recipe.description) {
-          pdf.setFontSize(templateConfig.bodySize);
-          pdf.setFont(templateConfig.bodyFont, 'italic');
-          pdf.setTextColor(
-            templateConfig.secondaryColor[0],
-            templateConfig.secondaryColor[1],
-            templateConfig.secondaryColor[2]
-          );
-          const descLines = pdf.splitTextToSize(recipe.description, contentWidth);
-          pdf.text(descLines, margin, currentY);
-          currentY += descLines.length * 5 + (selectedTemplate === 'elegant' ? 12 : 8);
-        }
-
-        // Recipe info with template styling
-        pdf.setFontSize(templateConfig.bodySize);
-        pdf.setFont(templateConfig.bodyFont, 'normal');
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-
-        // Template-specific layout for recipe info
-        if (selectedTemplate === 'professional') {
-          // More compact, business-like layout
-          pdf.text(
-            `Servings: ${recipe.servings} | Prep: ${recipe.prepTime} min | Cook: ${recipe.cookTime} min | Total: ${recipe.totalTime} min`,
-            margin,
-            currentY
-          );
-          currentY += 10;
-        } else {
-          // Standard layout with spacing
-          pdf.text(`Servings: ${recipe.servings}`, margin, currentY);
-          pdf.text(`Prep: ${recipe.prepTime} min`, margin + 50, currentY);
-          pdf.text(`Cook: ${recipe.cookTime} min`, margin + 100, currentY);
-          pdf.text(`Total: ${recipe.totalTime} min`, margin + 150, currentY);
-          currentY += 12;
-        }
-
-        // Ingredients section with template styling
-        pdf.setFontSize(templateConfig.subtitleSize);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.text('Ingredients', margin, currentY);
-        currentY += selectedTemplate === 'elegant' ? 12 : 8;
-
-        pdf.setFontSize(templateConfig.bodySize);
-        pdf.setFont(templateConfig.bodyFont, 'normal');
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        recipe.ingredients.forEach(ingredient => {
-          const ingText = `• ${ingredient.amount} ${ingredient.unit} ${ingredient.name}`;
-          const ingLines = pdf.splitTextToSize(ingText, contentWidth);
-          pdf.text(ingLines, margin + 5, currentY);
-          currentY += ingLines.length * 5 + 2;
-
-          if (currentY > pageHeight - 30) {
-            pdf.addPage();
-            currentY = margin;
-          }
-        });
-
-        currentY += selectedTemplate === 'elegant' ? 12 : 8;
-
-        // Instructions section with template styling
-        pdf.setFontSize(templateConfig.subtitleSize);
-        pdf.setFont(templateConfig.titleFont, 'bold');
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-        pdf.text('Instructions', margin, currentY);
-        currentY += selectedTemplate === 'elegant' ? 12 : 8;
-
-        pdf.setFontSize(templateConfig.bodySize);
-        pdf.setFont(templateConfig.bodyFont, 'normal');
-        pdf.setTextColor(
-          templateConfig.primaryColor[0],
-          templateConfig.primaryColor[1],
-          templateConfig.primaryColor[2]
-        );
-
-        recipe.instructions.forEach(instruction => {
-          const stepSpacing =
-            selectedTemplate === 'professional' ? 4 : selectedTemplate === 'elegant' ? 6 : 5;
-          const instText =
-            selectedTemplate === 'elegant'
-              ? `${instruction.step}. ${instruction.instruction}`
-              : `${instruction.step}. ${instruction.instruction}`;
-          const instLines = pdf.splitTextToSize(instText, contentWidth);
-          pdf.text(instLines, margin, currentY);
-          currentY += instLines.length * stepSpacing + (selectedTemplate === 'elegant' ? 8 : 5);
-
-          if (currentY > pageHeight - 30) {
-            pdf.addPage();
-            currentY = margin;
-          }
-        });
-
-        // Personal notes
-        if (includeNotes && recipe.bookItem.personalNotes) {
-          currentY += 8;
-          pdf.setFontSize(11);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('Personal Notes', margin, currentY);
-          currentY += 6;
-
           pdf.setFontSize(9);
           pdf.setFont('helvetica', 'italic');
-          const notesLines = pdf.splitTextToSize(recipe.bookItem.personalNotes, contentWidth);
-          pdf.text(notesLines, margin, currentY);
-          currentY += notesLines.length * 4 + 5;
+          pdf.setTextColor(100, 100, 100);
+          const descLines = pdf.splitTextToSize(recipe.description, contentWidth - 30);
+          pdf.text(descLines, margin + 15, currentY);
+          currentY += descLines.length * 4 + 10;
         }
 
-        // Nutrition info
+        // Two-column layout for ingredients and photo
+        pdf.setTextColor(0, 0, 0);
+
+        const ingredientsStartY = currentY;
+        const hasPhoto =
+          includeCookingPhotos && cookingSessionsMap.has(recipe.id) && imageDataMap.has(recipe.id);
+
+        // Calculate column widths
+        const leftColumnWidth = hasPhoto ? contentWidth * 0.6 : contentWidth - 30;
+        const rightColumnWidth = contentWidth * 0.35;
+        const rightColumnX = margin + leftColumnWidth + 20;
+
+        // INGREDIENTS SECTION (Left column) - Recipe book style
+        pdf.setFontSize(16);
+        pdf.setFont('times', 'bold');
+        pdf.setTextColor(139, 69, 19); // Warm brown color
+        pdf.text('Ingredients', margin + 15, currentY);
+        currentY += 12;
+
+        pdf.setFontSize(10);
+        pdf.setFont('times', 'normal');
+        pdf.setTextColor(60, 60, 60);
+        recipe.ingredients.forEach(ingredient => {
+          const ingText = `• ${ingredient.amount} ${ingredient.unit} ${ingredient.name}`;
+          const lines = pdf.splitTextToSize(ingText, leftColumnWidth - 20);
+          pdf.text(lines, margin + 20, currentY);
+          currentY += lines.length * 5 + 2;
+        });
+
+        // PHOTO SECTION (Right column, alongside ingredients) - MUCH LARGER
+        if (hasPhoto) {
+          const imageData = imageDataMap.get(recipe.id)!;
+          const photoY = ingredientsStartY + 5; // Bring up a bit higher
+
+          // Calculate photo dimensions - much larger
+          const photoWidth = Math.min(rightColumnWidth, 110); // Even larger photo
+          const photoHeight = (photoWidth * 3) / 4;
+
+          // Add much larger photo
+          pdf.addImage(imageData, 'JPEG', rightColumnX, photoY, photoWidth, photoHeight);
+        }
+
+        currentY += 10;
+
+        // DIRECTIONS SECTION - Recipe book style
+        pdf.setFontSize(16);
+        pdf.setFont('times', 'bold');
+        pdf.setTextColor(139, 69, 19); // Warm brown color
+        pdf.text('Directions', margin + 15, currentY);
+        currentY += 12;
+
+        pdf.setFontSize(10);
+        pdf.setFont('times', 'normal');
+        pdf.setTextColor(60, 60, 60);
+        recipe.instructions.forEach(instruction => {
+          const stepText = `${instruction.step}. ${instruction.instruction}`;
+          const lines = pdf.splitTextToSize(stepText, contentWidth - 30);
+          pdf.text(lines, margin + 20, currentY);
+          currentY += lines.length * 5 + 6;
+        });
+
+        // Personal notes - recipe book style
+        if (includeNotes && recipe.bookItem?.personalNotes) {
+          currentY += 10;
+
+          pdf.setFontSize(14);
+          pdf.setFont('times', 'bold');
+          pdf.setTextColor(139, 69, 19); // Warm brown color
+          pdf.text('Notes', margin + 15, currentY);
+          currentY += 10;
+
+          pdf.setFontSize(9);
+          pdf.setFont('times', 'italic');
+          pdf.setTextColor(80, 80, 80);
+          const notesLines = pdf.splitTextToSize(recipe.bookItem.personalNotes, contentWidth - 30);
+          pdf.text(notesLines, margin + 15, currentY);
+          currentY += notesLines.length * 4;
+        }
+
+        // Nutrition info - recipe book style
         if (includeNutrition && recipe.nutritionInfo) {
-          currentY += 8;
-          pdf.setFontSize(11);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('Nutrition (per serving)', margin, currentY);
-          currentY += 6;
+          currentY += 12;
+
+          pdf.setFontSize(14);
+          pdf.setFont('times', 'bold');
+          pdf.setTextColor(139, 69, 19); // Warm brown color
+          pdf.text('Nutrition (per serving)', margin + 15, currentY);
+          currentY += 10;
 
           pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'normal');
+          pdf.setFont('times', 'normal');
+          pdf.setTextColor(80, 80, 80);
           const nutrition = recipe.nutritionInfo;
-          pdf.text(`Calories: ${nutrition.calories}`, margin, currentY);
-          pdf.text(`Protein: ${nutrition.protein}g`, margin + 60, currentY);
-          pdf.text(`Carbs: ${nutrition.carbs}g`, margin + 120, currentY);
-          currentY += 5;
-          pdf.text(`Fat: ${nutrition.fat}g`, margin, currentY);
-          if (nutrition.fiber) pdf.text(`Fiber: ${nutrition.fiber}g`, margin + 60, currentY);
-          if (nutrition.sodium) pdf.text(`Sodium: ${nutrition.sodium}mg`, margin + 120, currentY);
-        }
-
-        // Tips
-        if (includeTips && recipe.tips && recipe.tips.length > 0) {
-          currentY += 8;
-          pdf.setFontSize(11);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('Tips', margin, currentY);
-          currentY += 6;
-
-          pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'normal');
-          recipe.tips.forEach(tip => {
-            const tipLines = pdf.splitTextToSize(`• ${tip}`, contentWidth);
-            pdf.text(tipLines, margin, currentY);
-            currentY += tipLines.length * 4 + 3;
-          });
+          pdf.text(
+            `Calories: ${nutrition.calories}   Protein: ${nutrition.protein}g   Carbs: ${nutrition.carbs}g   Fat: ${nutrition.fat}g`,
+            margin + 15,
+            currentY
+          );
         }
       });
 
@@ -757,33 +522,6 @@ export function RecipeBookPDFExporter({
           </div>
 
           <div className="space-y-6">
-            {/* Template Selection */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">PDF Template</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {PDF_TEMPLATES.map(template => (
-                  <button
-                    key={template.id}
-                    onClick={() => setSelectedTemplate(template.id as any)}
-                    disabled={template.isPremium && !isPremiumUser}
-                    className={`p-4 rounded-lg border text-left transition-colors ${
-                      selectedTemplate === template.id
-                        ? 'border-pantry-500 bg-pantry-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    } ${template.isPremium && !isPremiumUser ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="font-medium">{template.name}</div>
-                    <div className="text-sm text-gray-600 mt-1">{template.description}</div>
-                    {template.isPremium && (
-                      <div className="text-xs text-amber-600 mt-2">
-                        💎 Premium Template {isPremiumUser ? '✓ Available' : '(Upgrade to access)'}
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Content Options */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Include in PDF</h3>
@@ -816,6 +554,16 @@ export function RecipeBookPDFExporter({
                     className="rounded border-gray-300 text-pantry-600 focus:ring-pantry-500"
                   />
                   <span className="ml-2 text-gray-700">Cooking tips</span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={includeCookingPhotos}
+                    onChange={e => setIncludeCookingPhotos(e.target.checked)}
+                    className="rounded border-gray-300 text-pantry-600 focus:ring-pantry-500"
+                  />
+                  <span className="ml-2 text-gray-700">📷 Your cooking photos</span>
                 </label>
               </div>
             </div>
@@ -855,7 +603,6 @@ export function RecipeBookPDFExporter({
               <h3 className="text-sm font-semibold text-gray-900 mb-2">PDF Preview</h3>
               <div className="text-sm text-gray-600 space-y-1">
                 <div>📚 Book: {recipeBook.name}</div>
-                <div>📄 Template: {PDF_TEMPLATES.find(t => t.id === selectedTemplate)?.name}</div>
                 <div>🍽️ Recipes: {recipeBook.recipes.length}</div>
                 <div>📏 Page Size: {pageSize}</div>
                 <div>📝 Estimated Pages: {Math.ceil(recipeBook.recipes.length * 2.5)}</div>

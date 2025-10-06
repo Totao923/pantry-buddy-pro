@@ -8,9 +8,11 @@ import { useAuth } from '../../lib/auth/AuthProvider';
 import { RecipeService } from '../../lib/services/recipeService';
 import { databaseSettingsService } from '../../lib/services/databaseSettingsService';
 import { favoritesService } from '../../lib/services/favoritesService';
+import { cookingSessionService } from '../../lib/services/cookingSessionService';
 import { usePullToRefreshContext } from '../../contexts/PullToRefreshProvider';
 import { Recipe, CuisineType } from '../../types';
 import ChildFriendlyFilter from '../../components/family/ChildFriendlyFilter';
+import EditCookingSessionModal from '../../components/cooking/EditCookingSessionModal';
 
 export default function RecipesBrowser() {
   const router = useRouter();
@@ -29,7 +31,9 @@ export default function RecipesBrowser() {
   const [selectedCuisine, setSelectedCuisine] = useState<CuisineType | 'all'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'time' | 'rating'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [filter, setFilter] = useState<'all' | 'favorites' | 'recent' | 'meal-plan'>('all');
+  const [filter, setFilter] = useState<'all' | 'favorites' | 'recent' | 'meal-plan' | 'cooked'>(
+    'all'
+  );
   const [selectedRecipes, setSelectedRecipes] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [childFriendlyFilters, setChildFriendlyFilters] = useState({
@@ -37,6 +41,13 @@ export default function RecipesBrowser() {
     excludeAllergens: [] as string[],
     showChildFriendlyOnly: false,
   });
+  const [cookedRecipeIds, setCookedRecipeIds] = useState<string[]>([]);
+  const [cookingSessions, setCookingSessions] = useState<Map<string, any>>(new Map());
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedRecipeForEdit, setSelectedRecipeForEdit] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   // Scroll position preservation
   const recipesContainerRef = useRef<HTMLDivElement>(null);
@@ -213,11 +224,50 @@ export default function RecipesBrowser() {
     loadRecipes();
   }, [user]);
 
+  // Load cooked recipe IDs and session data for filtering and display
+  useEffect(() => {
+    const loadCookedRecipeData = async () => {
+      if (user?.id) {
+        try {
+          const allCookingSessions = await cookingSessionService.getUserCookingSessions(100);
+          const cookedIds = allCookingSessions.map(session => session.recipe_id);
+          const uniqueCookedIds = [...new Set(cookedIds)]; // Remove duplicates
+          setCookedRecipeIds(uniqueCookedIds);
+
+          // Create map of recipe_id -> most recent cooking session for photos/stats
+          const sessionsMap = new Map();
+          allCookingSessions.forEach(session => {
+            const existing = sessionsMap.get(session.recipe_id);
+            if (!existing || new Date(session.cooked_at) > new Date(existing.cooked_at)) {
+              sessionsMap.set(session.recipe_id, session);
+            }
+          });
+
+          // Debug: Check if we have photos in cooking sessions
+          console.log(
+            'Cooking sessions with photos:',
+            Array.from(sessionsMap.values()).filter(s => s.photo_url)
+          );
+          setCookingSessions(sessionsMap);
+        } catch (error) {
+          console.error('Error loading cooked recipe data:', error);
+          setCookedRecipeIds([]);
+          setCookingSessions(new Map());
+        }
+      } else {
+        setCookedRecipeIds([]);
+        setCookingSessions(new Map());
+      }
+    };
+
+    loadCookedRecipeData();
+  }, [user]);
+
   useEffect(() => {
     // Apply filters based on URL query params
     const { filter: urlFilter } = router.query;
     if (urlFilter && typeof urlFilter === 'string') {
-      setFilter(urlFilter as 'all' | 'favorites' | 'recent' | 'meal-plan');
+      setFilter(urlFilter as 'all' | 'favorites' | 'recent' | 'meal-plan' | 'cooked');
     }
   }, [router.query]);
 
@@ -258,6 +308,9 @@ export default function RecipesBrowser() {
     } else if (filter === 'meal-plan') {
       // Show only AI-generated meal plan recipes
       filtered = filtered.filter(recipe => recipe.tags?.includes('meal-plan'));
+    } else if (filter === 'cooked') {
+      // Show only recipes that have been cooked
+      filtered = filtered.filter(recipe => cookedRecipeIds.includes(recipe.id));
     }
 
     // Apply sorting
@@ -301,7 +354,16 @@ export default function RecipesBrowser() {
     }
 
     setFilteredRecipes(filtered);
-  }, [recipes, searchQuery, selectedCuisine, sortBy, filter, childFriendlyFilters]);
+  }, [
+    recipes,
+    searchQuery,
+    selectedCuisine,
+    sortBy,
+    filter,
+    childFriendlyFilters,
+    cookedRecipeIds,
+    cookingSessions,
+  ]);
 
   // Restore scroll position after filtered recipes change
   useEffect(() => {
@@ -389,6 +451,8 @@ export default function RecipesBrowser() {
           if (filter === 'favorites') {
             const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
             include = include && favorites.includes(recipe.id);
+          } else if (filter === 'cooked') {
+            include = include && cookedRecipeIds.includes(recipe.id);
           }
 
           return include;
@@ -400,6 +464,38 @@ export default function RecipesBrowser() {
       console.error('Error deleting recipe:', error);
       alert('Failed to delete recipe. Please try again.');
     }
+  };
+
+  const handleEditCookingSession = (recipe: Recipe) => {
+    setSelectedRecipeForEdit({ id: recipe.id, title: recipe.title });
+    setEditModalOpen(true);
+  };
+
+  const handleEditModalSuccess = () => {
+    // Reload cooked recipe data to refresh photos and stats
+    const reloadCookedRecipeData = async () => {
+      if (user?.id) {
+        try {
+          const allCookingSessions = await cookingSessionService.getUserCookingSessions(100);
+          const cookedIds = allCookingSessions.map(session => session.recipe_id);
+          const uniqueCookedIds = [...new Set(cookedIds)];
+          setCookedRecipeIds(uniqueCookedIds);
+
+          // Update sessions map
+          const sessionsMap = new Map();
+          allCookingSessions.forEach(session => {
+            const existing = sessionsMap.get(session.recipe_id);
+            if (!existing || new Date(session.cooked_at) > new Date(existing.cooked_at)) {
+              sessionsMap.set(session.recipe_id, session);
+            }
+          });
+          setCookingSessions(sessionsMap);
+        } catch (error) {
+          console.error('Error reloading cooked recipe data:', error);
+        }
+      }
+    };
+    reloadCookedRecipeData();
   };
 
   const bulkDeleteRecipes = async (recipeIds: string[]) => {
@@ -457,6 +553,8 @@ export default function RecipesBrowser() {
           if (filter === 'favorites') {
             const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
             include = include && favorites.includes(recipe.id);
+          } else if (filter === 'cooked') {
+            include = include && cookedRecipeIds.includes(recipe.id);
           }
 
           return include;
@@ -633,6 +731,7 @@ export default function RecipesBrowser() {
               { key: 'favorites', label: 'Favorites' },
               { key: 'recent', label: 'Recent' },
               { key: 'meal-plan', label: 'Meal Plans' },
+              { key: 'cooked', label: 'Cooked Recipes' },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -710,6 +809,15 @@ export default function RecipesBrowser() {
                           </p>
                         </div>
                         <div className="flex items-center gap-1 ml-2">
+                          {filter === 'cooked' && (
+                            <button
+                              onClick={() => handleEditCookingSession(recipe)}
+                              className="p-2 rounded-lg transition-colors text-blue-500 hover:bg-blue-50"
+                              title="Edit cooking session"
+                            >
+                              ✏️
+                            </button>
+                          )}
                           <button
                             onClick={() => toggleFavorite(recipe.id)}
                             className={`p-2 rounded-lg transition-colors ${
@@ -743,6 +851,51 @@ export default function RecipesBrowser() {
                           </span>
                         )}
                       </div>
+
+                      {/* Cooking Session Info for Cooked Recipes */}
+                      {filter === 'cooked' && cookingSessions.has(recipe.id) && (
+                        <div className="mb-4">
+                          {(() => {
+                            const session = cookingSessions.get(recipe.id);
+                            return (
+                              <div className="space-y-2">
+                                {/* Cooking Stats */}
+                                <div className="flex items-center gap-4 text-sm text-gray-600">
+                                  {session.rating && (
+                                    <span className="flex items-center gap-1">
+                                      ⭐ {session.rating}/5
+                                    </span>
+                                  )}
+                                  <span className="text-green-600">
+                                    🍳 Cooked {new Date(session.cooked_at).toLocaleDateString()}
+                                  </span>
+                                  {session.cook_time_actual && (
+                                    <span>⏱️ {session.cook_time_actual}m actual</span>
+                                  )}
+                                </div>
+
+                                {/* Photo Display */}
+                                {session.photo_url && (
+                                  <div className="mt-2">
+                                    <img
+                                      src={session.photo_url}
+                                      alt="Cooked dish"
+                                      className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                                    />
+                                  </div>
+                                )}
+
+                                {/* Cooking Notes Preview */}
+                                {session.cooking_notes && (
+                                  <div className="text-sm text-gray-600 italic line-clamp-2">
+                                    "{session.cooking_notes}"
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-between">
                         <div className="flex flex-wrap gap-1">
@@ -799,6 +952,19 @@ export default function RecipesBrowser() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
+                            {filter === 'cooked' && (
+                              <button
+                                onClick={() =>
+                                  alert(
+                                    `Edit cooking session for: ${recipe.title}\n\nThis will open a modal to edit your cooking notes, rating, photos, and modifications.\n\n(Coming in next update!)`
+                                  )
+                                }
+                                className="p-2 rounded-lg transition-colors text-blue-500 hover:bg-blue-50"
+                                title="Edit cooking session"
+                              >
+                                ✏️
+                              </button>
+                            )}
                             <button
                               onClick={() => toggleFavorite(recipe.id)}
                               className={`p-2 rounded-lg transition-colors ${
@@ -849,6 +1015,19 @@ export default function RecipesBrowser() {
             </div>
           )}
         </div>
+
+        {/* Edit Cooking Session Modal */}
+        {selectedRecipeForEdit && (
+          <EditCookingSessionModal
+            isOpen={editModalOpen}
+            onClose={() => {
+              setEditModalOpen(false);
+              setSelectedRecipeForEdit(null);
+            }}
+            recipe={selectedRecipeForEdit}
+            onSuccess={handleEditModalSuccess}
+          />
+        )}
       </DashboardLayout>
     </AuthGuard>
   );

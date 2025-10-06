@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth/AuthProvider';
 import { RecipeBook, RecipeBookWithRecipes, Recipe, PDFTemplate } from '../types';
 import { RecipeBookPDFExporter } from './RecipeBookPDFExporter';
+import { cookingSessionService, CookingSession } from '../lib/services/cookingSessionService';
 
 interface RecipeBookManagerProps {
   savedRecipes: Recipe[];
@@ -84,37 +85,6 @@ function RecipeSelector({ recipes, onConfirm, onCancel }: RecipeSelectorProps) {
   );
 }
 
-const PDF_TEMPLATES: PDFTemplate[] = [
-  {
-    id: 'minimalist',
-    name: 'Minimalist',
-    description: 'Clean, simple design perfect for everyday cooking',
-    isPremium: false,
-    thumbnail: '/templates/minimalist.png',
-  },
-  {
-    id: 'elegant',
-    name: 'Elegant',
-    description: 'Beautiful typography and spacing for special occasions',
-    isPremium: true,
-    thumbnail: '/templates/elegant.png',
-  },
-  {
-    id: 'family',
-    name: 'Family Style',
-    description: 'Warm, family-friendly design with personal touches',
-    isPremium: true,
-    thumbnail: '/templates/family.png',
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    description: 'Restaurant-quality layout for serious cooks',
-    isPremium: true,
-    thumbnail: '/templates/professional.png',
-  },
-];
-
 export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerProps) {
   const { user, subscription } = useAuth();
   const [recipeBooks, setRecipeBooks] = useState<RecipeBook[]>([]);
@@ -140,26 +110,31 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
 
     setLoading(true);
     try {
-      // Mock data for now - replace with actual API call
-      const mockBooks: RecipeBook[] = [
-        {
-          id: '1',
-          userId: user.id,
-          name: 'Family Favorites',
-          description: 'Our most loved recipes passed down through generations',
-          template: 'family',
-          isPublic: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          recipeCount: 5,
-        },
-      ];
-      setRecipeBooks(mockBooks);
+      // Load recipe books from localStorage for now
+      const storageKey = `recipe-books-${user.id}`;
+      const stored = localStorage.getItem(storageKey);
+      const storedBooks: RecipeBook[] = stored ? JSON.parse(stored) : [];
+
+      // Convert date strings back to Date objects
+      const books = storedBooks.map(book => ({
+        ...book,
+        createdAt: new Date(book.createdAt),
+        updatedAt: new Date(book.updatedAt),
+      }));
+
+      setRecipeBooks(books);
     } catch (error) {
       console.error('Failed to load recipe books:', error);
+      setRecipeBooks([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveRecipeBooks = (books: RecipeBook[]) => {
+    if (!user) return;
+    const storageKey = `recipe-books-${user.id}`;
+    localStorage.setItem(storageKey, JSON.stringify(books));
   };
 
   const createRecipeBook = async (bookData: Partial<RecipeBook>) => {
@@ -170,20 +145,24 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
       userId: user.id,
       name: bookData.name || 'Untitled Book',
       description: bookData.description || '',
-      template: bookData.template || 'minimalist',
+      template: 'elegant',
       isPublic: false,
       createdAt: new Date(),
       updatedAt: new Date(),
       recipeCount: 0,
     };
 
-    setRecipeBooks([...recipeBooks, newBook]);
+    const updatedBooks = [...recipeBooks, newBook];
+    setRecipeBooks(updatedBooks);
+    saveRecipeBooks(updatedBooks);
     setShowCreateModal(false);
   };
 
   const deleteRecipeBook = async (bookId: string) => {
     if (window.confirm('Are you sure you want to delete this recipe book?')) {
-      setRecipeBooks(recipeBooks.filter(book => book.id !== bookId));
+      const updatedBooks = recipeBooks.filter(book => book.id !== bookId);
+      setRecipeBooks(updatedBooks);
+      saveRecipeBooks(updatedBooks);
       if (selectedBook?.id === bookId) {
         setSelectedBook(null);
       }
@@ -191,37 +170,66 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
   };
 
   const openBook = async (book: RecipeBook) => {
-    // Load the book with mock recipes for now - in a real app this would load from database
-    const recipesWithBookItems = savedRecipes.slice(0, 3).map(recipe => ({
-      ...recipe,
-      bookItem: {
-        id: `item-${recipe.id}`,
-        bookId: book.id,
-        recipeId: recipe.id,
-        order: 1,
-        section: 'Main Dishes',
-        addedAt: new Date(),
-      },
-    }));
+    console.log('openBook called with book:', book);
 
-    const bookWithRecipes: RecipeBookWithRecipes = {
-      ...book,
-      sections: [
-        {
-          name: 'Main Dishes',
-          recipes: recipesWithBookItems,
-        },
-      ],
-      recipes: recipesWithBookItems,
-    };
+    try {
+      // Load cooking sessions to get recipes with photos
+      const cookingSessions = await cookingSessionService.getUserCookingSessions(200);
 
-    setSelectedBook(bookWithRecipes);
+      // Filter to only recipes that have been cooked (with cooking sessions)
+      const cookedRecipeIds = new Set(cookingSessions.map(session => session.recipe_id));
+      const cookedRecipes = savedRecipes.filter(recipe => cookedRecipeIds.has(recipe.id));
+
+      if (cookedRecipes.length > 0) {
+        // Automatically create book with all cooked recipes
+        const bookWithRecipes = createBookWithSelectedRecipes(
+          book,
+          cookedRecipes.map(r => r.id)
+        );
+        setSelectedBook(bookWithRecipes);
+        console.log(`Auto-populated book with ${cookedRecipes.length} cooked recipes`);
+      } else {
+        // Fallback to recipe selector if no cooked recipes
+        setShowRecipeSelector(true);
+        setBookToEdit(book);
+        console.log('No cooked recipes found, showing recipe selector');
+      }
+    } catch (error) {
+      console.error('Failed to load cooking sessions:', error);
+      // Fallback to recipe selector
+      setShowRecipeSelector(true);
+      setBookToEdit(book);
+    }
   };
 
   const addRecipesToBook = async (book: RecipeBook) => {
     // Show recipe selection modal for adding recipes (keep current book selected)
     setShowRecipeSelector(true);
     setBookToEdit(book);
+  };
+
+  const removeRecipeFromBook = (recipeId: string, recipeTitle: string) => {
+    if (!selectedBook) return;
+
+    if (window.confirm(`Remove "${recipeTitle}" from this recipe book?`)) {
+      // Remove from main recipes array
+      const updatedRecipes = selectedBook.recipes.filter(recipe => recipe.id !== recipeId);
+
+      // Remove from all sections
+      const updatedSections = selectedBook.sections.map(section => ({
+        ...section,
+        recipes: section.recipes.filter(recipe => recipe.id !== recipeId),
+      }));
+
+      // Update the selected book
+      const updatedBook: RecipeBookWithRecipes = {
+        ...selectedBook,
+        recipes: updatedRecipes,
+        sections: updatedSections,
+      };
+
+      setSelectedBook(updatedBook);
+    }
   };
 
   const createBookWithSelectedRecipes = (book: RecipeBook, selectedRecipeIds: string[]) => {
@@ -248,45 +256,54 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
       ],
       recipes: recipesWithBookItems,
     };
+
+    // Set this as the currently selected book
+    setSelectedBook(bookWithRecipes);
     return bookWithRecipes;
   };
 
   const handleRecipeSelection = (selectedIds: string[]) => {
-    if (bookToEdit && selectedBook) {
-      // Get the selected recipes to add
-      const selectedRecipes = savedRecipes.filter(recipe => selectedIds.includes(recipe.id));
+    if (bookToEdit) {
+      if (selectedBook) {
+        // Adding recipes to existing opened book
+        const selectedRecipes = savedRecipes.filter(recipe => selectedIds.includes(recipe.id));
 
-      // Convert to book items format
-      const newRecipeItems = selectedRecipes.map(recipe => ({
-        ...recipe,
-        bookItem: {
-          id: `item-${recipe.id}-${Date.now()}`,
-          bookId: bookToEdit.id,
-          recipeId: recipe.id,
-          order: selectedBook.recipes.length + 1,
-          section: 'Main Dishes',
-          addedAt: new Date(),
-        },
-      }));
-
-      // Merge with existing recipes (avoid duplicates)
-      const existingRecipeIds = new Set(selectedBook.recipes.map(r => r.id));
-      const recipesToAdd = newRecipeItems.filter(recipe => !existingRecipeIds.has(recipe.id));
-      const allRecipes = [...selectedBook.recipes, ...recipesToAdd];
-
-      // Update the book with merged recipes
-      const updatedBook: RecipeBookWithRecipes = {
-        ...selectedBook,
-        sections: [
-          {
-            name: 'Main Dishes',
-            recipes: allRecipes,
+        // Convert to book items format
+        const newRecipeItems = selectedRecipes.map(recipe => ({
+          ...recipe,
+          bookItem: {
+            id: `item-${recipe.id}-${Date.now()}`,
+            bookId: bookToEdit.id,
+            recipeId: recipe.id,
+            order: selectedBook.recipes.length + 1,
+            section: 'Main Dishes',
+            addedAt: new Date(),
           },
-        ],
-        recipes: allRecipes,
-      };
+        }));
 
-      setSelectedBook(updatedBook);
+        // Merge with existing recipes (avoid duplicates)
+        const existingRecipeIds = new Set(selectedBook.recipes.map(r => r.id));
+        const recipesToAdd = newRecipeItems.filter(recipe => !existingRecipeIds.has(recipe.id));
+        const allRecipes = [...selectedBook.recipes, ...recipesToAdd];
+
+        // Update the book with merged recipes
+        const updatedBook: RecipeBookWithRecipes = {
+          ...selectedBook,
+          sections: [
+            {
+              name: 'Main Dishes',
+              recipes: allRecipes,
+            },
+          ],
+          recipes: allRecipes,
+        };
+
+        setSelectedBook(updatedBook);
+      } else {
+        // Opening book for first time - create new book with selected recipes
+        createBookWithSelectedRecipes(bookToEdit, selectedIds);
+      }
+
       setShowRecipeSelector(false);
       setBookToEdit(null);
     }
@@ -295,9 +312,6 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
   const CreateBookModal = () => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [template, setTemplate] = useState<'minimalist' | 'elegant' | 'family' | 'professional'>(
-      'minimalist'
-    );
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -328,31 +342,6 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
                 placeholder="A brief description of your recipe book..."
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">PDF Template</label>
-              <div className="grid grid-cols-2 gap-2">
-                {PDF_TEMPLATES.map(tmpl => (
-                  <button
-                    key={tmpl.id}
-                    type="button"
-                    onClick={() => setTemplate(tmpl.id as any)}
-                    disabled={tmpl.isPremium && !isPremium}
-                    className={`p-3 rounded-lg border text-left transition-colors ${
-                      template === tmpl.id
-                        ? 'border-pantry-500 bg-pantry-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    } ${tmpl.isPremium && !isPremium ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="font-medium text-sm">{tmpl.name}</div>
-                    <div className="text-xs text-gray-500 mt-1">{tmpl.description}</div>
-                    {tmpl.isPremium && !isPremium && (
-                      <div className="text-xs text-amber-600 mt-1">💎 Premium</div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           <div className="flex justify-end gap-3 mt-6">
@@ -363,7 +352,7 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
               Cancel
             </button>
             <button
-              onClick={() => createRecipeBook({ name, description, template })}
+              onClick={() => createRecipeBook({ name, description, template: 'elegant' })}
               disabled={!name.trim()}
               className="px-4 py-2 bg-pantry-600 text-white rounded-lg hover:bg-pantry-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -433,8 +422,17 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
                 {section.recipes.map(recipe => (
                   <div
                     key={recipe.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    className="relative border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow group"
                   >
+                    {/* Delete button - only shows on hover */}
+                    <button
+                      onClick={() => removeRecipeFromBook(recipe.id, recipe.title)}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs"
+                      title={`Remove ${recipe.title} from book`}
+                    >
+                      🗑️
+                    </button>
+
                     <h3 className="font-medium text-gray-900">{recipe.title}</h3>
                     <p className="text-sm text-gray-600 mt-1">{recipe.description}</p>
                     <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
@@ -582,6 +580,18 @@ export default function RecipeBookManager({ savedRecipes }: RecipeBookManagerPro
 
       {/* Create Book Modal */}
       {showCreateModal && <CreateBookModal />}
+
+      {/* Recipe Selector Modal */}
+      {showRecipeSelector && bookToEdit && (
+        <RecipeSelector
+          recipes={savedRecipes}
+          onConfirm={handleRecipeSelection}
+          onCancel={() => {
+            setShowRecipeSelector(false);
+            setBookToEdit(null);
+          }}
+        />
+      )}
     </div>
   );
 }
