@@ -15,6 +15,7 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
+  const [scanAttempts, setScanAttempts] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -81,10 +82,10 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
                 console.log('🎥 [iOS Debug] Video playing successfully!');
                 setCameraInitializing(false);
 
-                // Start scanning for barcodes
+                // Start scanning for barcodes - reduced interval for faster detection
                 scanIntervalRef.current = setInterval(() => {
                   scanForBarcode();
-                }, 500);
+                }, 300);
               })
               .catch(error => {
                 console.error('🎥 [iOS Debug] Error playing video:', error);
@@ -163,12 +164,14 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
     ctx.drawImage(video, 0, 0);
 
     try {
+      // Update scan attempts counter
+      setScanAttempts(prev => prev + 1);
+
       // Use BarcodeDetector API if available (Chrome/Android)
-      console.log('🎥 [iOS Debug] Attempting barcode detection...');
       const barcode = await detectBarcode(canvas);
 
       if (barcode && barcode !== lastScannedCode) {
-        console.log('🎥 [iOS Debug] Barcode detected:', barcode);
+        console.log('🎥 [iOS Debug] ✅ Barcode detected:', barcode);
         setLastScannedCode(barcode);
         await handleBarcodeFound(barcode);
       }
@@ -186,32 +189,42 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
           return;
         }
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        console.log('🎥 [iOS Debug] Using QuaggaJS to decode image...');
 
         Quagga.decodeSingle(
           {
             decoder: {
               readers: [
+                'upc_reader',
+                'upc_e_reader',
                 'ean_reader',
                 'ean_8_reader',
                 'code_128_reader',
-                'upc_reader',
-                'upc_e_reader',
+                'code_39_reader',
+                'codabar_reader',
               ],
+              multiple: false,
             },
             locate: true,
+            locator: {
+              patchSize: 'medium',
+              halfSample: true,
+            },
+            numOfWorkers: 0,
             src: canvas.toDataURL('image/png'),
           },
           (result: any) => {
-            if (result && result.codeResult) {
+            if (result && result.codeResult && result.codeResult.code) {
+              console.log('🎥 [iOS Debug] QuaggaJS detected barcode:', result.codeResult.code);
               resolve(result.codeResult.code);
             } else {
+              console.log('🎥 [iOS Debug] QuaggaJS - no barcode detected in this frame');
               resolve(null);
             }
           }
         );
       } catch (err) {
-        console.error('QuaggaJS detection error:', err);
+        console.error('🎥 [iOS Debug] QuaggaJS detection error:', err);
         resolve(null);
       }
     });
@@ -438,6 +451,16 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
                 >
                   Stop Scanning
                 </button>
+              </div>
+
+              {/* Scanning Activity */}
+              <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                <div className="text-blue-800 text-xs text-center">
+                  Scanning... ({scanAttempts} attempts)
+                  <div className="mt-1 text-blue-600">
+                    💡 Tip: Hold barcode steady, ensure good lighting
+                  </div>
+                </div>
               </div>
 
               {/* Last Scanned */}
