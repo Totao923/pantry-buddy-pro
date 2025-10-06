@@ -22,7 +22,17 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
 
   const startScanning = useCallback(async () => {
     try {
+      console.log('🎥 [iOS Debug] Starting camera...');
       setError(null);
+
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('🎥 [iOS Debug] getUserMedia not supported');
+        setError('Camera access not supported on this device. Please use manual entry.');
+        return;
+      }
+
+      console.log('🎥 [iOS Debug] Requesting camera permission...');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment', // Use back camera
@@ -31,28 +41,55 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
         },
       });
 
+      console.log('🎥 [iOS Debug] Camera permission granted, stream received:', stream.id);
       streamRef.current = stream;
+
       if (videoRef.current) {
+        console.log('🎥 [iOS Debug] Setting video source...');
         videoRef.current.srcObject = stream;
 
         // Wait for video to be ready, then play (required for mobile browsers)
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch(error => {
-            console.error('Error playing video:', error);
-            setError('Unable to start camera. Please try again.');
-          });
+          console.log('🎥 [iOS Debug] Video metadata loaded, attempting to play...');
+          videoRef.current
+            ?.play()
+            .then(() => {
+              console.log('🎥 [iOS Debug] Video playing successfully!');
+              setIsScanning(true);
+
+              // Start scanning for barcodes
+              scanIntervalRef.current = setInterval(() => {
+                scanForBarcode();
+              }, 500);
+            })
+            .catch(error => {
+              console.error('🎥 [iOS Debug] Error playing video:', error);
+              setError('Unable to start camera playback. Please try again.');
+            });
         };
 
-        setIsScanning(true);
-
-        // Start scanning for barcodes
-        scanIntervalRef.current = setInterval(() => {
-          scanForBarcode();
-        }, 500);
+        videoRef.current.onerror = error => {
+          console.error('🎥 [iOS Debug] Video element error:', error);
+          setError('Video playback error. Please try again.');
+        };
+      } else {
+        console.error('🎥 [iOS Debug] Video ref is null!');
+        setError('Camera initialization failed. Please try again.');
       }
     } catch (error) {
-      console.error('Error accessing camera:', error);
-      setError('Unable to access camera. Please check permissions or use manual entry.');
+      console.error('🎥 [iOS Debug] Error accessing camera:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('🎥 [iOS Debug] Error details:', errorMessage);
+
+      if (errorMessage.includes('Permission denied') || errorMessage.includes('NotAllowedError')) {
+        setError(
+          'Camera permission denied. Please allow camera access in your browser settings and try again.'
+        );
+      } else if (errorMessage.includes('NotFoundError')) {
+        setError('No camera found on this device. Please use manual entry.');
+      } else {
+        setError(`Unable to access camera: ${errorMessage}. Please try manual entry.`);
+      }
     }
   }, []);
 
@@ -71,13 +108,19 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
   }, []);
 
   const scanForBarcode = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current || !isScanning) return;
+    if (!videoRef.current || !canvasRef.current || !isScanning) {
+      console.log('🎥 [iOS Debug] scanForBarcode skipped - missing refs or not scanning');
+      return;
+    }
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
-    if (!ctx || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    if (!ctx || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      console.log('🎥 [iOS Debug] Video not ready yet, readyState:', video.readyState);
+      return;
+    }
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -85,14 +128,16 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
 
     try {
       // Use BarcodeDetector API if available (Chrome/Android)
+      console.log('🎥 [iOS Debug] Attempting barcode detection...');
       const barcode = await detectBarcode(canvas);
 
       if (barcode && barcode !== lastScannedCode) {
+        console.log('🎥 [iOS Debug] Barcode detected:', barcode);
         setLastScannedCode(barcode);
         await handleBarcodeFound(barcode);
       }
     } catch (error) {
-      console.error('Barcode scanning error:', error);
+      console.error('🎥 [iOS Debug] Barcode scanning error:', error);
     }
   }, [isScanning, lastScannedCode]);
 
@@ -140,6 +185,7 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
     try {
       // Try native BarcodeDetector API first (Chrome/Android/Edge - faster)
       if ('BarcodeDetector' in window) {
+        console.log('🎥 [iOS Debug] Using native BarcodeDetector API');
         const barcodeDetector = new (window as any).BarcodeDetector({
           formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'],
         });
@@ -147,15 +193,18 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
         const barcodes = await barcodeDetector.detect(canvas);
 
         if (barcodes.length > 0) {
+          console.log('🎥 [iOS Debug] Native API detected barcode:', barcodes[0].rawValue);
           return barcodes[0].rawValue;
         }
       } else {
         // Fall back to QuaggaJS for Safari/iOS
+        console.log('🎥 [iOS Debug] BarcodeDetector not available, using QuaggaJS fallback');
         return await detectWithQuagga(canvas);
       }
     } catch (err) {
-      console.error('Barcode detection error:', err);
+      console.error('🎥 [iOS Debug] Barcode detection error:', err);
       // Try QuaggaJS as fallback on error
+      console.log('🎥 [iOS Debug] Falling back to QuaggaJS due to error');
       return await detectWithQuagga(canvas);
     }
 
@@ -290,7 +339,13 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
             <div className="space-y-4">
               {/* Camera View */}
               <div className="relative bg-black rounded-xl overflow-hidden">
-                <video ref={videoRef} autoPlay playsInline className="w-full h-80 object-cover" />
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-80 object-cover"
+                />
 
                 {/* Scanning Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -352,6 +407,18 @@ export default function BarcodeScanner({ onProductFound, onClose }: BarcodeScann
                 <span className="font-medium">Scanning Error</span>
               </div>
               <p className="text-sm mt-1">{error}</p>
+              {error.includes('permission') && (
+                <div className="mt-3 p-3 bg-white rounded-lg border border-red-200">
+                  <p className="text-sm font-medium text-gray-900 mb-2">
+                    How to enable camera on iOS:
+                  </p>
+                  <ol className="text-xs text-gray-700 space-y-1 list-decimal list-inside">
+                    <li>Go to Settings → Safari → Camera</li>
+                    <li>Set to "Allow" or "Ask"</li>
+                    <li>Refresh this page and try again</li>
+                  </ol>
+                </div>
+              )}
             </div>
           )}
         </div>
