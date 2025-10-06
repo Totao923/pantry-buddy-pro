@@ -146,3 +146,36 @@ Changed camera request to use progressive fallback:
 2. Fallback: Remove facingMode constraint entirely - use any available camera
 
 This ensures the camera will work even if the device doesn't support the environment facing mode constraint.
+
+---
+
+## Fourth Fix - PWA Camera Permissions
+
+### Problem
+
+Camera works in Safari browser but not in installed PWA app on iPhone.
+
+### Root Cause
+
+PWA manifest was missing camera permissions declaration, and iOS-specific PWA meta tags were not set.
+
+### Fix Applied
+
+**`/public/manifest.json`**
+
+- Added `"permissions": ["camera"]` to declare camera access requirement
+- Added `"purpose": "any maskable"` to icons for better PWA support
+
+**`/pages/_document.tsx`**
+
+- Added `apple-mobile-web-app-capable` meta tag for iOS PWA support
+- Added `apple-mobile-web-app-status-bar-style` for proper iOS integration
+- Added `mobile-web-app-capable` for general PWA support
+
+### Next Steps
+
+After deploying, users need to:
+
+1. Remove old PWA from home screen
+2. Reinstall PWA from browser
+3. Grant camera permission when prompted

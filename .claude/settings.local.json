@@ -69,7 +69,8 @@
       "Bash(supabase:*)",
       "Bash(npx supabase:*)",
       "Bash(git restore:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(lsof:*)"
     ],
     "deny": []
   }

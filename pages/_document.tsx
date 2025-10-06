@@ -18,6 +18,9 @@ export default function Document() {
           name="description"
           content="Transform your pantry ingredients into restaurant-quality recipes with advanced AI"
         />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="mobile-web-app-capable" content="yes" />
 
         {/* Apple Touch Icon */}
         <link rel="apple-touch-icon" href="/favicon-32x32.png" />
