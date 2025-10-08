@@ -29,6 +29,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       description: 'Home with insights',
     },
     {
+      name: 'Pantry',
+      href: '/dashboard/pantry',
+      icon: '🥗',
+      description: 'Manage your pantry',
+    },
+    {
       name: 'My Recipes',
       href: '/dashboard/recipes',
       icon: '📚',
@@ -48,19 +54,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       isPremium: true,
     },
     {
-      name: 'Pantry',
-      href: '/dashboard/pantry',
-      icon: '🥗',
-      description: 'Manage your pantry',
-    },
-    {
-      name: 'Nutrition',
-      href: '/dashboard/nutrition',
-      icon: '🤖',
-      description: 'AI Nutrition Analysis',
-      isPremium: true,
-    },
-    {
       name: 'Meal Plans',
       href: '/dashboard/meal-plans',
       icon: '📅',
@@ -68,10 +61,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       isPremium: true,
     },
     {
-      name: 'Shopping Lists',
-      href: '/dashboard/shopping-lists',
-      icon: '🛒',
-      description: 'Manage shopping lists',
+      name: 'Nutrition',
+      href: '/dashboard/nutrition',
+      icon: '🤖',
+      description: 'AI Nutrition Analysis',
+      isPremium: true,
     },
     {
       name: 'Family',
