@@ -6,6 +6,7 @@ import AuthGuard from '../../components/auth/AuthGuard';
 import ReceiptScanner from '../../components/ReceiptScanner';
 import ReceiptReview, { ConfirmedReceiptItem } from '../../components/ReceiptReview';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import { ConfirmedBarcodeItem } from '../../components/BarcodeItemConfirm';
 import SpendingAnalytics from '../../components/SpendingAnalytics';
 import { useAuth } from '../../lib/auth/AuthProvider';
 import { receiptService, ExtractedReceiptData } from '../../lib/services/receiptService';
@@ -132,26 +133,28 @@ export default function Receipts() {
     }
   };
 
-  const handleProductScanned = async (product: ProductInfo) => {
+  const handleProductScanned = async (confirmedData: ConfirmedBarcodeItem) => {
     try {
+      const { product, price, quantity, purchaseDate } = confirmedData;
+
       // Save scanned product to history
       await barcodeService.saveScannedProduct(product, user?.id);
 
-      // Create pantry item from scanned product
-      const expirationDate = new Date();
+      // Create pantry item from scanned product with confirmed data
+      const expirationDate = new Date(purchaseDate);
       expirationDate.setDate(expirationDate.getDate() + 30); // Default 30 days
 
       const pantryItem = {
         id: uuidv4(),
         name: product.name,
         category: product.category,
-        currentQuantity: 1,
-        originalQuantity: 1,
+        currentQuantity: quantity,
+        originalQuantity: quantity,
         unit: product.unit || 'each',
         brand: product.brand,
         barcode: product.barcode,
-        price: product.price,
-        purchaseDate: new Date(),
+        price: price,
+        purchaseDate: purchaseDate,
         expiryDate: expirationDate.toISOString(),
         isRunningLow: false,
         usageFrequency: 0,
@@ -162,6 +165,35 @@ export default function Receipts() {
       };
 
       await ingredientService.createIngredient(pantryItem);
+
+      // Create single-item receipt for spending analytics
+      const singleItemReceipt: ExtractedReceiptData = {
+        id: uuidv4(),
+        storeName: 'Single Item Scanned',
+        receiptDate: purchaseDate,
+        totalAmount: price * quantity,
+        taxAmount: 0,
+        items: [
+          {
+            id: uuidv4(),
+            name: product.name,
+            price: price,
+            quantity: quantity,
+            unit: product.unit || 'item',
+            category: product.category,
+            confidence: product.confidence,
+          },
+        ],
+        rawText: `Single Item: ${product.name} - $${price.toFixed(2)}`,
+        confidence: product.confidence,
+      };
+
+      // Save to receipt service
+      if (user) {
+        await receiptService.saveReceiptData(singleItemReceipt, user.id, supabaseClient);
+        await loadReceipts(); // Refresh receipts list
+      }
+
       setSuccessMessage(`Added ${product.name} to your pantry!`);
       setShowBarcodeScanner(false);
 
