@@ -823,6 +823,7 @@ export default function PantryManagement() {
                       confidence: product.confidence,
                     },
                   ],
+                  rawText: `Single Item: ${product.name} - $${price.toFixed(2)}`,
                   confidence: product.confidence,
                 };
 
