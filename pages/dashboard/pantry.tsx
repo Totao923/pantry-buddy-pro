@@ -7,6 +7,7 @@ import SmartPantry from '../../components/SmartPantry';
 import QuickSuggestionsCard from '../../components/QuickSuggestionsCard';
 import ReceiptScanner from '../../components/ReceiptScanner';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import { ConfirmedBarcodeItem } from '../../components/BarcodeItemConfirm';
 import ReceiptReview, { ConfirmedReceiptItem } from '../../components/ReceiptReview';
 import SpendingAnalytics from '../../components/SpendingAnalytics';
 import { getIngredientService } from '../../lib/services/ingredientServiceFactory';
@@ -778,26 +779,59 @@ export default function PantryManagement() {
         {showBarcodeScanner && (
           <BarcodeScanner
             onClose={() => setShowBarcodeScanner(false)}
-            onProductFound={async (product: ProductInfo) => {
+            onProductFound={async (confirmedData: ConfirmedBarcodeItem) => {
               try {
+                const { product, price, quantity, purchaseDate } = confirmedData;
+
                 // Save scanned product to history
                 await barcodeService.saveScannedProduct(product, user?.id);
 
-                // Create ingredient from scanned product
+                // Create ingredient from scanned product with confirmed data
                 const ingredient: Ingredient = {
                   id: '',
                   name: product.name,
                   category: product.category,
-                  quantity: '1',
+                  quantity: quantity.toString(),
                   unit: product.unit || 'item',
                   expiryDate: undefined,
+                  purchaseDate: purchaseDate,
                   nutritionalValue: product.nutritionInfo?.calories,
                   isProtein: product.category === 'protein',
                   isVegetarian: product.isVegetarian,
                   isVegan: product.isVegan,
+                  price: price,
+                  priceSource: 'estimated',
                 };
 
                 await handleAddIngredient(ingredient);
+
+                // Create single-item receipt for spending analytics
+                const singleItemReceipt: ExtractedReceiptData = {
+                  id: uuidv4(),
+                  storeName: 'Single Item Scanned',
+                  receiptDate: purchaseDate,
+                  totalAmount: price * quantity,
+                  taxAmount: 0,
+                  items: [
+                    {
+                      id: uuidv4(),
+                      name: product.name,
+                      price: price,
+                      quantity: quantity,
+                      unit: product.unit || 'item',
+                      category: product.category,
+                      confidence: product.confidence,
+                    },
+                  ],
+                  confidence: product.confidence,
+                };
+
+                // Save to receipt service
+                if (user) {
+                  await receiptService.saveReceiptData(singleItemReceipt, user.id, supabaseClient);
+                  await loadReceipts(); // Refresh receipts list
+                }
+
                 alert(`Added ${product.name} to your pantry!`);
                 setShowBarcodeScanner(false);
               } catch (error) {
