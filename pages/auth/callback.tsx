@@ -10,14 +10,39 @@ export default function AuthCallback() {
       try {
         const supabase = createSupabaseClient();
 
+        // Check for error parameters first (Supabase sends these when links expire or fail)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const urlParams = new URLSearchParams(window.location.search.substring(1));
+
+        const errorCode = hashParams.get('error_code') || urlParams.get('error_code');
+        const errorDescription =
+          hashParams.get('error_description') || urlParams.get('error_description');
+
+        // Handle Supabase errors in URL
+        if (errorCode) {
+          console.error('Auth callback error from URL:', { errorCode, errorDescription });
+
+          // Provide user-friendly error messages
+          let friendlyMessage = 'Authentication failed. Please try again.';
+
+          if (errorCode === 'otp_expired') {
+            friendlyMessage =
+              'This confirmation link has expired. Please sign up again to receive a new link.';
+          } else if (errorCode === 'access_denied') {
+            friendlyMessage = 'Access denied. Please check your email and try again.';
+          } else if (errorDescription) {
+            friendlyMessage = errorDescription.replace(/\+/g, ' ');
+          }
+
+          router.push(`/?auth=error&message=${encodeURIComponent(friendlyMessage)}`);
+          return;
+        }
+
         // First, try to exchange the URL hash for a session (for email confirmations)
         const { data, error } = await supabase.auth.getSession();
 
         // If no session from getSession, try exchanging URL parameters
         if (!data?.session && !error) {
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const urlParams = new URLSearchParams(window.location.search.substring(1));
-
           // Check for access token in URL hash (email confirmation flow)
           const accessToken = hashParams.get('access_token') || urlParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token') || urlParams.get('refresh_token');

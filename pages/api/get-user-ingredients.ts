@@ -3,11 +3,25 @@ import { createServerSupabaseClient } from '../../lib/supabase/server';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    console.log('🔍 Loading ingredients for hescoto@icloud.com from database...');
-
-    // Use service role client to bypass RLS for testing
+    // Get the authenticated user from the request
     const supabase = createServerSupabaseClient();
-    const userId = '21fc3c81-a66a-4cf3-be35-c2b70a900864'; // hescoto@icloud.com
+
+    // Get user from session
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error('❌ Authentication error:', authError);
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized - Please sign in',
+      });
+    }
+
+    const userId = user.id;
+    console.log(`🔍 Loading ingredients for ${user.email} from database...`);
 
     const { data: pantryItems, error } = await supabase
       .from('pantry_items')
@@ -55,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({
       success: true,
       user: {
-        email: 'hescoto@icloud.com',
+        email: user.email,
         id: userId,
       },
       ingredients,
