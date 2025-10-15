@@ -585,7 +585,7 @@ export default function Dashboard() {
               }),
           // Load receipt analytics from service (fallback to direct API-based calculation)
           user?.id
-            ? receiptService.getSpendingAnalytics(user.id, '7days').catch(() => ({
+            ? receiptService.getSpendingAnalytics(user.id, '1year').catch(() => ({
                 totalSpent: 0,
                 totalReceipts: 0,
                 avgTicket: 0,
