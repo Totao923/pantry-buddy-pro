@@ -1,5 +1,48 @@
 # Task History
 
+## ✅ COMPLETED: Fix Cuisine Validation Error
+
+### Problem
+
+Recipe generation was failing with validation error:
+
+```
+Validation failed: cuisine: Invalid option: expected one of "any"|"italian"|"asian"|"mexican"|"indian"|"american"|"mediterranean"|"chinese"|"french"|"thai"
+```
+
+### Root Cause
+
+- `AdvancedCuisineSelector.tsx` (lines 82-136) defines 15 cuisines including: **japanese, korean, middle-eastern, greek, spanish, fusion**
+- `lib/validation/schemas.ts` (lines 34-51) only allowed 10 cuisines: any, italian, asian, mexican, indian, american, mediterranean, chinese, french, thai
+
+### Fix Applied (Simple, following CLAUDE.md)
+
+**File Modified:** `/Users/user/pantry buddy/lib/validation/schemas.ts` (lines 34-51)
+
+**Changes:**
+Added 6 missing cuisines to the validation enum:
+
+- `'japanese'`
+- `'korean'`
+- `'middle-eastern'`
+- `'greek'`
+- `'spanish'`
+- `'fusion'`
+
+### Impact
+
+- ✅ All 15 cuisine types from AdvancedCuisineSelector now pass validation
+- ✅ Recipe generation will work for Japanese, Korean, Middle Eastern, Greek, Spanish, and Fusion cuisines
+- ✅ No more 400 Bad Request errors when selecting these cuisines
+
+### Status
+
+**COMPLETED & READY TO TEST** ✅
+
+Please try generating a recipe with one of the previously failing cuisines (Japanese, Korean, Middle Eastern, Greek, Spanish, or Fusion)
+
+---
+
 ## ✅ COMPLETED: Fixed Critical Data Isolation Bug
 
 ### Problem Discovered:

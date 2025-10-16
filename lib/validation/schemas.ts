@@ -42,6 +42,12 @@ export const GenerateRecipeSchema = z.object({
     'chinese',
     'french',
     'thai',
+    'japanese',
+    'korean',
+    'middle-eastern',
+    'greek',
+    'spanish',
+    'fusion',
   ]),
   servings: z
     .number()
