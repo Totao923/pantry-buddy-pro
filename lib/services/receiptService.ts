@@ -195,12 +195,25 @@ class ReceiptService {
     // Extract items
     const items = this.extractItems(lines);
 
+    // Filter out store name from items list (case-insensitive)
+    const filteredItems = items.filter(item => {
+      const itemNameLower = item.name.toLowerCase().trim();
+      const storeNameLower = storeName.toLowerCase().trim();
+
+      // Skip if item name matches store name
+      if (itemNameLower === storeNameLower || itemNameLower.includes(storeNameLower)) {
+        console.log(`⏭️ Filtering out store name from items: "${item.name}"`);
+        return false;
+      }
+      return true;
+    });
+
     return {
       storeName,
       receiptDate,
       totalAmount,
       taxAmount,
-      items,
+      items: filteredItems,
     };
   }
 
@@ -224,7 +237,7 @@ class ReceiptService {
       /^(WHOLE FOODS|TRADER JOE|SAFEWAY|KROGER|WALMART|TARGET|COSTCO)/i,
       /^(CVS|WALGREENS|RITE AID|DUANE READE)/i,
       /^(HOME DEPOT|LOWES|MENARDS)/i,
-      /^(STOP & SHOP|FOOD LION|PUBLIX|WEGMANS|H-E-B)/i,
+      /^(STOP & SHOP|FOOD LION|PUBLIX|WEGMANS|H-E-B|SHOPRITE|SHOP RITE)/i,
       /^(ALDI|LIDL|FRESH MARKET|SPROUTS)/i,
       /^(DOLLAR TREE|FAMILY DOLLAR|DOLLAR GENERAL)/i,
     ];
@@ -238,10 +251,19 @@ class ReceiptService {
       /'S$/i, // Possessive stores like "Leonard's", "Smith's"
     ];
 
-    // First try specific store patterns in first 8 lines
-    for (const line of lines.slice(0, 8)) {
+    // First try specific store patterns in first 15 lines
+    for (const line of lines.slice(0, 15)) {
       const cleanLine = line.trim();
       if (cleanLine.length < 3) continue;
+
+      // Skip manager/employee lines FIRST
+      if (
+        cleanLine.match(
+          /\b(manager|cashier|clerk|employee|supervisor|assistant|director|team member)\b/i
+        )
+      ) {
+        continue;
+      }
 
       for (const pattern of specificStorePatterns) {
         if (pattern.test(cleanLine)) {
@@ -250,10 +272,19 @@ class ReceiptService {
       }
     }
 
-    // Then try generic patterns in first 8 lines
-    for (const line of lines.slice(0, 8)) {
+    // Then try generic patterns in first 15 lines
+    for (const line of lines.slice(0, 15)) {
       const cleanLine = line.trim();
       if (cleanLine.length < 3) continue;
+
+      // Skip manager/employee lines FIRST
+      if (
+        cleanLine.match(
+          /\b(manager|cashier|clerk|employee|supervisor|assistant|director|team member)\b/i
+        )
+      ) {
+        continue;
+      }
 
       // Skip lines that look like addresses or phone numbers
       if (cleanLine.match(/^\d+\s+\w+|^\(\d{3}\)|\d{3}-\d{3}-\d{4}/)) continue;
@@ -275,6 +306,14 @@ class ReceiptService {
 
       // Skip obvious non-store lines
       if (cleanLine.match(/^\d+\s+\w+|^\(\d{3}\)|\d{3}-\d{3}-\d{4}|@|\.com|receipt|date|time/i))
+        continue;
+
+      // Skip manager/employee lines
+      if (
+        cleanLine.match(
+          /\b(manager|cashier|clerk|employee|supervisor|assistant|director|team member)\b/i
+        )
+      )
         continue;
 
       // If line has letters and is reasonable length, use it
@@ -440,26 +479,18 @@ class ReceiptService {
 
       // Pattern 3: Lines that could be item names
       if (this.couldBeItemName(line)) {
-        // If we already have a pending item, process it with estimated price
+        // If we already have a pending item without a price on the next line, skip it
         if (pendingItemName && !pendingItemName.includes('$')) {
-          const cleanName = this.cleanItemName(pendingItemName);
-          if (cleanName.length >= 3) {
-            console.log(`✅ Pattern 3 - Name only: "${cleanName}" → estimated price`);
-            items.push(this.createReceiptItem(cleanName, this.estimatePrice(cleanName), 0.7));
-          }
+          console.log(`⏭️ Skipping item without adjacent price: "${pendingItemName}"`);
         }
         pendingItemName = line;
         console.log(`🏷️ Potential item: "${line}"`);
       }
     }
 
-    // Process any remaining pending item
+    // Process any remaining pending item (skip if no price)
     if (pendingItemName && !pendingItemName.includes('$')) {
-      const cleanName = this.cleanItemName(pendingItemName);
-      if (cleanName.length >= 3) {
-        console.log(`✅ Final item: "${cleanName}" → estimated price`);
-        items.push(this.createReceiptItem(cleanName, this.estimatePrice(cleanName), 0.6));
-      }
+      console.log(`⏭️ Skipping final item without adjacent price: "${pendingItemName}"`);
     }
 
     // Strategy 2: Fallback parsing for missed items
@@ -633,13 +664,14 @@ class ReceiptService {
       // Must contain letters
       if (!trimmed.match(/[A-Za-z]/)) continue;
 
-      // Extract price if present, otherwise estimate
-      let price = this.estimatePrice(trimmed);
+      // Only extract items with actual prices on the same line
       const priceMatch = trimmed.match(/\$?(\d+\.\d{2})/);
-      if (priceMatch) {
-        price = parseFloat(priceMatch[1]);
+      if (!priceMatch) {
+        console.log(`⏭️ Fallback skipping item without price: "${trimmed}"`);
+        continue;
       }
 
+      const price = parseFloat(priceMatch[1]);
       const cleanName = this.cleanItemName(trimmed.replace(/\$?\d+\.\d{2}.*/, '').trim());
 
       if (cleanName.length >= 3 && this.isValidItem(cleanName, price)) {
@@ -660,9 +692,12 @@ class ReceiptService {
   }
 
   private isStoreInfoLine(line: string): boolean {
-    // Phone number patterns (most specific first)
-    if (line.match(/^\(\d{3}\)-?\d{3}-?\d{4}$/)) {
-      return true; // "(201)-649-0888"
+    // Phone number patterns (more comprehensive)
+    if (line.match(/^\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})$/)) {
+      return true; // "(201)-649-0888", "201-649-0888", "2016490888"
+    }
+    if (line.match(/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/)) {
+      return true; // Phone numbers anywhere in line
     }
 
     // City, state, zip patterns
@@ -673,6 +708,11 @@ class ReceiptService {
     // Address patterns (number followed by street name)
     if (line.match(/^\d+\s+[A-Za-z\s]+$/) && !line.match(/\d+\.\d{2}/)) {
       return true; // "700 Paramus Park"
+    }
+
+    // Store manager lines
+    if (line.match(/\b(manager|cashier|clerk|employee|supervisor)\b/i)) {
+      return true; // "STORE MANAGER", "John Smith Manager"
     }
 
     // Store names - be more specific to avoid grocery items
@@ -1417,6 +1457,13 @@ class ReceiptService {
       }[timeRange];
       const fromDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
 
+      console.log('📊 getSpendingAnalytics:', {
+        userId,
+        timeRange,
+        fromDate: fromDate.toISOString().split('T')[0],
+        now: now.toISOString().split('T')[0],
+      });
+
       // Get receipts in date range
       const { data: receipts, error } = await supabase
         .from('receipts')
@@ -1434,6 +1481,8 @@ class ReceiptService {
         .order('receipt_date', { ascending: false });
 
       if (error) throw error;
+
+      console.log('📊 getSpendingAnalytics receipts found:', receipts?.length || 0);
 
       // Calculate analytics
       let totalSpent = 0;
