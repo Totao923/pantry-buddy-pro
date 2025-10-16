@@ -369,12 +369,14 @@ class DatabaseSettingsService {
         return false;
       }
 
-      // Test basic query with timeout
-      const { error } = await this.supabase
-        .from('user_settings')
-        .select('id')
-        .limit(1)
-        .timeout(5000); // 5 second timeout
+      // Test basic query with timeout (using Promise.race)
+      const queryPromise = this.supabase.from('user_settings').select('id').limit(1);
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Query timeout after 5 seconds')), 5000)
+      );
+
+      const { error } = await Promise.race([queryPromise, timeoutPromise]);
 
       if (error) {
         console.log('Database unavailable: Query failed', error.message);

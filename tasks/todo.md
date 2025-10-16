@@ -1,5 +1,71 @@
 # Task History
 
+## ✅ COMPLETED: Fix Database Timeout Error
+
+### Problem
+
+Database availability check was failing with error:
+
+```
+Database unavailable: Exception thrown this.supabase.from(...).select(...).limit(...).timeout is not a function
+```
+
+### Root Cause
+
+- `databaseSettingsService.ts:377` used `.timeout(5000)` which is not a valid Supabase method
+- The Supabase JS client doesn't have a built-in timeout method
+- Needed to implement timeout using Promise.race()
+
+### Fix Applied (Simple, following CLAUDE.md)
+
+**File Modified:** `/Users/user/pantry buddy/lib/services/databaseSettingsService.ts` (lines 372-386)
+
+**Changes:**
+Replaced invalid `.timeout()` call with `Promise.race()` pattern:
+
+**Code Before:**
+
+```typescript
+// Test basic query with timeout
+const { error } = await this.supabase.from('user_settings').select('id').limit(1).timeout(5000); // 5 second timeout
+```
+
+**Code After:**
+
+```typescript
+// Test basic query with timeout (using Promise.race)
+const queryPromise = this.supabase.from('user_settings').select('id').limit(1);
+
+const timeoutPromise = new Promise<never>((_, reject) =>
+  setTimeout(() => reject(new Error('Query timeout after 5 seconds')), 5000)
+);
+
+const { error } = await Promise.race([queryPromise, timeoutPromise]);
+```
+
+### How It Works
+
+- Creates two promises: the database query and a timeout promise
+- Uses `Promise.race()` to return whichever completes first
+- If timeout promise wins (5 seconds), it rejects with timeout error
+- If query completes first, it returns the result
+- Caught by try/catch and properly handled
+
+### Impact
+
+- ✅ Database availability check now works without errors
+- ✅ 5-second timeout properly implemented
+- ✅ Falls back to localStorage when database unavailable
+- ✅ No more console errors about invalid `.timeout()` method
+
+### Status
+
+**COMPLETED & READY TO TEST** ✅
+
+The error should no longer appear in the console
+
+---
+
 ## ✅ COMPLETED: Fix Cuisine Validation Error
 
 ### Problem
@@ -37,9 +103,7 @@ Added 6 missing cuisines to the validation enum:
 
 ### Status
 
-**COMPLETED & READY TO TEST** ✅
-
-Please try generating a recipe with one of the previously failing cuisines (Japanese, Korean, Middle Eastern, Greek, Spanish, or Fusion)
+**COMPLETED & TESTED** ✅ - Japanese recipe generated successfully!
 
 ---
 
