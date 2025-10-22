@@ -59,11 +59,11 @@ export default function RecipeBooksPage() {
         // Extract unique recipe data from sessions
         const sessionRecipes = sessions
           .filter(session => session.recipe_data) // Only sessions with recipe data
-          .map(session => session.recipe_data)
+          .map(session => session.recipe_data!)
           .filter(
             (recipe, index, self) =>
               // Remove duplicates based on ID
-              index === self.findIndex(r => r.id === recipe.id)
+              index === self.findIndex(r => r?.id === recipe.id)
           )
           .filter(
             recipe =>
