@@ -27,6 +27,7 @@ export default function RecipeDetail() {
   const [review, setReview] = useState<RecipeReview | null>(null);
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isSaved, setIsSaved] = useState(false);
   const haptic = useHaptic();
 
   // Set authenticated client and load recipes when ID is available
@@ -228,54 +229,44 @@ export default function RecipeDetail() {
   const handleSaveRecipe = async () => {
     if (recipe) {
       try {
-        // Try to save to database first
-        if (await databaseRecipeService.isAvailable()) {
-          console.log('Saving recipe to Supabase database');
-          const saveResult = await databaseRecipeService.saveRecipe(recipe, user?.id || '');
+        // Use RecipeService.saveRecipe for consistent saving
+        const saveResult = await RecipeService.saveRecipe(recipe, user?.id || 'anonymous');
 
-          if (saveResult.success) {
-            // Add to recent items
-            await databaseSettingsService.addRecentItem('recipe', recipe.id, recipe);
-            console.log('Recipe saved to database successfully');
-            return;
-          }
-        }
-
-        // Fallback to localStorage
-        console.log('Saving recipe to localStorage fallback');
-        const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
-        const isAlreadySaved = userRecipes.some((r: Recipe) => r.id === recipe.id);
-
-        if (!isAlreadySaved) {
-          userRecipes.push(recipe);
-          localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
-        }
-
-        // Add to favorites
-        const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
-        if (!favorites.includes(recipe.id)) {
-          favorites.push(recipe.id);
-          localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
+        if (saveResult.success) {
+          console.log('Recipe saved successfully');
+          setIsSaved(true);
+          alert('Recipe saved to My Recipes!');
+        } else {
+          console.error('Failed to save recipe:', saveResult.error);
+          alert('Failed to save recipe. Please try again.');
         }
       } catch (error) {
         console.error('Error saving recipe:', error);
-        // Still fallback to localStorage on error
-        const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
-        const isAlreadySaved = userRecipes.some((r: Recipe) => r.id === recipe.id);
-
-        if (!isAlreadySaved) {
-          userRecipes.push(recipe);
-          localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
-        }
-
-        const favorites = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
-        if (!favorites.includes(recipe.id)) {
-          favorites.push(recipe.id);
-          localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
-        }
+        alert('Failed to save recipe. Please try again.');
       }
     }
   };
+
+  // Check if recipe is already saved
+  useEffect(() => {
+    const checkIfSaved = async () => {
+      if (!recipe) return;
+
+      try {
+        const userId = user?.id || 'anonymous';
+        const savedRecipes = await RecipeService.getSavedRecipes(userId);
+
+        if (savedRecipes.success && savedRecipes.data) {
+          const isAlreadySaved = savedRecipes.data.some(r => r.id === recipe.id);
+          setIsSaved(isAlreadySaved);
+        }
+      } catch (error) {
+        console.error('Error checking if recipe is saved:', error);
+      }
+    };
+
+    checkIfSaved();
+  }, [recipe, user]);
 
   const handleStartCooking = async () => {
     if (!recipe) return;
@@ -562,6 +553,8 @@ export default function RecipeDetail() {
             recipe={recipe}
             onServingChange={handleServingChange}
             onSaveRecipe={handleSaveRecipe}
+            onSaveToMyRecipes={handleSaveRecipe}
+            isSavedToMyRecipes={isSaved}
             onStartCooking={handleStartCooking}
             onOpenRatingModal={() => setShowRatingModal(true)}
           />

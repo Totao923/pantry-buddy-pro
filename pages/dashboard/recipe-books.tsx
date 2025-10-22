@@ -40,13 +40,45 @@ export default function RecipeBooksPage() {
       console.log('Recipe Books: Loading saved recipes for user:', userId);
 
       const result = await RecipeService.getSavedRecipes(userId);
+
+      let allRecipes: Recipe[] = [];
+
       if (result.success && result.data) {
-        console.log(`Recipe Books: Loaded ${result.data.length} recipes`);
-        setSavedRecipes(result.data);
+        console.log(`Recipe Books: Loaded ${result.data.length} saved recipes`);
+        allRecipes = [...result.data];
       } else {
         console.error('Recipe Books: Failed to load recipes:', result.error);
-        setSavedRecipes([]);
       }
+
+      // Also load recipes from cooking sessions (in case they weren't saved)
+      try {
+        const { cookingSessionService } = await import('../../lib/services/cookingSessionService');
+        const sessions = await cookingSessionService.getUserCookingSessions(200);
+        console.log(`Recipe Books: Found ${sessions.length} cooking sessions`);
+
+        // Extract unique recipe data from sessions
+        const sessionRecipes = sessions
+          .filter(session => session.recipe_data) // Only sessions with recipe data
+          .map(session => session.recipe_data)
+          .filter(
+            (recipe, index, self) =>
+              // Remove duplicates based on ID
+              index === self.findIndex(r => r.id === recipe.id)
+          )
+          .filter(
+            recipe =>
+              // Exclude recipes already in saved recipes
+              !allRecipes.some(saved => saved.id === recipe.id)
+          );
+
+        console.log(`Recipe Books: Adding ${sessionRecipes.length} recipes from cooking sessions`);
+        allRecipes = [...allRecipes, ...sessionRecipes];
+      } catch (error) {
+        console.error('Recipe Books: Failed to load cooking session recipes:', error);
+      }
+
+      console.log(`Recipe Books: Total recipes available: ${allRecipes.length}`);
+      setSavedRecipes(allRecipes);
     } catch (error) {
       console.error('Recipe Books: Failed to load saved recipes:', error);
       setSavedRecipes([]);

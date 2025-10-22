@@ -28,6 +28,7 @@ export default function CreateRecipe() {
   const [generatedRecipe, setGeneratedRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
   const [cookingPreferences, setCookingPreferences] = useState({
     spiceLevel: 'medium' as 'mild' | 'medium' | 'hot' | 'extra-hot',
     maxTime: 60,
@@ -417,19 +418,19 @@ export default function CreateRecipe() {
 
         if (saveResult.success) {
           console.log('Create Recipe: Recipe saved successfully');
-          router.push('/dashboard/recipes');
+          setIsSaved(true);
+          showSuccessToast('Recipe saved to My Recipes!');
+          // Don't redirect immediately - let user see the saved state
+          setTimeout(() => {
+            router.push('/dashboard/recipes');
+          }, 1500);
           return;
         } else {
           throw new Error(saveResult.error || 'Failed to save recipe');
         }
       } catch (error) {
         console.error('Error saving recipe:', error);
-        // Still fallback to localStorage on error
-        const userRecipes = JSON.parse(localStorage.getItem('userRecipes') || '[]');
-        userRecipes.push(generatedRecipe);
-        localStorage.setItem('userRecipes', JSON.stringify(userRecipes));
-
-        router.push('/dashboard/recipes');
+        showErrorToast('Failed to save recipe. Please try again.');
       }
     }
   };
@@ -677,6 +678,8 @@ export default function CreateRecipe() {
                 recipe={generatedRecipe}
                 onServingChange={() => {}} // Disable serving changes in creation flow
                 onSaveRecipe={handleSaveRecipe}
+                onSaveToMyRecipes={handleSaveRecipe}
+                isSavedToMyRecipes={isSaved}
                 onStartCooking={handleStartCooking}
                 onOpenRatingModal={() => {}} // Disable rating in creation flow
               />

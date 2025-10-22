@@ -16,6 +16,72 @@ interface RecipeSelectorProps {
 
 function RecipeSelector({ recipes, onConfirm, onCancel }: RecipeSelectorProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [filter, setFilter] = useState<'all' | 'favorites' | 'recent' | 'meal-plan' | 'cooked'>(
+    'all'
+  );
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>(recipes);
+
+  // Load cooked recipe IDs from cooking sessions
+  useEffect(() => {
+    const loadCookedRecipeIds = async () => {
+      try {
+        const sessions = await cookingSessionService.getUserCookingSessions(200);
+        const cookedIds = sessions.map(session => session.recipe_id);
+
+        console.log('🔍 RecipeSelector filter:', filter);
+        console.log('📚 Total recipes:', recipes.length);
+        console.log(
+          '📝 All recipe IDs:',
+          recipes.map(r => ({ id: r.id, title: r.title }))
+        );
+        console.log('🍳 Cooked recipe IDs from sessions:', cookedIds);
+        console.log('🔍 Number of cooking sessions:', sessions.length);
+
+        // Apply filter
+        let filtered = [...recipes];
+
+        if (filter === 'favorites') {
+          const favoriteIds = JSON.parse(localStorage.getItem('favoriteRecipes') || '[]');
+          console.log('⭐ Favorite IDs from localStorage:', favoriteIds);
+          console.log(
+            '📝 Recipe IDs available:',
+            recipes.map(r => r.id)
+          );
+          filtered = filtered.filter(recipe => favoriteIds.includes(recipe.id));
+          console.log('⭐ Filtered favorites:', filtered.length);
+          console.log(
+            '⭐ Favorite recipes:',
+            filtered.map(r => ({ id: r.id, title: r.title }))
+          );
+        } else if (filter === 'recent') {
+          // Show recipes from last 7 days (for now, show all)
+          filtered = filtered;
+        } else if (filter === 'meal-plan') {
+          filtered = filtered.filter(recipe => recipe.tags?.includes('meal-plan'));
+          console.log('📋 Filtered meal-plan recipes:', filtered.length);
+        } else if (filter === 'cooked') {
+          console.log('🔍 Checking each recipe against cooked IDs...');
+          filtered = filtered.filter(recipe => {
+            const isCooked = cookedIds.includes(recipe.id);
+            console.log(`${isCooked ? '✅' : '❌'} Recipe: "${recipe.title}" (ID: ${recipe.id})`);
+            return isCooked;
+          });
+          console.log('🍳 Filtered cooked recipes:', filtered.length);
+          console.log(
+            '🍳 Cooked recipes found:',
+            filtered.map(r => ({ id: r.id, title: r.title }))
+          );
+        }
+
+        setFilteredRecipes(filtered);
+      } catch (error) {
+        console.error('Failed to load cooked recipes:', error);
+        setFilteredRecipes(recipes);
+      }
+    };
+
+    loadCookedRecipeIds();
+  }, [recipes, filter]);
 
   const toggleRecipe = (recipeId: string) => {
     setSelectedIds(prev =>
@@ -29,11 +95,34 @@ function RecipeSelector({ recipes, onConfirm, onCancel }: RecipeSelectorProps) {
         <div className="p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-900">Select Recipes for Recipe Book</h2>
           <p className="text-gray-600 mt-1">Choose which recipes to include in your recipe book</p>
+
+          {/* Filter Tabs */}
+          <div className="flex gap-2 mt-4 overflow-x-auto">
+            {[
+              { key: 'all', label: 'All Recipes' },
+              { key: 'favorites', label: 'Favorites' },
+              { key: 'recent', label: 'Recent' },
+              { key: 'meal-plan', label: 'Meal Plans' },
+              { key: 'cooked', label: 'Cooked Recipes' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key as any)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  filter === tab.key
+                    ? 'bg-pantry-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="p-6 overflow-y-auto max-h-96">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {recipes.map(recipe => (
+            {filteredRecipes.map(recipe => (
               <div
                 key={recipe.id}
                 className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"

@@ -12,8 +12,10 @@ interface EnhancedRecipeCardProps {
   onOpenRatingModal?: () => void;
   showFavoriteButton?: boolean;
   onAddToCollection?: (recipe: Recipe, collectionId: string) => void;
+  onSaveToMyRecipes?: (recipe: Recipe) => void;
   showCollectionOption?: boolean;
   showChildFriendlyIndicator?: boolean;
+  isSavedToMyRecipes?: boolean;
 }
 
 export default function EnhancedRecipeCard({
@@ -25,8 +27,10 @@ export default function EnhancedRecipeCard({
   onOpenRatingModal,
   showFavoriteButton = true,
   onAddToCollection,
+  onSaveToMyRecipes,
   showCollectionOption = false,
   showChildFriendlyIndicator = false,
+  isSavedToMyRecipes = false,
 }: EnhancedRecipeCardProps) {
   const [currentServings, setCurrentServings] = useState(recipe.servings);
   const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions' | 'nutrition' | 'tips'>(
@@ -269,8 +273,34 @@ export default function EnhancedRecipeCard({
             </div>
           </div>
 
-          {/* Cooking Tracker replaces Start Cooking button */}
-          <CookingTracker recipe={recipe} showDetailedButton={true} />
+          {/* Action Buttons: Cooking Tracker and Save to My Recipes */}
+          <div className="flex items-center gap-3">
+            <CookingTracker recipe={recipe} showDetailedButton={true} />
+
+            {onSaveToMyRecipes && (
+              <button
+                onClick={() => onSaveToMyRecipes(recipe)}
+                disabled={isSavedToMyRecipes}
+                className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                  isSavedToMyRecipes
+                    ? 'bg-green-100 text-green-700 border border-green-200 cursor-not-allowed'
+                    : 'bg-pantry-600 text-white hover:bg-pantry-700'
+                }`}
+              >
+                {isSavedToMyRecipes ? (
+                  <>
+                    <span>✅</span>
+                    <span>Saved</span>
+                  </>
+                ) : (
+                  <>
+                    <span>💾</span>
+                    <span>Save to My Recipes</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

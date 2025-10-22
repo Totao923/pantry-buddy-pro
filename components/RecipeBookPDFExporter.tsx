@@ -359,8 +359,28 @@ export function RecipeBookPDFExporter({
         }
       });
 
+      // Helper function to add page header
+      const addPageHeader = (recipeTitle: string, pageNum: number) => {
+        pdf.setFontSize(8);
+        pdf.setFont('times', 'italic');
+        pdf.setTextColor(120, 120, 120);
+
+        // Recipe name on left
+        pdf.text(recipeTitle, margin, margin - 5);
+
+        // Page number on right
+        pdf.text(`Page ${pageNum}`, pageWidth - margin, margin - 5, { align: 'right' });
+      };
+
       // Recipes with simplified, reliable layout
       recipeBook.recipes.forEach((recipe, recipeIndex) => {
+        // Debug: Check if recipe has tips
+        console.log('PDF Recipe:', recipe.title);
+        console.log('Has tips?', recipe.tips);
+        console.log('Tips array:', recipe.tips);
+        console.log('Tips length:', recipe.tips?.length);
+
+        const recipeStartPage = pdf.internal.pages.length;
         pdf.addPage();
         currentY = margin + 10;
 
@@ -457,6 +477,54 @@ export function RecipeBookPDFExporter({
           currentY += lines.length * 5 + 6;
         });
 
+        // Cooking tips - recipe book style
+        console.log('Checking tips section:', {
+          includeTips,
+          hasTips: !!recipe.tips,
+          tipsLength: recipe.tips?.length,
+          shouldShow: includeTips && recipe.tips && recipe.tips.length > 0,
+        });
+
+        if (includeTips && recipe.tips && recipe.tips.length > 0) {
+          console.log('✅ Adding tips section for:', recipe.title);
+
+          // Estimate space needed for tips section
+          const estimatedTipsHeight = 30 + recipe.tips.length * 20; // Header + approximate space per tip
+
+          // Check if we need a new page
+          if (currentY + estimatedTipsHeight > pageHeight - margin) {
+            console.log(
+              '📄 Adding new page for tips section - current Y:',
+              currentY,
+              'page height:',
+              pageHeight
+            );
+            pdf.addPage();
+            currentY = margin + 20;
+          }
+
+          currentY += 10;
+
+          pdf.setFontSize(14);
+          pdf.setFont('times', 'bold');
+          pdf.setTextColor(139, 69, 19); // Warm brown color
+          pdf.text('Cooking Tips', margin + 15, currentY);
+          currentY += 10;
+
+          pdf.setFontSize(9);
+          pdf.setFont('times', 'normal');
+          pdf.setTextColor(80, 80, 80);
+          recipe.tips.forEach(tip => {
+            const tipText = `• ${tip}`;
+            const tipLines = pdf.splitTextToSize(tipText, contentWidth - 30);
+            pdf.text(tipLines, margin + 20, currentY);
+            currentY += tipLines.length * 5 + 4;
+          });
+          console.log('✅ Tips section added at Y position:', currentY);
+        } else {
+          console.log('❌ Skipping tips section for:', recipe.title);
+        }
+
         // Personal notes - recipe book style
         if (includeNotes && recipe.bookItem?.personalNotes) {
           currentY += 10;
@@ -494,6 +562,13 @@ export function RecipeBookPDFExporter({
             margin + 15,
             currentY
           );
+        }
+
+        // Add header to all pages for this recipe
+        const recipeEndPage = pdf.internal.pages.length - 1;
+        for (let pageNum = recipeStartPage; pageNum <= recipeEndPage; pageNum++) {
+          pdf.setPage(pageNum);
+          addPageHeader(recipe.title, pageNum);
         }
       });
 

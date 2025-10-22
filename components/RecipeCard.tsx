@@ -11,8 +11,10 @@ interface RecipeCardProps {
   onFavorite?: (recipe: Recipe) => void;
   onShare?: (recipe: Recipe) => void;
   onAddToCollection?: (recipe: Recipe, collectionId: string) => void;
+  onSaveToMyRecipes?: (recipe: Recipe) => void;
   showCollectionOption?: boolean;
   showChildFriendlyIndicator?: boolean;
+  isSavedToMyRecipes?: boolean;
 }
 
 export default function RecipeCard({
@@ -21,8 +23,10 @@ export default function RecipeCard({
   onFavorite,
   onShare,
   onAddToCollection,
+  onSaveToMyRecipes,
   showCollectionOption = false,
   showChildFriendlyIndicator = false,
+  isSavedToMyRecipes = false,
 }: RecipeCardProps) {
   const [currentServings, setCurrentServings] = useState(recipe.servings);
   const haptic = useHaptic();
@@ -205,18 +209,40 @@ export default function RecipeCard({
                     📚 Add to Collection
                   </button>
                 )}
-                <button className="bg-accent-500 text-white px-6 py-2 rounded-lg hover:bg-accent-600 transition-colors">
-                  Save Recipe
-                </button>
               </div>
             </div>
 
-            {/* Cooking Tracker */}
-            <CookingTracker
-              recipe={recipe}
-              showDetailedButton={true}
-              className="flex justify-center"
-            />
+            {/* Action Buttons: Cooking Tracker and Save to My Recipes */}
+            <div className="flex justify-center items-center gap-3">
+              <CookingTracker recipe={recipe} showDetailedButton={true} />
+
+              {onSaveToMyRecipes && (
+                <button
+                  onClick={() => {
+                    haptic.success();
+                    onSaveToMyRecipes(recipe);
+                  }}
+                  disabled={isSavedToMyRecipes}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                    isSavedToMyRecipes
+                      ? 'bg-green-100 text-green-700 border border-green-200 cursor-not-allowed'
+                      : 'bg-pantry-600 text-white hover:bg-pantry-700'
+                  }`}
+                >
+                  {isSavedToMyRecipes ? (
+                    <>
+                      <span>✅</span>
+                      <span>Saved</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>💾</span>
+                      <span>Save to My Recipes</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
