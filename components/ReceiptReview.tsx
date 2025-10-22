@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface ReceiptReviewProps {
   receiptData: ExtractedReceiptData;
-  onConfirm: (confirmedItems: ConfirmedReceiptItem[]) => void;
+  onConfirm: (confirmedItems: ConfirmedReceiptItem[], editedStoreName?: string) => void;
   onClose: () => void;
   loading?: boolean;
 }
@@ -99,6 +99,7 @@ export default function ReceiptReview({
   const { user, supabaseClient, loading: authLoading } = useAuth();
   const [internalLoading, setInternalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editableStoreName, setEditableStoreName] = useState(receiptData.storeName);
 
   const [confirmedItems, setConfirmedItems] = useState<ConfirmedReceiptItem[]>(() =>
     receiptData.items.map(item => ({
@@ -122,15 +123,9 @@ export default function ReceiptReview({
   }, []);
 
   const handleConfirm = useCallback(async () => {
-    console.log('🚀 DIRECT PANTRY ADD - Starting process...');
-    console.log('🔍 Debug - user:', user);
-    console.log('🔍 Debug - authLoading:', authLoading);
-    console.log('🔍 Debug - receiptData:', receiptData);
-    console.log('🔍 Debug - supabaseClient:', supabaseClient);
-    console.log('🔍 Debug - confirmedItems:', confirmedItems);
+    console.log('🚀 ReceiptReview: Starting confirmation process...');
     const itemsToAdd = confirmedItems.filter(item => item.addToPantry);
-    console.log('🔍 Debug - itemsToAdd count:', itemsToAdd.length);
-    console.log('🔍 Debug - itemsToAdd:', itemsToAdd);
+    console.log('🔍 Items to add:', itemsToAdd.length);
 
     if (authLoading) {
       console.log('⏳ Auth still loading, please wait...');
@@ -140,7 +135,6 @@ export default function ReceiptReview({
 
     if (!receiptData) {
       console.error('❌ Missing receiptData');
-      console.error('❌ receiptData:', receiptData);
       setError('Missing receipt data');
       return;
     }
@@ -151,41 +145,29 @@ export default function ReceiptReview({
       return;
     }
 
-    // For development - create a mock user ID if user is null
-    const userId = user?.id || 'dev-user-' + Date.now();
-    console.log('🔍 Using userId:', userId);
-
     setInternalLoading(true);
     setError(null);
 
     try {
-      // Skip receipt saving in development mode due to auth issues
-      console.log('⏭️ Skipping receipt saving in development mode');
-      // Note: In production with proper auth, we would save the receipt here
+      console.log('✅ Calling parent onConfirm with items and store name');
+      console.log('📦 Parent will handle: receipt saving + ingredient addition + context refresh');
 
-      console.log('✅ RECEIPT DEBUG: Items validated, calling onConfirm callback');
-      console.log(
-        '📦 RECEIPT DEBUG: This will trigger the parent component to add items via proper callback flow'
-      );
-
-      // Note: The actual ingredient addition will be handled by the parent component
-      // via the onConfirm callback, which ensures proper global context refresh
-
-      console.log('🎉 ALL ITEMS ADDED SUCCESSFULLY!');
-
-      // Call onConfirm to trigger pantry refresh, then close
-      console.log('🔄 Calling onConfirm to trigger pantry refresh...');
-      onConfirm(confirmedItems.filter(item => item.addToPantry));
+      // Call parent's onConfirm - it will handle everything:
+      // 1. Save receipt to database/localStorage
+      // 2. Add items to pantry
+      // 3. Refresh the receipts list
+      // 4. Show success message
+      onConfirm(itemsToAdd, editableStoreName);
 
       console.log('🚪 Closing modal...');
       onClose();
     } catch (error) {
-      console.error('❌ Failed to save receipt:', error);
-      setError('Failed to save receipt data. Please try again.');
+      console.error('❌ Failed to confirm receipt:', error);
+      setError('Failed to process receipt. Please try again.');
     } finally {
       setInternalLoading(false);
     }
-  }, [confirmedItems, user, receiptData, supabaseClient, onClose, authLoading]);
+  }, [confirmedItems, receiptData, onClose, authLoading, editableStoreName, onConfirm]);
 
   const totalItemsToAdd = confirmedItems.filter(item => item.addToPantry).length;
   const totalValue = confirmedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -196,15 +178,26 @@ export default function ReceiptReview({
       <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-          <div>
+          <div className="flex-1">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
               <span className="text-3xl">🧾</span>
               Review Receipt Items
             </h2>
-            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-              <span>📍 {receiptData.storeName}</span>
-              <span>📅 {receiptData.receiptDate.toLocaleDateString()}</span>
-              <span>💰 Total: ${receiptData.totalAmount.toFixed(2)}</span>
+            <div className="flex items-center gap-4 mt-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span>📍</span>
+                <input
+                  type="text"
+                  value={editableStoreName}
+                  onChange={e => setEditableStoreName(e.target.value)}
+                  className="text-sm text-gray-900 bg-gray-50 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-pantry-500 focus:border-transparent"
+                  placeholder="Store name"
+                />
+              </div>
+              <span className="text-gray-600">
+                📅 {receiptData.receiptDate.toLocaleDateString()}
+              </span>
+              <span className="text-gray-600">💰 Total: ${receiptData.totalAmount.toFixed(2)}</span>
             </div>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">

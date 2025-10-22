@@ -240,12 +240,16 @@ export default function PantryManagement() {
     }
   };
 
-  const handleReceiptConfirmed = async (confirmedItems: ConfirmedReceiptItem[]) => {
+  const handleReceiptConfirmed = async (
+    confirmedItems: ConfirmedReceiptItem[],
+    editedStoreName?: string
+  ) => {
     console.log(
       '📋 RECEIPT DEBUG: handleReceiptConfirmed called with',
       confirmedItems.length,
       'items'
     );
+    console.log('🏪 Store name:', editedStoreName);
     setLoading(true);
 
     try {
@@ -256,10 +260,11 @@ export default function PantryManagement() {
       );
       const calculatedTax = calculatedTotal * 0.08; // 8% tax estimate
 
-      // Update receipt data with calculated totals
+      // Update receipt data with calculated totals and edited store name
       if (currentReceipt && user) {
         const updatedReceipt = {
           ...currentReceipt,
+          storeName: editedStoreName || currentReceipt.storeName, // Use edited store name if provided
           totalAmount: calculatedTotal,
           taxAmount: calculatedTax,
           items: confirmedItems.map(item => ({
