@@ -66,8 +66,17 @@ export default function ReceiptScanner({
     const reader = new FileReader();
     reader.onload = e => {
       const imageData = e.target?.result as string;
-      setPreviewImage(imageData);
-      setSelectedFile(file);
+      if (imageData && imageData.startsWith('data:image/')) {
+        setPreviewImage(imageData);
+        setSelectedFile(file);
+      } else {
+        console.error('Invalid image data format');
+        alert('Failed to load image. Please try a different file.');
+      }
+    };
+    reader.onerror = () => {
+      console.error('FileReader error');
+      alert('Failed to read image file. Please try again.');
     };
     reader.readAsDataURL(file);
   }, []);

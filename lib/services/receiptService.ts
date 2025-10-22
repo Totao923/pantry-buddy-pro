@@ -1350,9 +1350,47 @@ class ReceiptService {
     console.log('🧾 ReceiptService: Checking database first for most up-to-date data...');
     try {
       const supabase = supabaseClient || getSupabaseClient();
+      const allReceipts: ExtractedReceiptData[] = [];
 
-      // Get receipts with their items
-      console.log('🧾 ReceiptService: Querying Supabase receipts table...');
+      // Load from receipt_history table (new format)
+      console.log('🧾 ReceiptService: Querying receipt_history table...');
+      const { data: receiptHistoryData, error: historyError } = await supabase
+        .from('receipt_history')
+        .select('*')
+        .eq('user_id', userId)
+        .order('scanned_at', { ascending: false });
+
+      if (!historyError && receiptHistoryData) {
+        console.log(
+          '🧾 ReceiptService: Found receipts in receipt_history:',
+          receiptHistoryData.length
+        );
+        const historyReceipts = receiptHistoryData.map((record: any) => {
+          const receiptData = record.receipt_data;
+          return {
+            id: receiptData.id || record.id,
+            storeName: record.store_name || receiptData.storeName || 'Unknown Store',
+            receiptDate: new Date(receiptData.receiptDate || record.scanned_at),
+            totalAmount: record.total_amount || receiptData.totalAmount || 0,
+            taxAmount: receiptData.taxAmount || 0,
+            rawText: receiptData.rawText || '',
+            confidence: receiptData.confidence || 0.7,
+            items: (receiptData.items || []).map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              quantity: parseFloat(item.quantity || 1),
+              unit: item.unit || 'each',
+              price: parseFloat(item.price || 0),
+              category: item.category,
+              confidence: parseFloat(item.confidence || 0.7),
+            })),
+          };
+        });
+        allReceipts.push(...historyReceipts);
+      }
+
+      // Also load from legacy receipts table
+      console.log('🧾 ReceiptService: Querying legacy receipts table...');
       const { data: receipts, error } = await supabase
         .from('receipts')
         .select(
@@ -1369,7 +1407,7 @@ class ReceiptService {
         throw error;
       }
 
-      console.log('🧾 ReceiptService: Supabase query success:', {
+      console.log('🧾 ReceiptService: Legacy receipts query success:', {
         count: receipts?.length || 0,
         sample:
           receipts?.slice(0, 2).map((r: any) => ({
@@ -1380,25 +1418,34 @@ class ReceiptService {
           })) || [],
       });
 
-      // Transform data to match our interface
-      return receipts.map((receipt: any) => ({
-        id: receipt.id,
-        storeName: receipt.store_name,
-        receiptDate: new Date(receipt.receipt_date),
-        totalAmount: parseFloat(receipt.total_amount),
-        taxAmount: parseFloat(receipt.tax_amount || 0),
-        rawText: receipt.raw_text || '',
-        confidence: parseFloat(receipt.confidence || 0.7),
-        items: receipt.receipt_items.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          quantity: parseFloat(item.quantity),
-          unit: item.unit,
-          price: parseFloat(item.price),
-          category: item.category as IngredientCategory,
-          confidence: parseFloat(item.confidence),
-        })),
-      }));
+      // Transform legacy receipts and add to array
+      if (receipts && receipts.length > 0) {
+        const legacyReceipts = receipts.map((receipt: any) => ({
+          id: receipt.id,
+          storeName: receipt.store_name,
+          receiptDate: new Date(receipt.receipt_date),
+          totalAmount: parseFloat(receipt.total_amount),
+          taxAmount: parseFloat(receipt.tax_amount || 0),
+          rawText: receipt.raw_text || '',
+          confidence: parseFloat(receipt.confidence || 0.7),
+          items: receipt.receipt_items.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            quantity: parseFloat(item.quantity),
+            unit: item.unit,
+            price: parseFloat(item.price),
+            category: item.category as IngredientCategory,
+            confidence: parseFloat(item.confidence),
+          })),
+        }));
+        allReceipts.push(...legacyReceipts);
+      }
+
+      // Sort all receipts by date (newest first)
+      allReceipts.sort((a, b) => b.receiptDate.getTime() - a.receiptDate.getTime());
+
+      console.log('🧾 ReceiptService: Total receipts loaded:', allReceipts.length);
+      return allReceipts;
     } catch (error) {
       console.error('Failed to get receipts from Supabase:', error);
 
