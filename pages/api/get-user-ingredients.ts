@@ -3,14 +3,24 @@ import { createServerSupabaseClient } from '../../lib/supabase/server';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    // Get the authenticated user from the request
+    // Extract the JWT token from the Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ No authorization header');
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized - Please sign in',
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
     const supabase = createServerSupabaseClient();
 
-    // Get user from session
+    // Verify the token and get user
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       console.error('❌ Authentication error:', authError);
@@ -21,13 +31,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const userId = user.id;
-    console.log(`🔍 Loading ingredients for ${user.email} from database...`);
 
-    const { data: pantryItems, error } = await supabase
-      .from('pantry_items')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    // Get time range from query parameter (optional)
+    const timeRange = req.query.timeRange as '7days' | '30days' | '90days' | '1year' | undefined;
+
+    console.log(`🔍 Loading ingredients for ${user.email} from database...`, { timeRange });
+
+    // Build query
+    let query = supabase.from('pantry_items').select('*').eq('user_id', userId);
+
+    // Apply time filter if specified
+    if (timeRange) {
+      const now = new Date();
+      const daysBack = {
+        '7days': 7,
+        '30days': 30,
+        '90days': 90,
+        '1year': 365,
+      }[timeRange];
+      const fromDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+      query = query.gte('created_at', fromDate.toISOString());
+      console.log(`📅 Filtering by date: ${fromDate.toISOString()} to ${now.toISOString()}`);
+    }
+
+    const { data: pantryItems, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.error('❌ Database query error:', error);
@@ -81,16 +108,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           (sum, item) => sum + (item.price || 0) * parseFloat(item.quantity || '1'),
           0
         ),
-        categoryBreakdown: ingredients.reduce(
-          (acc, item) => {
-            if (item.price) {
-              acc[item.category] =
-                (acc[item.category] || 0) + item.price * parseFloat(item.quantity || '1');
-            }
-            return acc;
-          },
-          {} as Record<string, number>
-        ),
+        categoryBreakdown: Object.entries(
+          ingredients.reduce(
+            (acc, item) => {
+              const category = item.category;
+              if (!acc[category]) {
+                acc[category] = { count: 0, value: 0 };
+              }
+              acc[category].count += 1;
+              if (item.price) {
+                acc[category].value += item.price * parseFloat(item.quantity || '1');
+              }
+              return acc;
+            },
+            {} as Record<string, { count: number; value: number }>
+          )
+        ).map(([category, data]) => ({
+          category,
+          count: data.count,
+          value: data.value,
+        })),
       },
     });
   } catch (error) {

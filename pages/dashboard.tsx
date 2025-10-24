@@ -185,6 +185,9 @@ export default function Dashboard() {
   const [totalRecipesCount, setTotalRecipesCount] = useState<number>(0);
   const [cookedToday, setCookedToday] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [spendingTimeRange, setSpendingTimeRange] = useState<
+    '7days' | '30days' | '90days' | '1year'
+  >('1year');
 
   // Analytics dashboard state
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>({
@@ -532,6 +535,14 @@ export default function Dashboard() {
           );
         }
 
+        // Get the user's session token for API calls
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+        const authHeaders = session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : {};
+
         // Load parallel data from all Supabase services (with fallbacks when no user.id)
         const [
           userRecipes,
@@ -585,7 +596,7 @@ export default function Dashboard() {
               }),
           // Load receipt analytics from service (fallback to direct API-based calculation)
           user?.id
-            ? receiptService.getSpendingAnalytics(user.id, '1year').catch(() => ({
+            ? receiptService.getSpendingAnalytics(user.id, spendingTimeRange).catch(() => ({
                 totalSpent: 0,
                 totalReceipts: 0,
                 avgTicket: 0,
@@ -605,7 +616,9 @@ export default function Dashboard() {
             : Promise.resolve([]),
           // Load accurate pantry data from API (ingredients + analytics)
           user?.id
-            ? fetch('/api/get-user-ingredients')
+            ? fetch(`/api/get-user-ingredients?timeRange=${spendingTimeRange}`, {
+                headers: authHeaders,
+              })
                 .then(res => res.json())
                 .then(data =>
                   data.success ? { analytics: data.analytics, ingredients: data.ingredients } : null
@@ -708,26 +721,9 @@ export default function Dashboard() {
                 Math.max(ingredients.filter(ing => ing.priceSource === 'receipt').length, 1)
               : 0),
 
-          // Category breakdown from API data or receipts (convert to expected format)
-          categoryBreakdown: apiData?.analytics?.categoryBreakdown
-            ? Object.entries(apiData.analytics.categoryBreakdown).map(([category, amount]) => {
-                // Calculate count from ingredients for this category, with fallback
-                const ingredientCount = ingredients.filter(
-                  ing => ing.category?.toLowerCase() === category.toLowerCase()
-                ).length;
-                return {
-                  category,
-                  count: Math.max(ingredientCount, 1), // Ensure at least 1 for display
-                  value: amount as number,
-                };
-              })
-            : receiptAnalytics.categoryTotals
-              ? Object.entries(receiptAnalytics.categoryTotals).map(([category, amount]) => ({
-                  category,
-                  count: 1,
-                  value: amount as number,
-                }))
-              : memoizedCategoryBreakdown || [],
+          // Category breakdown from API data (already in correct format) or fallback
+          categoryBreakdown:
+            apiData?.analytics?.categoryBreakdown || memoizedCategoryBreakdown || [],
 
           // Top ingredients from pantry
           topIngredients: memoizedTopIngredients.slice(0, 5) || [],
@@ -883,6 +879,7 @@ export default function Dashboard() {
     memoizedPantryValue,
     memoizedTopIngredients,
     memoizedCategoryBreakdown,
+    spendingTimeRange,
   ]);
 
   // Separate useEffect for timeRange-specific filtering (much lighter operation)
@@ -1063,9 +1060,25 @@ export default function Dashboard() {
                   </div>
 
                   <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-gray-600">Total Spent</p>
+                      <select
+                        value={spendingTimeRange}
+                        onChange={e =>
+                          setSpendingTimeRange(
+                            e.target.value as '7days' | '30days' | '90days' | '1year'
+                          )
+                        }
+                        className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="7days">7 days</option>
+                        <option value="30days">30 days</option>
+                        <option value="90days">90 days</option>
+                        <option value="1year">1 year</option>
+                      </select>
+                    </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Total Spent</p>
                         <p className="text-3xl font-bold text-gray-900 mt-1">
                           ${analyticsData?.totalSpent?.toFixed(2) ?? '0.00'}
                         </p>
