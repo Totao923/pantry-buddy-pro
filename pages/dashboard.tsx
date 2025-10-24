@@ -617,7 +617,9 @@ export default function Dashboard() {
           // Load accurate pantry data from API (ingredients + analytics)
           user?.id
             ? fetch(`/api/get-user-ingredients?timeRange=${spendingTimeRange}`, {
-                headers: authHeaders,
+                ...(session?.access_token && {
+                  headers: { Authorization: `Bearer ${session.access_token}` },
+                }),
               })
                 .then(res => res.json())
                 .then(data =>
